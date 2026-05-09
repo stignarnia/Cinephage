@@ -1205,9 +1205,10 @@ export class SearchOrchestrator {
 
 		for (let i = 0; i < settled.length; i++) {
 			const vc = variantCriteria[i];
-			if (settled[i].status === 'fulfilled') {
+			const result = settled[i];
+			if (result.status === 'fulfilled') {
 				successfulVariants++;
-				for (const release of settled[i].value) {
+				for (const release of result.value) {
 					if (!seenGuids.has(release.guid)) {
 						seenGuids.add(release.guid);
 						allReleases.push(release);
@@ -1215,9 +1216,9 @@ export class SearchOrchestrator {
 				}
 			} else {
 				const message =
-					settled[i].reason instanceof Error
-						? settled[i].reason.message
-						: String(settled[i].reason);
+					result.reason instanceof Error
+						? result.reason.message
+						: String(result.reason);
 				variantErrors.push(message);
 				logger.debug(
 					{
@@ -2122,35 +2123,36 @@ export class SearchOrchestrator {
 
 		const m = a.length;
 		const n = b.length;
-
-		// Create distance matrix
-		const d: number[][] = [];
-		for (let i = 0; i <= n; i++) {
-			d[i] = [i];
-		}
-		for (let j = 0; j <= m; j++) {
-			d[0][j] = j;
-		}
-
-		// Fill the matrix
-		for (let i = 1; i <= n; i++) {
-			for (let j = 1; j <= m; j++) {
-				if (b.charAt(i - 1) === a.charAt(j - 1)) {
-					d[i][j] = d[i - 1][j - 1];
-				} else {
-					d[i][j] = Math.min(
-						d[i - 1][j - 1] + 1, // substitution
-						d[i][j - 1] + 1, // insertion
-						d[i - 1][j] + 1 // deletion
-					);
-				}
-			}
-		}
-
 		const maxLength = Math.max(m, n);
 		if (maxLength === 0) return 1.0;
 
-		return 1 - d[n][m] / maxLength;
+		const maxDistance = Math.floor(maxLength * 0.3);
+
+		if (Math.abs(m - n) > maxDistance) return 0;
+
+		const prev = new Uint16Array(m + 1);
+		const curr = new Uint16Array(m + 1);
+		for (let j = 0; j <= m; j++) prev[j] = j;
+
+		for (let i = 1; i <= n; i++) {
+			curr[0] = i;
+			let rowMin = i;
+			for (let j = 1; j <= m; j++) {
+				if (b.charAt(i - 1) === a.charAt(j - 1)) {
+					curr[j] = prev[j - 1];
+				} else {
+					curr[j] = Math.min(prev[j - 1] + 1, curr[j - 1] + 1, prev[j] + 1);
+				}
+				if (curr[j] < rowMin) rowMin = curr[j];
+			}
+			if (rowMin > maxDistance) return 0;
+			prev.set(curr);
+		}
+
+		const distance = curr[m];
+		if (distance > maxDistance) return 0;
+
+		return 1 - distance / maxLength;
 	}
 
 	/**

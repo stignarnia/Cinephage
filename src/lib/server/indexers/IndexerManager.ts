@@ -436,18 +436,20 @@ export class IndexerManager {
 			}
 		}
 
-		// Create uncached instances (async to allow capability fetching)
+		// Create uncached instances in parallel (async to allow capability fetching)
 		const created: IIndexer[] = [];
-		for (const config of needsCreation) {
-			try {
-				const instance = await this.createIndexerInstance(config);
-				if (instance) {
-					this.indexerInstances.set(config.id, instance);
-					created.push(instance);
-				}
-			} catch (error) {
+		const creationResults = await Promise.allSettled(
+			needsCreation.map((config) => this.createIndexerInstance(config))
+		);
+
+		for (let i = 0; i < creationResults.length; i++) {
+			const result = creationResults[i];
+			if (result.status === 'fulfilled' && result.value) {
+				this.indexerInstances.set(needsCreation[i].id, result.value);
+				created.push(result.value);
+			} else if (result.status === 'rejected') {
 				logger.error(
-					{ err: error, ...{ indexerId: config.id } },
+					{ err: result.reason, indexerId: needsCreation[i].id },
 					'Failed to create indexer instance'
 				);
 			}
