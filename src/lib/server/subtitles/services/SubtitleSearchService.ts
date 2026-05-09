@@ -32,6 +32,10 @@ import { getSubtitleScoringService } from './SubtitleScoringService';
 const criteriaIdCache = new Map<string, { imdbId?: string; tvdbId?: number; expires: number }>();
 const CACHE_TTL_MS = 30 * 60 * 1000;
 
+export function clearIdCacheForTests(): void {
+	criteriaIdCache.clear();
+}
+
 /** Search options */
 export interface SubtitleSearchOptions {
 	/** Specific provider IDs to search (null = all enabled) */
