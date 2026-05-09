@@ -219,16 +219,6 @@ export async function registerBuiltinProviders(): Promise<void> {
 		logger.warn({ error }, 'Failed to register podnapisi provider');
 	}
 
-	try {
-		// Import and register Subscene
-		const subscene = await import('./subscene');
-		if (subscene.PROVIDER_INFO) {
-			providerRegistry.register(subscene.PROVIDER_INFO);
-		}
-	} catch (error) {
-		logger.warn({ error }, 'Failed to register subscene provider');
-	}
-
 	// Regional providers
 	try {
 		// Import and register Napiprojekt (Polish)
