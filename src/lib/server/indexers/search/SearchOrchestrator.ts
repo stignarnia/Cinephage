@@ -430,8 +430,7 @@ export class SearchOrchestrator {
 
 		const searchTimeMs = Date.now() - startTime;
 
-		// TEMP DEBUG: Log per-indexer result counts
-		logger.info(
+		logger.debug(
 			{
 				indexerCounts: indexerResults.map((r) => ({
 					indexer: r.indexerName,
@@ -440,24 +439,12 @@ export class SearchOrchestrator {
 					error: r.error
 				}))
 			},
-			'[SearchOrchestrator] PER-INDEXER RESULT COUNTS (DEBUG)'
+			'Per-indexer result counts'
 		);
 
 		// Pass 1: Basic deduplication (by infoHash/title, prefer more seeders)
 		const { releases: deduped } = this.deduplicator.deduplicate(allReleases);
 		const afterDedupCount = deduped.length;
-
-		// Debug: log YTS releases after deduplication
-		const ytsAfterDedup = deduped.filter((r) => r.indexerName === 'YTS');
-		logger.info(
-			{
-				totalDeduped: deduped.length,
-				ytsCount: ytsAfterDedup.length,
-				ytsTitles: ytsAfterDedup.slice(0, 5).map((r) => r.title),
-				sampleIndexers: deduped.slice(0, 10).map((r) => r.indexerName)
-			},
-			'[SearchOrchestrator] After deduplication'
-		);
 
 		// Get TV episode counts from TMDB for season-pack size validation and
 		// RuTracker season-pack completion gating.
@@ -491,7 +478,6 @@ export class SearchOrchestrator {
 			seasonEpisodeCount,
 			seasonEpisodeCounts
 		});
-		// TEMP DEBUG: Log after season/episode filter
 		logger.debug(
 			{ afterSeasonEpisode: filtered.length },
 			'[SearchOrchestrator] DEBUG: after season/episode filter'
@@ -502,14 +488,12 @@ export class SearchOrchestrator {
 			const searchType = enrichedCriteria.searchType as 'movie' | 'tv' | 'music' | 'book';
 			filtered = this.filterByCategoryMatch(filtered, searchType);
 		}
-		// TEMP DEBUG: Log after category filter
 		logger.debug(
 			{ afterCategory: filtered.length },
 			'[SearchOrchestrator] DEBUG: after category filter'
 		);
 
 		filtered = this.filterOutNonVideoArtifacts(filtered, enrichedCriteria);
-		// TEMP DEBUG: Log after non-video filter
 		logger.debug(
 			{ afterNonVideo: filtered.length },
 			'[SearchOrchestrator] DEBUG: after non-video filter'
@@ -520,7 +504,6 @@ export class SearchOrchestrator {
 		if (isMovieSearch(enrichedCriteria) || isTvSearch(enrichedCriteria)) {
 			filtered = this.filterByIdOrTitleMatch(filtered, enrichedCriteria);
 		}
-		// TEMP DEBUG: Log after ID/title filter
 		logger.debug(
 			{ afterIdTitle: filtered.length },
 			'[SearchOrchestrator] DEBUG: after ID/title filter'
@@ -530,7 +513,6 @@ export class SearchOrchestrator {
 		if (enrichedCriteria.searchType !== 'basic') {
 			filtered = this.filterByTitleRelevance(filtered, enrichedCriteria);
 		}
-		// TEMP DEBUG: Log after title relevance filter
 		logger.debug(
 			{ afterTitleRelevance: filtered.length },
 			'[SearchOrchestrator] DEBUG: after title relevance filter'
@@ -572,46 +554,6 @@ export class SearchOrchestrator {
 		};
 
 		const enrichResult = await releaseEnricher.enrich(filtered, enrichmentOpts);
-
-		// TEMP DEBUG: Log enrichment results per indexer
-		logger.info(
-			{
-				beforeEnrich: filtered.length,
-				afterEnrichTotal: enrichResult.releases.length,
-				rejectedCount: enrichResult.rejectedCount,
-				acceptedCount: enrichResult.releases.filter((r) => !r.rejected).length,
-				perIndexer: [...new Set(enrichResult.releases.map((r) => r.indexerName))].map((name) => ({
-					indexer: name,
-					total: enrichResult.releases.filter((r) => r.indexerName === name).length,
-					rejected: enrichResult.releases.filter((r) => r.indexerName === name && r.rejected)
-						.length,
-					accepted: enrichResult.releases.filter((r) => r.indexerName === name && !r.rejected)
-						.length,
-					sampleTitles: enrichResult.releases
-						.filter((r) => r.indexerName === name)
-						.slice(0, 3)
-						.map((r) => r.title)
-				}))
-			},
-			'[SearchOrchestrator] DEBUG: After enrichment - per indexer results'
-		);
-
-		// TEMP DEBUG: Log rejected releases details
-		const rejectedReleases = enrichResult.releases.filter((r) => r.rejected);
-		if (rejectedReleases.length > 0) {
-			logger.info(
-				{
-					rejectedCount: rejectedReleases.length,
-					sampleRejected: rejectedReleases.slice(0, 5).map((r) => ({
-						indexer: r.indexerName,
-						title: r.title,
-						size: r.size,
-						rejectionReason: r.rejectionReason
-					}))
-				},
-				'[SearchOrchestrator] DEBUG: Sample rejected releases'
-			);
-		}
 
 		// Pass 2: Enhanced deduplication using Radarr-style preference logic
 		// Now that we have rejection counts, prefer releases with fewer rejections and higher indexer priority
@@ -2115,7 +2057,6 @@ export class SearchOrchestrator {
 			});
 
 			if (!matches) {
-				// TEMP DEBUG: Log detailed similarity info for rejected releases
 				const simDetails = normalizedExpected.map((expected) => ({
 					expected,
 					similarity: this.calculateTitleSimilarity(releaseName, expected),
@@ -2275,7 +2216,6 @@ export class SearchOrchestrator {
 			// TMDB ID check
 			if (searchTmdbId && release.tmdbId) {
 				if (release.tmdbId !== searchTmdbId) {
-					// TEMP DEBUG: Log TMDB ID mismatch with indexer
 					logger.info(
 						{
 							releaseTitle: release.title,
@@ -2295,7 +2235,6 @@ export class SearchOrchestrator {
 			// IMDB ID check
 			if (searchImdbId && release.imdbId) {
 				if (release.imdbId !== searchImdbId) {
-					// TEMP DEBUG: Log IMDB ID mismatch with indexer
 					logger.info(
 						{
 							releaseTitle: release.title,
@@ -2335,7 +2274,6 @@ export class SearchOrchestrator {
 			if (isMovieSearch(criteria) && searchYear) {
 				const parsedRelease = getParsed();
 				if (parsedRelease.year && parsedRelease.year !== searchYear) {
-					// TEMP DEBUG: Log year mismatch details
 					logger.info(
 						{
 							releaseTitle: release.title,
@@ -2427,7 +2365,6 @@ export class SearchOrchestrator {
 						return true;
 					}
 
-					// TEMP DEBUG: Log title/year mismatch details
 					const simDetails = normalizedCandidates.map((expectedName) => ({
 						expected: expectedName,
 						similarity: this.calculateTitleSimilarity(releaseName, expectedName),
