@@ -26,7 +26,8 @@ import type {
 } from '../types';
 import type { YamlDefinition } from '../schema/yamlDefinition';
 import { resolveCategoryId } from '../schema/yamlDefinition';
-import type { IndexerRecord, ProtocolSettings } from '$lib/server/db/schema';
+import type { IndexerRecord } from '$lib/server/db/schema';
+import type { ProtocolSettings } from '$lib/server/indexers/types/index.js';
 import { TemplateEngine, createTemplateEngine } from '../engine/TemplateEngine';
 import { FilterEngine, createFilterEngine } from '../engine/FilterEngine';
 import { SelectorEngine, createSelectorEngine } from '../engine/SelectorEngine';
@@ -97,6 +98,9 @@ export class UnifiedIndexer implements IIndexer {
 
 	private cookies: Record<string, string> = {};
 	private isLoggedIn = false;
+	private lastCookieRefreshMs = 0;
+
+	private static readonly COOKIE_REFRESH_THROTTLE_MS = 60_000;
 
 	/** Public getter for protocol-specific settings */
 	get protocolSettings(): ProtocolSettings | undefined {
@@ -612,14 +616,19 @@ export class UnifiedIndexer implements IIndexer {
 		}
 
 		// Refresh cookie expiration after successful request to keep session alive
+		// Throttled to avoid SQLite I/O on every parallel variant within a search
 		if (Object.keys(this.cookies).length > 0) {
-			const context = {
-				indexerId: this.id,
-				baseUrl: this.requestBuilder.getBaseUrl(),
-				settings: this.settings,
-				encoding: this.definition.encoding
-			};
-			await this.authManager.refreshCookieExpiration(context);
+			const now = Date.now();
+			if (now - this.lastCookieRefreshMs > UnifiedIndexer.COOKIE_REFRESH_THROTTLE_MS) {
+				this.lastCookieRefreshMs = now;
+				const context = {
+					indexerId: this.id,
+					baseUrl: this.requestBuilder.getBaseUrl(),
+					settings: this.settings,
+					encoding: this.definition.encoding
+				};
+				await this.authManager.refreshCookieExpiration(context);
+			}
 		}
 
 		return this.parseResponse(response.body, request.searchPath);

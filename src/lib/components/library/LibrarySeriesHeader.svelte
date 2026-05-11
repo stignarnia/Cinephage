@@ -1,5 +1,6 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages.js';
+	import { getLocale } from '$lib/paraglide/runtime.js';
 	import TmdbImage from '$lib/components/tmdb/TmdbImage.svelte';
 	import MonitorToggle from './MonitorToggle.svelte';
 	import {
@@ -13,6 +14,7 @@
 		Loader2
 	} from 'lucide-svelte';
 	import { formatBytes, getStatusColor } from '$lib/utils/format.js';
+	import { formatSeriesStatus } from '$lib/utils/format-status.js';
 
 	interface SeriesData {
 		tmdbId: number;
@@ -91,21 +93,11 @@
 	}: Props = $props();
 
 	function formatDate(dateString: string): string {
-		return new Date(dateString).toLocaleDateString('en-US', {
+		return new Date(dateString).toLocaleDateString(getLocale(), {
 			year: 'numeric',
 			month: 'short',
 			day: 'numeric'
 		});
-	}
-
-	function formatStatus(status: string | null): string {
-		if (!status) return m.common_unknown();
-		const s = status.toLowerCase();
-		if (s.includes('returning')) return m.library_seriesHeader_statusContinuing();
-		if (s.includes('production')) return m.library_seriesHeader_statusInProduction();
-		if (s.includes('ended')) return m.library_seriesHeader_statusEnded();
-		if (s.includes('canceled')) return m.library_seriesHeader_statusCancelled();
-		return status;
 	}
 </script>
 
@@ -157,7 +149,7 @@
 					>
 						{#if series.status}
 							<span class="badge {getStatusColor(series.status)} badge-sm">
-								{formatStatus(series.status)}
+								{formatSeriesStatus(series.status)}
 							</span>
 						{/if}
 						{#if series.network}
@@ -297,16 +289,13 @@
 						</span>
 					</div>
 				</div>
-				<div class="h-2 w-full max-w-md overflow-hidden rounded-full bg-base-300">
-					<div
-						class="h-full transition-all duration-500 {series.percentComplete === 100
-							? 'bg-success'
-							: series.percentComplete > 0
-								? 'bg-primary'
-								: 'bg-base-300'}"
-						style="width: {series.percentComplete}%"
-					></div>
-				</div>
+				<progress
+					class="progress h-2 w-full max-w-md {series.percentComplete === 100
+						? 'progress-success'
+						: 'progress-primary'}"
+					value={series.percentComplete}
+					max="100"
+				></progress>
 			</div>
 
 			<!-- Settings info -->

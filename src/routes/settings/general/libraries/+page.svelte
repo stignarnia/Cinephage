@@ -3,13 +3,14 @@
 	import { Plus, FolderOpen, AlertCircle } from 'lucide-svelte';
 	import { SettingsPage } from '$lib/components/ui/settings';
 	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import type { PageData } from './$types';
 	import type { RootFolderMediaSubType, RootFolderMediaType } from '$lib/types/downloadClient';
 	import { LibraryList } from '$lib/components/libraries';
 	import { ModalWrapper, ModalHeader, ModalFooter } from '$lib/components/ui/modal';
 	import { toasts } from '$lib/stores/toast.svelte';
-	import { getResponseErrorMessage, readResponsePayload } from '$lib/utils/http';
+	import { createLibrary, updateLibrary, deleteLibrary } from '$lib/api/settings.js';
+	import type { LibraryCreate, LibraryUpdate } from '$lib/validation/schemas.js';
 
 	type RootFolderRef = {
 		id: string;
@@ -72,7 +73,7 @@
 	const editingLibraryIsSystem = $derived(editingLibrary?.isSystem ?? false);
 
 	async function clearEditQueryParam() {
-		const url = new URL($page.url);
+		const url = new URL(page.url);
 		if (!url.searchParams.has('edit')) return;
 		url.searchParams.delete('edit');
 		await goto(url.toString(), { replaceState: true, noScroll: true, keepFocus: true });
@@ -123,7 +124,7 @@
 	}
 
 	$effect(() => {
-		const editLibraryId = $page.url.searchParams.get('edit');
+		const editLibraryId = page.url.searchParams.get('edit');
 		if (!editLibraryId || libraryModalOpen) return;
 		const target = data.libraries.find((library) => library.id === editLibraryId) as
 			| LibraryEntity
@@ -138,23 +139,10 @@
 		librarySaveError = null;
 
 		try {
-			const response = editingLibrary
-				? await fetch(`/api/libraries/${editingLibrary.id}`, {
-						method: 'PUT',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify(libraryForm)
-					})
-				: await fetch('/api/libraries', {
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify(libraryForm)
-					});
-
-			const payload = await readResponsePayload<Record<string, unknown>>(response);
-
-			if (!response.ok) {
-				librarySaveError = getResponseErrorMessage(payload, 'Failed to save library');
-				return;
+			if (editingLibrary) {
+				await updateLibrary(editingLibrary.id, libraryForm as LibraryUpdate);
+			} else {
+				await createLibrary(libraryForm as LibraryCreate);
 			}
 
 			toasts.success(editingLibrary ? 'Library updated' : 'Library created');
@@ -224,18 +212,7 @@
 				body.targetLibraryId = deleteLibraryDestinationId;
 			}
 
-			const response = await fetch(`/api/libraries/${deleteLibraryTarget.id}`, {
-				method: 'DELETE',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(body)
-			});
-
-			const payload = await readResponsePayload<Record<string, unknown>>(response);
-
-			if (!response.ok) {
-				toasts.error(getResponseErrorMessage(payload, 'Failed to delete library'));
-				return;
-			}
+			await deleteLibrary(deleteLibraryTarget.id, Object.keys(body).length > 0 ? body : undefined);
 
 			toasts.success('Library deleted');
 			confirmLibraryDeleteOpen = false;

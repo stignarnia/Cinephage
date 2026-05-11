@@ -7,9 +7,10 @@
 	import { layoutState } from '$lib/layout.svelte';
 	import * as m from '$lib/paraglide/messages.js';
 
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { resolvePath } from '$lib/utils/routing';
 	import { authClient } from '$lib/auth/client.js';
+	import { getSystemStatus } from '$lib/api/settings.js';
 	import { PLACEHOLDER_PACKAGE_VERSION } from '$lib/version.js';
 	import {
 		Menu,
@@ -39,7 +40,8 @@
 		Loader2,
 		Puzzle,
 		FolderCog,
-		Shield
+		Shield,
+		Ban
 	} from 'lucide-svelte';
 
 	type MenuChildItem = {
@@ -91,7 +93,7 @@
 	}
 
 	function buildNavHref(href: string): string {
-		if (href === '/library/import' && $page.url.pathname === '/library/import') {
+		if (href === '/library/import' && page.url.pathname === '/library/import') {
 			return resolvePath(`/library/import?newSession=${Date.now()}`);
 		}
 		return resolvePath(href);
@@ -99,20 +101,20 @@
 
 	function handleNavClick(event: MouseEvent, href: string): void {
 		closeMobileDrawer();
-		if (href === '/library/import' && $page.url.pathname === '/library/import') {
+		if (href === '/library/import' && page.url.pathname === '/library/import') {
 			event.preventDefault();
 			void goto(buildNavHref(href));
 		}
 	}
 
 	function isChildActive(child: MenuChildItem): boolean {
-		if (child.match) return child.match($page.url);
+		if (child.match) return child.match(page.url);
 		const [childPath, childQuery] = child.href.split('?');
-		if ($page.url.pathname !== childPath) return false;
+		if (page.url.pathname !== childPath) return false;
 		if (!childQuery) return true;
 		const queryParams = new URLSearchParams(childQuery);
 		for (const [key, value] of queryParams) {
-			if ($page.url.searchParams.get(key) !== value) return false;
+			if (page.url.searchParams.get(key) !== value) return false;
 		}
 		return true;
 	}
@@ -122,8 +124,8 @@
 			return item.children.some((child) => isChildActive(child));
 		}
 		if (!item.href) return false;
-		if (item.href === '/') return $page.url.pathname === '/';
-		return $page.url.pathname === item.href || $page.url.pathname.startsWith(`${item.href}/`);
+		if (item.href === '/') return page.url.pathname === '/';
+		return page.url.pathname === item.href || page.url.pathname.startsWith(`${item.href}/`);
 	}
 
 	async function handleLogout(): Promise<void> {
@@ -204,6 +206,7 @@
 				children: libraryChildren
 			},
 			{ href: '/activity', label: m.nav_activity, icon: Activity },
+			{ href: '/calendar', label: m.nav_calendar, icon: Calendar },
 			{
 				label: m.nav_liveTv,
 				icon: Radio,
@@ -240,6 +243,7 @@
 						match: (url: URL) => url.pathname.startsWith('/settings/integrations')
 					},
 					{ href: '/settings/tasks', label: m.nav_tasks, icon: ListTodo },
+					{ href: '/settings/blocklist', label: m.nav_blocklist, icon: Ban },
 					{ href: '/settings/filters', label: m.nav_globalFilters, icon: Filter },
 					{ href: '/profile', label: m.nav_profile, icon: User }
 				]
@@ -252,11 +256,7 @@
 	async function refreshAppVersion(): Promise<void> {
 		if (!browser) return;
 		try {
-			const response = await fetch(`/api/system/status?_=${Date.now()}`, {
-				cache: 'no-store'
-			});
-			if (!response.ok) return;
-			const payload = (await response.json()) as { version?: string };
+			const payload = (await getSystemStatus()) as { version?: string };
 			const candidate = payload.version?.trim();
 			if (!candidate || candidate === PLACEHOLDER_PACKAGE_VERSION) {
 				appVersion = 'dev-local';
@@ -268,7 +268,7 @@
 		}
 	}
 
-	const useFocusedLayout = $derived(usesFocusedLayout($page.url.pathname));
+	const useFocusedLayout = $derived(usesFocusedLayout(page.url.pathname));
 
 	$effect(() => {
 		if (useFocusedLayout) {
@@ -277,7 +277,7 @@
 	});
 
 	$effect(() => {
-		void $page.url.pathname;
+		void page.url.pathname;
 		layoutState.clearMobileSseStatus();
 	});
 

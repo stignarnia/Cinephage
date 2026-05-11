@@ -10,34 +10,37 @@
 	} from '$lib/components/library';
 	import type { FileScoreResponse } from '$lib/types/score';
 	import { InteractiveSearchModal } from '$lib/components/search';
+	import type { Release } from '$lib/components/search/SearchResultRow.svelte';
 	import { SubtitleSearchModal } from '$lib/components/subtitles';
 	import SubtitleSyncModal from '$lib/components/subtitles/SubtitleSyncModal.svelte';
 	import DeleteConfirmationModal from '$lib/components/ui/modal/DeleteConfirmationModal.svelte';
 	import { ConfirmationModal } from '$lib/components/ui/modal';
 	import { toasts } from '$lib/stores/toast.svelte';
+	import { grabRelease } from '$lib/api/downloads.js';
+	import { autoSearchSubtitles, syncSubtitle } from '$lib/api/subtitles.js';
+	import {
+		getMovie,
+		updateMovie,
+		deleteMovie,
+		deleteMovieFile,
+		getMovieScore
+	} from '$lib/api/library.js';
+	import { ApiError } from '$lib/api/client.js';
+	import { apiGetStream } from '$lib/api';
 	import type { MovieEditData } from '$lib/components/library/MovieEditModal.svelte';
 	import { FileEdit, Wifi, WifiOff, Loader2, RefreshCw } from 'lucide-svelte';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { resolvePath } from '$lib/utils/routing';
 	import { createDynamicSSE } from '$lib/sse';
 	import { getFileName } from '$lib/utils/format.js';
 	import { layoutState, deriveMobileSseStatus } from '$lib/layout.svelte';
 	import * as m from '$lib/paraglide/messages.js';
+	import { ACTIVE_DOWNLOAD_STATUSES } from '$lib/types/queue';
 
 	let { data }: { data: PageData } = $props();
 
-	const ACTIVE_QUEUE_STATUSES = new Set([
-		'queued',
-		'downloading',
-		'stalled',
-		'paused',
-		'completed',
-		'postprocessing',
-		'importing',
-		'seeding',
-		'seeding-imported'
-	]);
+	const activeStatusSet: Set<string> = new Set(ACTIVE_DOWNLOAD_STATUSES);
 
 	// Reactive data that will be updated via SSE
 	let movieState = $state<LibraryMovie | null>(null);
@@ -93,7 +96,7 @@
 			};
 		},
 		'queue:updated': (payload) => {
-			if (!ACTIVE_QUEUE_STATUSES.has(payload.status)) {
+			if (!activeStatusSet.has(payload.status)) {
 				queueItemState = null;
 			} else {
 				queueItemState = {
@@ -149,10 +152,11 @@
 		if (prefetchedStreamKey === key) return;
 		prefetchedStreamKey = key;
 
-		fetch(`/api/streaming/session/movie/${movie.tmdbId}/master.m3u8?prefetch=1`, {
-			signal: AbortSignal.timeout(5000),
-			headers: { 'X-Prefetch': 'true' }
-		}).catch(() => {});
+		apiGetStream(
+			`/api/streaming/session/movie/${movie.tmdbId}/master.m3u8`,
+			{ prefetch: '1' },
+			{ signal: AbortSignal.timeout(5000), headers: { 'X-Prefetch': 'true' } }
+		).catch(() => {});
 	});
 
 	// State
@@ -184,7 +188,7 @@
 	let scoreFetched = $state(false);
 
 	$effect(() => {
-		if ($page.url.searchParams.get('edit') === '1') {
+		if (page.url.searchParams.get('edit') === '1') {
 			isEditModalOpen = true;
 		}
 	});
@@ -229,10 +233,8 @@
 
 	async function refreshMovieFromApi(): Promise<void> {
 		try {
-			const response = await fetch(`/api/library/movies/${movie.id}`);
-			if (!response.ok) return;
-			const result = await response.json();
-			if (!result.success || !result.movie) return;
+			const result = (await getMovie(movie.id)) as { movie?: LibraryMovie };
+			if (!result.movie) return;
 
 			const refreshed = result.movie as LibraryMovie;
 			movieState = {
@@ -246,19 +248,11 @@
 		}
 	}
 
-	// Handlers
 	async function handleMonitorToggle(newValue: boolean) {
 		isSaving = true;
 		try {
-			const response = await fetch(`/api/library/movies/${movie.id}`, {
-				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ monitored: newValue })
-			});
-
-			if (response.ok) {
-				movie.monitored = newValue;
-			}
+			await updateMovie(movie.id, { monitored: newValue });
+			movie.monitored = newValue;
 		} catch (error) {
 			showActionError(m.toast_library_movieDetail_failedToUpdateMonitor(), error);
 		} finally {
@@ -332,49 +326,32 @@
 		}
 	}
 
-	interface Release {
-		guid: string;
-		title: string;
-		downloadUrl: string;
-		magnetUrl?: string;
-		infoHash?: string;
-		indexerId: string;
-		indexerName: string;
-		protocol: string;
-		commentsUrl?: string;
-	}
-
 	async function handleGrab(
 		release: Release,
 		streaming?: boolean
 	): Promise<{ success: boolean; error?: string; errorCode?: string }> {
 		try {
-			const response = await fetch('/api/download/grab', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					guid: release.guid,
-					downloadUrl: release.downloadUrl,
-					magnetUrl: release.magnetUrl,
-					infoHash: release.infoHash,
-					title: release.title,
-					indexerId: release.indexerId,
-					indexerName: release.indexerName,
-					protocol: release.protocol,
-					movieId: movie.id,
-					mediaType: 'movie',
-					streamUsenet: streaming && release.protocol === 'usenet',
-					commentsUrl: release.commentsUrl
-				})
+			const result = await grabRelease({
+				guid: release.guid,
+				downloadUrl: release.downloadUrl,
+				magnetUrl: release.magnetUrl,
+				infoHash: release.infoHash,
+				title: release.title,
+				indexerId: release.indexerId,
+				indexerName: release.indexerName,
+				protocol: release.protocol,
+				movieId: movie.id,
+				mediaType: 'movie',
+				streamUsenet: streaming && release.protocol === 'usenet',
+				commentsUrl: release.commentsUrl
 			});
-
-			const result = await response.json();
 
 			return { success: result.success, error: result.error, errorCode: result.errorCode };
 		} catch (error) {
 			return {
 				success: false,
-				error: error instanceof Error ? error.message : m.toast_library_movieDetail_failedToGrab()
+				error:
+					error instanceof ApiError ? error.message : m.toast_library_movieDetail_failedToGrab()
 			};
 		}
 	}
@@ -385,24 +362,15 @@
 
 	function handleEditClose() {
 		isEditModalOpen = false;
-		if ($page.url.searchParams.get('edit') === '1') {
-			goto($page.url.pathname, { replaceState: true, keepFocus: true, noScroll: true });
+		if (page.url.searchParams.get('edit') === '1') {
+			goto(page.url.pathname, { replaceState: true, keepFocus: true, noScroll: true });
 		}
 	}
 
 	async function handleEditSave(editData: MovieEditData) {
 		isSaving = true;
 		try {
-			const response = await fetch(`/api/library/movies/${movie.id}`, {
-				method: 'PUT',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(editData)
-			});
-
-			const result = await response.json().catch(() => null);
-			if (!response.ok) {
-				throw new Error(result?.error || m.toast_library_movieDetail_failedToUpdate());
-			}
+			const result = await updateMovie(movie.id, editData as unknown as Record<string, unknown>);
 
 			// Update local state
 			movie.monitored = editData.monitored;
@@ -411,9 +379,7 @@
 			movie.wantsSubtitles = editData.wantsSubtitles;
 
 			if (result?.moveQueued) {
-				toasts.success(
-					'Move queued. File transfer has started and will appear in Activity until completion.'
-				);
+				toasts.success(m.library_movieDetail_moveQueued());
 			} else {
 				movie.rootFolderId = editData.rootFolderId;
 				const newFolder = data.rootFolders.find((f) => f.id === editData.rootFolderId);
@@ -435,17 +401,13 @@
 	async function performDelete(deleteFiles: boolean, removeFromLibrary: boolean) {
 		isDeleting = true;
 		try {
-			const response = await fetch(
-				`/api/library/movies/${movie.id}?deleteFiles=${deleteFiles}&removeFromLibrary=${removeFromLibrary}`,
-				{ method: 'DELETE' }
-			);
-			const result = await response.json();
+			const result = await deleteMovie(movie.id, deleteFiles, removeFromLibrary);
 
 			if (result.success) {
 				if (removeFromLibrary) {
 					toasts.success(m.toast_library_movieDetail_movieRemoved());
 					// Navigate to library since the movie no longer exists
-					window.location.href = '/library/movies';
+					goto(resolvePath('/library/movies'));
 				} else {
 					toasts.success(m.toast_library_movieDetail_movieFilesDeleted());
 					movie.files = [];
@@ -486,10 +448,7 @@
 
 		isDeletingFile = true;
 		try {
-			const response = await fetch(`/api/library/movies/${movie.id}/files/${deletingFileId}`, {
-				method: 'DELETE'
-			});
-			const result = await response.json();
+			const result = await deleteMovieFile(movie.id, deletingFileId);
 
 			if (result.success) {
 				toasts.success(m.toast_library_movieDetail_fileDeleted());
@@ -525,13 +484,18 @@
 	async function handleSubtitleAutoSearch() {
 		subtitleAutoSearching = true;
 		try {
-			const response = await fetch('/api/subtitles/auto-search', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ movieId: movie.id })
-			});
-
-			const result = await response.json();
+			const raw = await autoSearchSubtitles({ movieId: movie.id });
+			const result = raw as unknown as {
+				success: boolean;
+				subtitle?: {
+					id?: string;
+					subtitleId?: string;
+					language?: string;
+					isForced?: boolean;
+					isHearingImpaired?: boolean;
+					format?: string;
+				};
+			};
 
 			if (result.success && result.subtitle) {
 				const subtitleId = result.subtitle.id ?? result.subtitle.subtitleId;
@@ -578,19 +542,12 @@
 		subtitleSyncError = null;
 
 		try {
-			const response = await fetch('/api/subtitles/sync', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					subtitleId,
-					...(settings?.splitPenalty !== undefined && { splitPenalty: settings.splitPenalty }),
-					...(settings?.noSplits !== undefined && { noSplits: settings.noSplits })
-				})
+			const result = await syncSubtitle(subtitleId, {
+				...(settings?.splitPenalty !== undefined && { splitPenalty: settings.splitPenalty }),
+				...(settings?.noSplits !== undefined && { noSplits: settings.noSplits })
 			});
 
-			const result = await response.json();
-
-			if (!response.ok || !result.success) {
+			if (!result.success) {
 				throw new Error(result.error || m.toast_library_movieDetail_subtitleSyncFailed());
 			}
 
@@ -623,12 +580,9 @@
 
 		scoreLoading = true;
 		try {
-			const response = await fetch(`/api/library/movies/${movie.id}/score`);
-			if (response.ok) {
-				const result = await response.json();
-				if (result.success) {
-					scoreData = result.score;
-				}
+			const result = await getMovieScore(movie.id);
+			if (result.success) {
+				scoreData = result.score;
 			}
 		} catch (error) {
 			showActionError(m.toast_library_movieDetail_failedToLoadScore(), error);
@@ -856,7 +810,7 @@
 
 	{#if data.collectionMovies && data.collectionMovies.length > 0}
 		<div class="mt-2 rounded-xl bg-base-200 p-4 md:p-6">
-			<h2 class="mb-4 text-lg font-semibold">Other movies in this collection</h2>
+			<h2 class="mb-4 text-lg font-semibold">{m.library_movieDetail_otherMoviesInCollection()}</h2>
 			<div class="flex gap-3 overflow-x-auto pb-2">
 				{#each data.collectionMovies as collMovie (collMovie.id)}
 					<a

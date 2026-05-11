@@ -66,6 +66,31 @@ async function loadTmdbSettings(): Promise<{ apiKey: string; filters: GlobalTmdb
 	return { apiKey: _cachedApiKey, filters: _cachedFilters };
 }
 
+async function fetchWithRetry(url: string, options?: RequestInit, retries = 3): Promise<Response> {
+	const BASE_DELAY_MS = 1000;
+
+	for (let attempt = 0; attempt <= retries; attempt++) {
+		const res = await fetch(url, options);
+
+		if (attempt === retries || res.ok || res.status !== 429) {
+			return res;
+		}
+
+		const retryAfter = res.headers.get('Retry-After');
+		const parsed = parseInt(retryAfter ?? '', 10);
+		const delayMs = !isNaN(parsed) ? parsed * 1000 : BASE_DELAY_MS * Math.pow(2, attempt);
+
+		logger.warn(
+			{ url: url.split('?')[0], attempt: attempt + 1, delayMs },
+			'TMDB rate limited, retrying'
+		);
+		await new Promise((resolve) => setTimeout(resolve, delayMs));
+	}
+
+	// Unreachable — satisfies TypeScript return type
+	return fetch(url, options);
+}
+
 export const tmdb = {
 	/**
 	 * Invalidate the cached TMDB settings. Call this after updating
@@ -75,6 +100,16 @@ export const tmdb = {
 		_cachedApiKey = null;
 		_cachedFilters = null;
 		_settingsCacheTimestamp = 0;
+		_settingsCachePromise = null;
+	},
+
+	async getRegion(): Promise<string> {
+		try {
+			const { filters } = await loadTmdbSettings();
+			return filters?.region || TMDB.DEFAULT_REGION;
+		} catch {
+			return TMDB.DEFAULT_REGION;
+		}
 	},
 
 	async fetch(endpoint: string, options: RequestInit = {}, skipFilters = false) {
@@ -114,6 +149,17 @@ export const tmdb = {
 					}
 					if (filters.region) {
 						url.searchParams.set('region', filters.region);
+
+						if (
+							(path.includes('/discover/') || path.includes('/watch/providers/')) &&
+							!url.searchParams.has('watch_region')
+						) {
+							url.searchParams.set('watch_region', filters.region);
+						}
+
+						if (path.includes('/discover/') && !url.searchParams.has('certification_country')) {
+							url.searchParams.set('certification_country', filters.region);
+						}
 					}
 
 					// Apply Discover-specific filters
@@ -131,7 +177,7 @@ export const tmdb = {
 					}
 				}
 
-				const res = await fetch(url.toString(), options);
+				const res = await fetchWithRetry(url.toString(), options);
 
 				if (!res.ok) {
 					let errorMessage = `TMDB Error: ${res.status} ${res.statusText}`;
@@ -386,6 +432,14 @@ export const tmdb = {
 		return this.fetch(endpoint, {}, skipFilters) as Promise<DiscoverResponse>;
 	},
 
+	async getNowPlaying(page = 1): Promise<DiscoverResponse> {
+		return this.fetch(`/movie/now_playing?page=${page}`) as Promise<DiscoverResponse>;
+	},
+
+	async getUpcoming(page = 1): Promise<DiscoverResponse> {
+		return this.fetch(`/movie/upcoming?page=${page}`) as Promise<DiscoverResponse>;
+	},
+
 	/**
 	 * Get movie genres list
 	 */
@@ -451,6 +505,16 @@ export const tmdb = {
 	 */
 	async getLanguages(): Promise<TmdbLanguage[]> {
 		return this.fetch('/configuration/languages') as Promise<TmdbLanguage[]>;
+	},
+
+	async getCountries(): Promise<
+		{ iso_3166_1: string; english_name: string; native_name: string }[]
+	> {
+		return (await this.fetch('/configuration/countries')) as {
+			iso_3166_1: string;
+			english_name: string;
+			native_name: string;
+		}[];
 	}
 };
 

@@ -79,38 +79,12 @@ export class SmartListService {
 			Date.now() + (input.refreshIntervalHours ?? 24) * 60 * 60 * 1000
 		).toISOString();
 
-		// Determine list source type and URL
 		const listSourceType = input.listSourceType ?? 'tmdb-discover';
-		let externalSourceConfig:
-			| { url?: string; headers?: Record<string, string>; listId?: string; username?: string }
-			| undefined;
-
-		// If using a preset, resolve the URL
-		if (listSourceType === 'external-json' && input.presetId) {
-			const presetUrl = presetService.getListUrl(input.presetId, input.externalSourceConfig?.url);
-			if (presetUrl) {
-				externalSourceConfig = {
-					url: presetUrl,
-					headers: input.externalSourceConfig?.headers as Record<string, string> | undefined,
-					listId: input.externalSourceConfig?.listId,
-					username: input.externalSourceConfig?.username
-				};
-			} else if (input.externalSourceConfig) {
-				externalSourceConfig = {
-					url: input.externalSourceConfig.url,
-					headers: input.externalSourceConfig.headers as Record<string, string> | undefined,
-					listId: input.externalSourceConfig.listId,
-					username: input.externalSourceConfig.username
-				};
-			}
-		} else if (input.externalSourceConfig) {
-			externalSourceConfig = {
-				url: input.externalSourceConfig.url,
-				headers: input.externalSourceConfig.headers as Record<string, string> | undefined,
-				listId: input.externalSourceConfig.listId,
-				username: input.externalSourceConfig.username
-			};
-		}
+		const externalSourceConfig = this.resolveExternalSourceConfig({
+			listSourceType,
+			presetId: input.presetId,
+			inputConfig: input.externalSourceConfig as SmartListExternalSourceConfig | undefined
+		});
 
 		this.validateExternalSourceConfiguration({
 			listSourceType,
@@ -197,50 +171,21 @@ export class SmartListService {
 		if (input.presetProvider !== undefined) updates.presetProvider = input.presetProvider;
 		if (input.presetSettings !== undefined) updates.presetSettings = input.presetSettings;
 
-		// Handle external source config - resolve preset URL if needed
 		if (input.externalSourceConfig !== undefined) {
-			const listSourceType = input.listSourceType ?? existing.listSourceType;
-			const presetId = input.presetId ?? existing.presetId;
-			const inputConfig = input.externalSourceConfig;
-
-			if (listSourceType === 'external-json' && presetId) {
-				const presetUrl = presetService.getListUrl(presetId, inputConfig?.url);
-				if (presetUrl) {
-					updates.externalSourceConfig = {
-						url: presetUrl,
-						headers: inputConfig?.headers as Record<string, string> | undefined,
-						listId: inputConfig?.listId,
-						username: inputConfig?.username
-					};
-				} else {
-					updates.externalSourceConfig = {
-						url: inputConfig?.url,
-						headers: inputConfig?.headers as Record<string, string> | undefined,
-						listId: inputConfig?.listId,
-						username: inputConfig?.username
-					};
-				}
-			} else {
-				updates.externalSourceConfig = {
-					url: inputConfig?.url,
-					headers: inputConfig?.headers as Record<string, string> | undefined,
-					listId: inputConfig?.listId,
-					username: inputConfig?.username
-				};
-			}
+			updates.externalSourceConfig = this.resolveExternalSourceConfig({
+				listSourceType: (input.listSourceType ?? existing.listSourceType) as string,
+				presetId: input.presetId ?? existing.presetId ?? undefined,
+				inputConfig: input.externalSourceConfig as SmartListExternalSourceConfig | undefined
+			});
 		} else if (input.presetId !== undefined && existing.listSourceType === 'external-json') {
-			// If preset changed but config not provided, resolve URL from new preset
-			const presetUrl = presetService.getListUrl(
-				input.presetId,
-				existing.externalSourceConfig?.url
-			);
-			if (presetUrl) {
-				updates.externalSourceConfig = {
-					url: presetUrl,
-					headers: existing.externalSourceConfig?.headers,
-					listId: existing.externalSourceConfig?.listId,
-					username: existing.externalSourceConfig?.username
-				};
+			const resolved = this.resolveExternalSourceConfig({
+				listSourceType: existing.listSourceType as string,
+				presetId: input.presetId,
+				inputConfig: existing.externalSourceConfig as SmartListExternalSourceConfig | undefined,
+				fallbackToInput: false
+			});
+			if (resolved) {
+				updates.externalSourceConfig = resolved;
 			}
 		}
 
@@ -292,6 +237,38 @@ export class SmartListService {
 			where: eq(smartLists.enabled, true),
 			orderBy: [desc(smartLists.createdAt)]
 		});
+	}
+
+	private resolveExternalSourceConfig(params: {
+		listSourceType: string;
+		presetId?: string;
+		inputConfig?: SmartListExternalSourceConfig;
+		fallbackToInput?: boolean;
+	}): SmartListExternalSourceConfig | undefined {
+		const { listSourceType, presetId, inputConfig, fallbackToInput = true } = params;
+
+		if (listSourceType === 'external-json' && presetId) {
+			const presetUrl = presetService.getListUrl(presetId, inputConfig?.url);
+			if (presetUrl) {
+				return {
+					url: presetUrl,
+					headers: inputConfig?.headers,
+					listId: inputConfig?.listId,
+					username: inputConfig?.username
+				};
+			}
+		}
+
+		if (fallbackToInput && inputConfig) {
+			return {
+				url: inputConfig.url,
+				headers: inputConfig.headers,
+				listId: inputConfig.listId,
+				username: inputConfig.username
+			};
+		}
+
+		return undefined;
 	}
 
 	private validateExternalSourceConfiguration({
@@ -1190,13 +1167,17 @@ export class SmartListService {
 		// Watch Providers
 		if (filters.withWatchProviders?.length) {
 			params.with_watch_providers = filters.withWatchProviders.join('|');
-			params.watch_region = filters.watchRegion ?? 'US';
+			if (filters.watchRegion) {
+				params.watch_region = filters.watchRegion;
+			}
 		}
 
 		// Certification
 		if (filters.certification) {
 			params.certification = filters.certification;
-			params.certification_country = filters.certificationCountry ?? 'US';
+			if (filters.certificationCountry) {
+				params.certification_country = filters.certificationCountry;
+			}
 		}
 
 		// Runtime
@@ -1254,27 +1235,32 @@ export class SmartListService {
 			where: eq(smartListItems.smartListId, smartListId)
 		});
 
-		for (const item of items) {
-			let inLibrary = false;
-			let libraryId: string | null = null;
+		if (items.length === 0) return;
 
-			if (mediaType === 'movie') {
-				const movie = await db.query.movies.findFirst({
-					where: eq(movies.tmdbId, item.tmdbId)
-				});
-				if (movie) {
-					inLibrary = true;
-					libraryId = movie.id;
-				}
-			} else {
-				const show = await db.query.series.findFirst({
-					where: eq(series.tmdbId, item.tmdbId)
-				});
-				if (show) {
-					inLibrary = true;
-					libraryId = show.id;
-				}
+		const tmdbIds = [...new Set(items.map((i) => i.tmdbId))];
+
+		// Batch-fetch all library entries for these tmdbIds in one query
+		const libraryMap = new Map<number, string>();
+		if (mediaType === 'movie') {
+			const libraryMovies = await db.query.movies.findMany({
+				where: inArray(movies.tmdbId, tmdbIds)
+			});
+			for (const movie of libraryMovies) {
+				libraryMap.set(movie.tmdbId, movie.id);
 			}
+		} else {
+			const librarySeries = await db.query.series.findMany({
+				where: inArray(series.tmdbId, tmdbIds)
+			});
+			for (const show of librarySeries) {
+				libraryMap.set(show.tmdbId, show.id);
+			}
+		}
+
+		// Update items with in-memory lookup
+		for (const item of items) {
+			const libraryId = libraryMap.get(item.tmdbId) ?? null;
+			const inLibrary = libraryId !== null;
 
 			if (item.inLibrary !== inLibrary) {
 				await db
@@ -1388,26 +1374,38 @@ export class SmartListService {
 	): Promise<number> {
 		let added = 0;
 
-		for (const item of items) {
+		// Batch check which items already exist in library (N+1 fix)
+		const tmdbIds = items.map((i) => i.tmdbId);
+		const existingMovies = await db.query.movies.findMany({
+			where: inArray(movies.tmdbId, tmdbIds)
+		});
+		const existingMovieIds = new Map(existingMovies.map((m) => [m.tmdbId, m.id]));
+
+		// Update items that already exist (in-memory lookup, no per-item DB call)
+		const alreadyExisting = items.filter((i) => existingMovieIds.has(i.tmdbId));
+		try {
+			for (const item of alreadyExisting) {
+				await db
+					.update(smartListItems)
+					.set({
+						inLibrary: true,
+						movieId: existingMovieIds.get(item.tmdbId) ?? null,
+						updatedAt: new Date().toISOString()
+					})
+					.where(eq(smartListItems.id, item.id));
+			}
+		} catch (error) {
+			logger.error(
+				{ err: error, listId: list.id },
+				'[SmartListService] Failed to update existing items'
+			);
+		}
+
+		// Process only new items
+		const newItems = items.filter((i) => !existingMovieIds.has(i.tmdbId));
+
+		for (const item of newItems) {
 			try {
-				// Check if movie already exists in library (double-check)
-				const existing = await db.query.movies.findFirst({
-					where: eq(movies.tmdbId, item.tmdbId)
-				});
-
-				if (existing) {
-					// Update smart list item to reflect it's in library
-					await db
-						.update(smartListItems)
-						.set({
-							inLibrary: true,
-							movieId: existing.id,
-							updatedAt: new Date().toISOString()
-						})
-						.where(eq(smartListItems.id, item.id));
-					continue;
-				}
-
 				// Fetch movie details from TMDB
 				const movieDetails = await fetchMovieDetails(item.tmdbId);
 
@@ -1522,26 +1520,38 @@ export class SmartListService {
 	): Promise<number> {
 		let added = 0;
 
-		for (const item of items) {
+		// Batch check which items already exist in library (N+1 fix)
+		const tmdbIds = items.map((i) => i.tmdbId);
+		const existingSeries = await db.query.series.findMany({
+			where: inArray(series.tmdbId, tmdbIds)
+		});
+		const existingSeriesIds = new Map(existingSeries.map((s) => [s.tmdbId, s.id]));
+
+		// Update items that already exist (in-memory lookup, no per-item DB call)
+		const alreadyExisting = items.filter((i) => existingSeriesIds.has(i.tmdbId));
+		try {
+			for (const item of alreadyExisting) {
+				await db
+					.update(smartListItems)
+					.set({
+						inLibrary: true,
+						seriesId: existingSeriesIds.get(item.tmdbId) ?? null,
+						updatedAt: new Date().toISOString()
+					})
+					.where(eq(smartListItems.id, item.id));
+			}
+		} catch (error) {
+			logger.error(
+				{ err: error, listId: list.id },
+				'[SmartListService] Failed to update existing items'
+			);
+		}
+
+		// Process only new items
+		const newItems = items.filter((i) => !existingSeriesIds.has(i.tmdbId));
+
+		for (const item of newItems) {
 			try {
-				// Check if series already exists in library (double-check)
-				const existing = await db.query.series.findFirst({
-					where: eq(series.tmdbId, item.tmdbId)
-				});
-
-				if (existing) {
-					// Update smart list item to reflect it's in library
-					await db
-						.update(smartListItems)
-						.set({
-							inLibrary: true,
-							seriesId: existing.id,
-							updatedAt: new Date().toISOString()
-						})
-						.where(eq(smartListItems.id, item.id));
-					continue;
-				}
-
 				// Fetch series details from TMDB
 				const seriesDetails = await fetchSeriesDetails(item.tmdbId);
 

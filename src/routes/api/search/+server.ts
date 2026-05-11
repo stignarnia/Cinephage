@@ -146,9 +146,8 @@ export const GET: RequestHandler = async ({ url }) => {
 				});
 				if (movie) {
 					searchTitles = await getMovieSearchTitles(movie.id);
-					// If we only have a single title variant, refresh alternates from TMDB once.
 					if (searchTitles.length <= 1) {
-						await fetchAndStoreMovieAlternateTitles(movie.id, tmdbId);
+						fetchAndStoreMovieAlternateTitles(movie.id, tmdbId).catch(() => {});
 						searchTitles = await getMovieSearchTitles(movie.id);
 					}
 				}
@@ -159,9 +158,8 @@ export const GET: RequestHandler = async ({ url }) => {
 				});
 				if (show) {
 					searchTitles = await getSeriesSearchTitles(show.id);
-					// If we only have a single title variant, refresh alternates from TMDB once.
 					if (searchTitles.length <= 1) {
-						await fetchAndStoreSeriesAlternateTitles(show.id, tmdbId);
+						fetchAndStoreSeriesAlternateTitles(show.id, tmdbId).catch(() => {});
 						searchTitles = await getSeriesSearchTitles(show.id);
 					}
 				}
@@ -248,7 +246,7 @@ export const GET: RequestHandler = async ({ url }) => {
 			searchSource: 'interactive',
 			enrichment: enrichmentOpts,
 			protocolFilter,
-			timeout: 70000
+			timeout: 20000
 		});
 
 		return json({
@@ -300,7 +298,7 @@ export const GET: RequestHandler = async ({ url }) => {
 	// Standard search without enrichment (interactive)
 	const searchResult = await manager.search(criteria, {
 		searchSource: 'interactive',
-		timeout: 70000
+		timeout: 20000
 	});
 
 	return json({

@@ -4,10 +4,10 @@
 	import type { LayoutData } from '../$types';
 	import { toasts } from '$lib/stores/toast.svelte';
 	import { invalidateAll, goto } from '$app/navigation';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { ModalWrapper, ModalHeader, ModalFooter } from '$lib/components/ui/modal';
 	import { SettingsPage, SettingsSection } from '$lib/components/ui/settings';
-	import { getResponseErrorMessage, readResponsePayload } from '$lib/utils/http';
+	import { updateTmdbSettings } from '$lib/api/settings.js';
 
 	let { data }: { data: LayoutData } = $props();
 
@@ -29,7 +29,7 @@
 		tmdbError = null;
 		tmdbModalOpen = false;
 
-		const url = new URL($page.url);
+		const url = new URL(page.url);
 		if (url.searchParams.get('open') === 'tmdb') {
 			url.searchParams.delete('open');
 			goto(url.toString(), { replaceState: true, noScroll: true });
@@ -41,20 +41,7 @@
 		tmdbError = null;
 
 		try {
-			const response = await fetch('/api/settings/tmdb', {
-				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json',
-					Accept: 'application/json'
-				},
-				body: JSON.stringify({ apiKey: tmdbApiKey })
-			});
-
-			const payload = await readResponsePayload<Record<string, unknown>>(response);
-			if (!response.ok) {
-				tmdbError = getResponseErrorMessage(payload, m.settings_integrations_tmdbFailedToSave());
-				return;
-			}
+			await updateTmdbSettings(tmdbApiKey);
 
 			await invalidateAll();
 			toasts.success(m.settings_integrations_tmdbKeySaved());
@@ -69,7 +56,7 @@
 
 	// Open modal if navigated with ?open=tmdb
 	$effect(() => {
-		const shouldOpenTmdbModal = $page.url.searchParams.get('open') === 'tmdb';
+		const shouldOpenTmdbModal = page.url.searchParams.get('open') === 'tmdb';
 		if (shouldOpenTmdbModal && !tmdbModalOpen) {
 			openTmdbModal();
 		}
