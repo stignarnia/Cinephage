@@ -4,7 +4,11 @@ import { enrichWithLibraryStatus, filterInLibrary } from '$lib/server/library/st
 import type { WatchProvider } from '$lib/types/tmdb';
 import type { TmdbCertificationsResponse } from '$lib/server/tmdb';
 import { logger } from '$lib/logging';
-import { parseDiscoverParams, isDefaultView as checkDefaultView } from '$lib/utils/discoverParams';
+import {
+	parseDiscoverParams,
+	isDefaultView as checkDefaultView,
+	hasActiveDiscoverFilters
+} from '$lib/utils/discoverParams';
 import { TMDB } from '$lib/config/constants.js';
 
 import type { PageServerLoad } from './$types';
@@ -111,7 +115,19 @@ export const load: PageServerLoad = async ({ url }) => {
 			total_results: number;
 		}
 
-		if ((trending === 'day' || trending === 'week') && !certification) {
+		const trendingHasActiveFilters = hasActiveDiscoverFilters({
+			type,
+			sortBy,
+			withWatchProviders,
+			withGenres,
+			withOriginalLanguage,
+			minDate,
+			maxDate,
+			minRating,
+			certification
+		});
+
+		if ((trending === 'day' || trending === 'week') && !trendingHasActiveFilters) {
 			const trendingResults = (await tmdb.fetch(
 				`/trending/all/${trending}?page=${page}`
 			)) as TmdbPaginatedResult;
@@ -287,6 +303,7 @@ export const load: PageServerLoad = async ({ url }) => {
 				type,
 				page,
 				sortBy,
+				trending,
 				withWatchProviders,
 				watchRegion,
 				withGenres,
