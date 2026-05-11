@@ -104,7 +104,7 @@ function normalizePortalUrl(url: string): string {
 	// Only strip /c when it is at the root path level (e.g. http://host/c).
 	// Preserve /c when preceded by /stalker_portal/ (e.g. http://host/stalker_portal/c)
 	// because those portals use /stal ker_portal/c/portal.php as their API endpoint.
-	normalized = normalized.replace(/^(https?:\/\/[^\/]+)\/c\/?$/, '$1');
+	normalized = normalized.replace(/^(https?:\/\/[^/]+)\/c\/?$/, '$1');
 
 	// Ensure http:// or https://
 	if (!normalized.startsWith('http://') && !normalized.startsWith('https://')) {
