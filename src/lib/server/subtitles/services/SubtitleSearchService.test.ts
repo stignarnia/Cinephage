@@ -13,11 +13,15 @@ vi.mock('$lib/server/tmdb', () => ({
 
 const { SubtitleSearchService, clearIdCacheForTests } = await import('./SubtitleSearchService');
 
+type TestableSubtitleSearchService = {
+	enrichCriteria(criteria: SubtitleSearchCriteria): Promise<SubtitleSearchCriteria>;
+};
+
 describe('SubtitleSearchService - enrichCriteria', () => {
-	let service: InstanceType<typeof SubtitleSearchService>;
+	let service: TestableSubtitleSearchService;
 
 	beforeEach(() => {
-		service = SubtitleSearchService.getInstance();
+		service = SubtitleSearchService.getInstance() as unknown as TestableSubtitleSearchService;
 		mockGetMovieExternalIds.mockReset();
 		mockGetTvExternalIds.mockReset();
 		clearIdCacheForTests();
@@ -30,7 +34,6 @@ describe('SubtitleSearchService - enrichCriteria', () => {
 			languages: ['en']
 		};
 
-		// @ts-expect-error - testing private method
 		const result = await service.enrichCriteria(criteria);
 
 		expect(result).toBe(criteria);
@@ -46,7 +49,6 @@ describe('SubtitleSearchService - enrichCriteria', () => {
 			languages: ['en']
 		};
 
-		// @ts-expect-error - testing private method
 		const result = await service.enrichCriteria(criteria);
 
 		expect(result.imdbId).toBe('tt1375666');
@@ -70,7 +72,6 @@ describe('SubtitleSearchService - enrichCriteria', () => {
 			languages: ['en']
 		};
 
-		// @ts-expect-error - testing private method
 		const result = await service.enrichCriteria(criteria);
 
 		expect(result.imdbId).toBe('tt1375666');
@@ -96,7 +97,6 @@ describe('SubtitleSearchService - enrichCriteria', () => {
 			languages: ['en']
 		};
 
-		// @ts-expect-error - testing private method
 		const result = await service.enrichCriteria(criteria);
 
 		expect(result.imdbId).toBe('tt0903747');
@@ -121,7 +121,6 @@ describe('SubtitleSearchService - enrichCriteria', () => {
 			languages: ['en']
 		};
 
-		// @ts-expect-error - testing private method
 		const result = await service.enrichCriteria(criteria);
 
 		expect(result.imdbId).toBe('tt1375666');
@@ -139,7 +138,6 @@ describe('SubtitleSearchService - enrichCriteria', () => {
 			languages: ['en']
 		};
 
-		// @ts-expect-error - testing private method
 		const result = await service.enrichCriteria(criteria);
 
 		expect(result.imdbId).toBeUndefined();
@@ -162,7 +160,6 @@ describe('SubtitleSearchService - enrichCriteria', () => {
 			languages: ['en']
 		};
 
-		// @ts-expect-error - testing private method
 		const result = await service.enrichCriteria(criteria);
 
 		expect(result.imdbId).toBeUndefined();
@@ -184,7 +181,6 @@ describe('SubtitleSearchService - enrichCriteria', () => {
 			languages: ['en']
 		};
 
-		// @ts-expect-error - testing private method
 		await service.enrichCriteria(criteria1);
 		expect(mockGetMovieExternalIds).toHaveBeenCalledTimes(1);
 
@@ -194,7 +190,6 @@ describe('SubtitleSearchService - enrichCriteria', () => {
 			languages: ['en']
 		};
 
-		// @ts-expect-error - testing private method
 		const result2 = await service.enrichCriteria(criteria2);
 		expect(result2.imdbId).toBe('tt1375666');
 		expect(mockGetMovieExternalIds).toHaveBeenCalledTimes(1);
@@ -232,9 +227,7 @@ describe('SubtitleSearchService - enrichCriteria', () => {
 			languages: ['en']
 		};
 
-		// @ts-expect-error - testing private method
 		const movieResult = await service.enrichCriteria(movieCriteria);
-		// @ts-expect-error - testing private method
 		const tvResult = await service.enrichCriteria(tvCriteria);
 
 		expect(movieResult.imdbId).toBe('ttMovie');

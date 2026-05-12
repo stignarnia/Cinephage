@@ -195,6 +195,19 @@
 	let minRating = $derived(Number(page.url.searchParams.get('vote_average.gte')) || 0);
 	let selectedCertification = $derived(page.url.searchParams.get('certification') || '');
 	let excludeInLibrary = $derived(page.url.searchParams.get('exclude_in_library') === 'true');
+	let isFilteredTrending = $derived(
+		(page.url.searchParams.get('trending') === 'day' ||
+			page.url.searchParams.get('trending') === 'week') &&
+			(type !== 'all' ||
+				sortBy !== 'popularity.desc' ||
+				selectedProviders.length > 0 ||
+				selectedGenres.length > 0 ||
+				!!selectedLanguage ||
+				!!minYear ||
+				!!maxYear ||
+				minRating > 0 ||
+				!!selectedCertification)
+	);
 
 	function updateFilter(key: string, value: string | null) {
 		const url = new URL(page.url);
@@ -648,9 +661,20 @@
 			<!-- Grid View -->
 			<div class="animate-in fade-in slide-in-from-bottom-4 duration-500">
 				<div class="mb-6 flex items-center justify-between">
-					<h2 class="text-xl font-bold opacity-70">
-						{m.discover_resultsCount({ count: data.pagination.total_results.toLocaleString() })}
-					</h2>
+					<div>
+						<h2 class="text-xl font-bold opacity-70">
+							{#if isFilteredTrending}
+								Popular & Matching
+							{:else}
+								{m.discover_resultsCount({ count: data.pagination.total_results.toLocaleString() })}
+							{/if}
+						</h2>
+						{#if isFilteredTrending}
+							<p class="text-sm text-base-content/50">
+								{m.discover_resultsCount({ count: data.pagination.total_results.toLocaleString() })}
+							</p>
+						{/if}
+					</div>
 				</div>
 
 				<div class="grid grid-cols-3 gap-2 sm:gap-4 lg:grid-cols-9">

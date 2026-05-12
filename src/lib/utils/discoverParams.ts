@@ -62,6 +62,33 @@ export function isDefaultView(searchParams: URLSearchParams, params: DiscoverPar
 	);
 }
 
+export function hasActiveDiscoverFilters(
+	params: Pick<
+		DiscoverParams,
+		| 'type'
+		| 'sortBy'
+		| 'withWatchProviders'
+		| 'withGenres'
+		| 'withOriginalLanguage'
+		| 'minDate'
+		| 'maxDate'
+		| 'minRating'
+		| 'certification'
+	>
+): boolean {
+	return (
+		params.type !== 'all' ||
+		params.sortBy !== 'popularity.desc' ||
+		!!params.withWatchProviders ||
+		!!params.withGenres ||
+		!!params.withOriginalLanguage ||
+		!!params.minDate ||
+		!!params.maxDate ||
+		Number(params.minRating ?? 0) > 0 ||
+		!!params.certification
+	);
+}
+
 /**
  * Parse provider IDs from comma-separated string.
  */

@@ -31,7 +31,6 @@
 	import {
 		statusConfig,
 		getStatusLabel,
-		getCompactProgressLabel,
 		formatRelativeTime,
 		getActivityCategoryTag
 	} from '$lib/components/activity/activity-display-utils.js';
@@ -227,6 +226,23 @@
 		const tag = getActivityCategoryTag(activity);
 		if (tag) return `${tag.label} ${fallbackLabel}`;
 		return getStatusLabel(activity, fallbackLabel);
+	}
+
+	function getMobileCompactStatusLabel(
+		activity: UnifiedActivity,
+		fallbackLabel: string
+	): string | undefined {
+		if (activity.status === 'search_error') return m.action_search();
+
+		const tag = getActivityCategoryTag(activity);
+		if (tag?.label === m.activity_tag_download()) return getStatusLabel(activity, fallbackLabel);
+		if (tag) return `${tag.label} ${fallbackLabel}`;
+		return getStatusLabel(activity, fallbackLabel);
+	}
+
+	function splitFormattedSize(bytes: number): { value: string; unit: string } {
+		const [value, ...unitParts] = formatBytes(bytes).split(' ');
+		return { value, unit: unitParts.join(' ') };
 	}
 </script>
 
@@ -476,17 +492,21 @@
 						<div class="text-sm text-base-content/70">{m.dashboard_stats_storage()}</div>
 					</div>
 				</div>
-				<div class="mt-2 flex gap-2 text-xs">
+				<div class="mt-2 flex min-w-0 gap-1.5 overflow-hidden text-xs">
 					{#if stats.storage.movieBytes > 0}
-						<span class="badge badge-sm whitespace-nowrap badge-primary">
-							<Clapperboard class="mr-0 h-3 w-3" />
-							{formatBytes(stats.storage.movieBytes)}
+						{@const movieSize = splitFormattedSize(stats.storage.movieBytes)}
+						<span class="badge min-w-0 flex-1 gap-1 badge-sm whitespace-nowrap badge-primary">
+							<Clapperboard class="h-3 w-3 shrink-0" />
+							<span class="shrink-0">{movieSize.value}</span>
+							<span class="shrink-0">{movieSize.unit}</span>
 						</span>
 					{/if}
 					{#if stats.storage.tvBytes > 0}
-						<span class="badge badge-sm whitespace-nowrap badge-secondary">
-							<Tv class="mr-0 h-3 w-3" />
-							{formatBytes(stats.storage.tvBytes)}
+						{@const tvSize = splitFormattedSize(stats.storage.tvBytes)}
+						<span class="badge min-w-0 flex-1 gap-1 badge-sm whitespace-nowrap badge-secondary">
+							<Tv class="h-3 w-3 shrink-0" />
+							<span class="shrink-0">{tvSize.value}</span>
+							<span class="shrink-0">{tvSize.unit}</span>
 						</span>
 					{/if}
 					{#if stats.storage.totalBytes === 0}
@@ -888,7 +908,7 @@
 								<tr>
 									<th>{m.dashboard_recentHistory_colStatus()}</th>
 									<th>{m.dashboard_recentHistory_colMedia()}</th>
-									<th>{m.dashboard_recentHistory_colProgress()}</th>
+									<th>{m.common_size()}</th>
 									<th>{m.dashboard_recentHistory_colTime()}</th>
 								</tr>
 							</thead>
@@ -897,7 +917,7 @@
 									<tr>
 										<td><Skeleton variant="text" class="w-16" /></td>
 										<td><Skeleton variant="text" class="w-24" /></td>
-										<td><Skeleton variant="text" class="w-12" /></td>
+										<td><Skeleton variant="text" class="w-10" /></td>
 										<td><Skeleton variant="text" class="w-10" /></td>
 									</tr>
 								{/each}
@@ -911,7 +931,7 @@
 								<tr>
 									<th>{m.dashboard_recentHistory_colStatus()}</th>
 									<th>{m.dashboard_recentHistory_colMedia()}</th>
-									<th>{m.dashboard_recentHistory_colProgress()}</th>
+									<th>{m.common_size()}</th>
 									<th>{m.dashboard_recentHistory_colTime()}</th>
 								</tr>
 							</thead>
@@ -923,7 +943,15 @@
 											<ActivityStatusPopover
 												{activity}
 												compactLabel={getCompactStatusLabel(activity, config.label)}
+												mobileCompactLabel={getMobileCompactStatusLabel(activity, config.label)}
 											/>
+											{#if activity.status === 'downloading' && activity.downloadProgress !== undefined}
+												<progress
+													class="progress mt-0.5 w-12 progress-info"
+													value={activity.downloadProgress}
+													max="100"
+												></progress>
+											{/if}
 										</td>
 										<td>
 											{#if canLinkToMedia(activity)}
@@ -954,24 +982,9 @@
 											{/if}
 										</td>
 										<td>
-											{#if activity.status === 'downloading' && activity.downloadProgress !== undefined}
-												<progress
-													class="progress w-12 progress-info"
-													value={activity.downloadProgress}
-													max="100"
-												></progress>
-											{:else if getCompactProgressLabel(activity)}
-												<span
-													class="max-w-16 truncate text-xs text-base-content/50"
-													title={activity.statusReason}
-												>
-													{getCompactProgressLabel(activity)}
-												</span>
-											{:else}
-												<span class="text-xs text-base-content/50"
-													>{getStatusLabel(activity, config.label)}</span
-												>
-											{/if}
+											<span class="text-xs text-base-content/70">
+												{activity.size ? formatBytes(activity.size) : '-'}
+											</span>
 										</td>
 										<td>
 											<span class="text-xs text-base-content/50">
