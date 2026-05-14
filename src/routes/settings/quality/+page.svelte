@@ -44,6 +44,9 @@
 	let selectedProfile = $state<ScoringProfile | null>(null);
 	let profileSaving = $state(false);
 	let profileError = $state<string | null>(null);
+	let profileErrorPrefix = $state<string | null>(null);
+	let profileErrorEmphasis = $state<string | null>(null);
+	let profileErrorSuffix = $state<string | null>(null);
 
 	// Profile delete confirmation
 	let profileDeleteConfirmOpen = $state(false);
@@ -53,6 +56,9 @@
 		profileModalMode = 'add';
 		selectedProfile = null;
 		profileError = null;
+		profileErrorPrefix = null;
+		profileErrorEmphasis = null;
+		profileErrorSuffix = null;
 		profileModalOpen = true;
 	}
 
@@ -60,6 +66,9 @@
 		profileModalMode = 'edit';
 		selectedProfile = profile;
 		profileError = null;
+		profileErrorPrefix = null;
+		profileErrorEmphasis = null;
+		profileErrorSuffix = null;
 		profileModalOpen = true;
 	}
 
@@ -67,11 +76,17 @@
 		profileModalOpen = false;
 		selectedProfile = null;
 		profileError = null;
+		profileErrorPrefix = null;
+		profileErrorEmphasis = null;
+		profileErrorSuffix = null;
 	}
 
 	async function handleProfileSave(formData: ScoringProfileFormData) {
 		profileSaving = true;
 		profileError = null;
+		profileErrorPrefix = null;
+		profileErrorEmphasis = null;
+		profileErrorSuffix = null;
 
 		try {
 			if (profileModalMode === 'add') {
@@ -86,6 +101,12 @@
 			closeProfileModal();
 		} catch (e) {
 			profileError = e instanceof Error ? e.message : 'An unexpected error occurred';
+			const duplicateMatch = profileError.match(/^Profile with name '(.+)' already exists$/);
+			if (duplicateMatch) {
+				profileErrorPrefix = "Profile with name '";
+				profileErrorEmphasis = duplicateMatch[1] ?? '';
+				profileErrorSuffix = "' already exists";
+			}
 		} finally {
 			profileSaving = false;
 		}
@@ -287,6 +308,9 @@
 	defaultCopyFromId={data.defaultProfileId}
 	saving={profileSaving}
 	error={profileError}
+	errorPrefix={profileErrorPrefix}
+	errorEmphasis={profileErrorEmphasis}
+	errorSuffix={profileErrorSuffix}
 	onClose={closeProfileModal}
 	onSave={handleProfileSave}
 	onReset={handleProfileReset}
