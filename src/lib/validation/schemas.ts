@@ -271,6 +271,8 @@ export const searchQuerySchema = z.object({
 	year: z.coerce.number().int().min(1888).max(2100).optional(),
 	season: z.coerce.number().int().min(0).optional(),
 	episode: z.coerce.number().int().min(0).optional(),
+	// Language preference (ISO 639-1 code)
+	language: z.string().optional(),
 	// Enrichment options
 	enrich: z
 		.string()

@@ -38,6 +38,7 @@ import { ReleaseDeduplicator } from './ReleaseDeduplicator';
 import { ReleaseRanker } from './ReleaseRanker';
 import { ReleaseCache } from './ReleaseCache';
 import { parseRelease } from '../parser';
+import { extractLanguages } from '../parser/patterns/language';
 import { CloudflareProtectedError } from '../http/CloudflareDetection';
 import {
 	releaseEnricher,
@@ -321,6 +322,9 @@ export class SearchOrchestrator {
 		}
 		filtered = this.filterOutNonVideoArtifacts(filtered, criteriaWithSource);
 
+		// Boost releases matching preferred language
+		filtered = this.boostByLanguage(filtered, criteriaWithSource);
+
 		// Rank
 		const ranked = this.ranker.rank(filtered);
 
@@ -532,6 +536,10 @@ export class SearchOrchestrator {
 			{ afterTitleRelevance: filtered.length },
 			'[SearchOrchestrator] DEBUG: after title relevance filter'
 		);
+
+		// Boost releases matching preferred language before enrichment
+		filtered = this.boostByLanguage(filtered, enrichedCriteria);
+
 		const afterFilteringCount = filtered.length;
 
 		// Enrich with quality scoring and optional TMDB matching
@@ -2008,6 +2016,72 @@ export class SearchOrchestrator {
 
 	private matchesTrailerArtifactTitle(title: string): boolean {
 		return TRAILER_ARTIFACT_TITLE_PATTERNS.some((pattern) => pattern.test(title));
+	}
+
+	/**
+	 * Boost releases that match the preferred audio language.
+	 * Uses extractLanguages() to detect language from release titles.
+	 * Matching releases are boosted in place (inflated seeders for rank path,
+	 * boosted totalScore for enhanced path). Non-matching releases pass through.
+	 *
+	 * The boost is a soft preference: non-matching releases still appear but
+	 * are ranked below matching ones. This mirrors how Sonarr/Radarr handle
+	 * language preferences via custom format scoring.
+	 */
+	private boostByLanguage<T extends ReleaseResult>(releases: T[], criteria: SearchCriteria): T[] {
+		const preferredLanguage = criteria.language;
+		if (!preferredLanguage || releases.length === 0) {
+			return releases;
+		}
+
+		// Skip English default — when the preferred language is English,
+		// most releases already default to English, so boosting adds noise.
+		if (preferredLanguage === 'en') {
+			return releases;
+		}
+
+		const beforeMatches = releases.filter((r) => {
+			const { languages } = extractLanguages(r.title);
+			return languages.includes(preferredLanguage);
+		});
+
+		// Only boost if there are actual matching releases in the results
+		if (beforeMatches.length === 0) {
+			return releases;
+		}
+
+		for (const release of releases) {
+			const { languages } = extractLanguages(release.title);
+			const matchesLanguage = languages.includes(preferredLanguage);
+
+			if (matchesLanguage) {
+				// Boost seeders for the non-enhanced rank path.
+				// The ReleaseRanker weights seeders at 0.4 — a 30x multiplier
+				// pushes matching releases well above non-matching ones.
+				if (typeof release.seeders === 'number') {
+					(release as { seeders?: number }).seeders = Math.max(1, release.seeders * 30);
+				}
+
+				// Boost totalScore for the enhanced search path.
+				// EnhancedReleaseResult has totalScore; we add a large score bonus
+				// that places language-matched releases above non-matched ones.
+				const enhanced = release as { totalScore?: number };
+				if (typeof enhanced.totalScore === 'number') {
+					enhanced.totalScore += 5000;
+				}
+			}
+		}
+
+		logger.debug(
+			{
+				preferredLanguage,
+				totalReleases: releases.length,
+				boostedCount: beforeMatches.length
+			},
+			'[SearchOrchestrator] Language boost applied'
+		);
+
+		return releases;
 	}
 
 	/**

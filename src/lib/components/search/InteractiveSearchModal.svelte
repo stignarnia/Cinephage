@@ -58,6 +58,7 @@
 		season?: number;
 		episode?: number;
 		searchMode?: SearchMode;
+		language?: string;
 		onClose: () => void;
 		onGrab: (
 			release: Release,
@@ -78,6 +79,7 @@
 		season,
 		episode,
 		searchMode = 'all',
+		language,
 		onClose,
 		onGrab
 	}: Props = $props();
@@ -289,6 +291,7 @@
 			if (scoringProfileId) params.scoringProfileId = scoringProfileId;
 			if (season !== undefined) params.season = season.toString();
 			if (episode !== undefined) params.episode = episode.toString();
+			if (language) params.language = language;
 
 			params.q = title;
 
