@@ -2074,6 +2074,38 @@ export const unblockMediaSchema = z.object({
 });
 
 // ============================================================================
+// Blocklist Schemas (Release-Level)
+// ============================================================================
+
+/**
+ * Schema for adding a release to the blocklist.
+ */
+export const addToBlocklistSchema = z.object({
+	title: z.string().min(1),
+	infoHash: z.string().optional(),
+	indexerId: z.string().optional(),
+	movieId: z.string().nullable().optional(),
+	seriesId: z.string().nullable().optional(),
+	size: z.number().nonnegative().optional(),
+	protocol: z.enum(['torrent', 'usenet', 'streaming']).optional(),
+	reason: z.enum(['manual']).default('manual'),
+	message: z.string().optional(),
+	expiresInHours: z.number().positive().nullable().optional()
+});
+
+export type AddToBlocklistRequest = z.infer<typeof addToBlocklistSchema>;
+
+/**
+ * Schema for updating a blocklist entry's expiry.
+ */
+export const updateBlocklistExpirySchema = z.object({
+	id: z.string().min(1),
+	expiresInHours: z.number().positive().nullable()
+});
+
+export type UpdateBlocklistExpiryRequest = z.infer<typeof updateBlocklistExpirySchema>;
+
+// ============================================================================
 // Type Exports for New Schemas
 // ============================================================================
 

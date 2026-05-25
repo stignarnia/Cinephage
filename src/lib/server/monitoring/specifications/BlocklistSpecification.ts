@@ -259,6 +259,19 @@ class BlocklistService {
 		if (ids.length === 0) return;
 		await db.delete(blocklist).where(inArray(blocklist.id, ids));
 	}
+
+	/**
+	 * Update the expiry of a blocklist entry.
+	 * @param id - The blocklist entry ID
+	 * @param expiresInHours - Hours until expiry, or null for permanent
+	 */
+	async updateExpiry(id: string, expiresInHours: number | null): Promise<void> {
+		const expiresAt =
+			expiresInHours !== null
+				? new Date(Date.now() + expiresInHours * 60 * 60 * 1000).toISOString()
+				: null;
+		await db.update(blocklist).set({ expiresAt }).where(eq(blocklist.id, id));
+	}
 }
 
 /**

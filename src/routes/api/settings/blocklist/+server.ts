@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { blocklistService } from '$lib/server/monitoring/specifications/BlocklistSpecification.js';
+import { addToBlocklistSchema, updateBlocklistExpirySchema } from '$lib/validation/schemas.js';
 import { z } from 'zod';
 
 export const GET: RequestHandler = async ({ url }) => {
@@ -57,4 +58,59 @@ export const DELETE: RequestHandler = async ({ request }) => {
 	}
 
 	return json({ error: 'No action specified' }, { status: 400 });
+};
+
+export const POST: RequestHandler = async ({ request }) => {
+	const body = await request.json();
+	const parsed = addToBlocklistSchema.safeParse(body);
+
+	if (!parsed.success) {
+		return json(
+			{ error: 'Invalid request body', details: parsed.error.flatten() },
+			{ status: 400 }
+		);
+	}
+
+	const {
+		title,
+		infoHash,
+		indexerId,
+		movieId,
+		seriesId,
+		size,
+		protocol,
+		reason,
+		message,
+		expiresInHours
+	} = parsed.data;
+
+	const id = await blocklistService.addToBlocklist(
+		{ title, infoHash, indexerId, size, protocol },
+		{
+			movieId: movieId ?? undefined,
+			seriesId: seriesId ?? undefined,
+			reason,
+			message,
+			expiresInHours: expiresInHours ?? undefined
+		}
+	);
+
+	return json({ success: true, id });
+};
+
+export const PUT: RequestHandler = async ({ request }) => {
+	const body = await request.json();
+	const parsed = updateBlocklistExpirySchema.safeParse(body);
+
+	if (!parsed.success) {
+		return json(
+			{ error: 'Invalid request body', details: parsed.error.flatten() },
+			{ status: 400 }
+		);
+	}
+
+	const { id, expiresInHours } = parsed.data;
+	await blocklistService.updateExpiry(id, expiresInHours);
+
+	return json({ success: true });
 };

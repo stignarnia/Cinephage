@@ -10,7 +10,8 @@
 	import {
 		getBlocklist,
 		deleteBlocklistEntries,
-		purgeBlocklistExpired
+		purgeBlocklistExpired,
+		updateBlocklistExpiry
 	} from '$lib/api/settings.js';
 
 	let { data }: { data: { entries: BlocklistEntry[]; total: number } } = $props();
@@ -167,6 +168,16 @@
 		}
 	}
 
+	async function handleUpdateExpiry(id: string, expiresInHours: number | null) {
+		try {
+			await updateBlocklistExpiry({ id, expiresInHours });
+			toasts.success(m.blocklist_expiryUpdated());
+			await fetchEntries();
+		} catch (err) {
+			toasts.error(err instanceof Error ? err.message : m.common_failedToSave());
+		}
+	}
+
 	const bulkDeleteMessage = $derived(m.blocklist_bulkDeleteMessage({ count: selectedIds.size }));
 </script>
 
@@ -238,6 +249,7 @@
 					{sort}
 					onSort={handleSort}
 					onDelete={handleDelete}
+					onUpdateExpiry={handleUpdateExpiry}
 				/>
 			{:else}
 				<div class="py-12 text-center text-base-content/50">

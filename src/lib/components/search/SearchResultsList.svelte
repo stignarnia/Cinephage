@@ -20,6 +20,8 @@
 		canUsenetStream: boolean;
 		usenetStreamUnavailableReason: string | null;
 		onGrab: (release: Release, streaming?: boolean) => Promise<void>;
+		onBlock?: (release: Release) => void;
+		blockedIds?: SvelteSet<string>;
 	}
 
 	let {
@@ -36,7 +38,9 @@
 		showUsenetStreamButton,
 		canUsenetStream,
 		usenetStreamUnavailableReason,
-		onGrab
+		onGrab,
+		onBlock,
+		blockedIds
 	}: Props = $props();
 </script>
 
@@ -77,8 +81,10 @@
 				<SearchResultRow
 					{release}
 					{onGrab}
+					{onBlock}
 					grabbing={grabbingIds.has(key)}
 					grabbed={grabbedIds.has(key)}
+					blocked={blockedIds?.has(key) ?? false}
 					streaming={streamingIds.has(key)}
 					error={grabErrors.get(key)}
 					{showUsenetStreamButton}

@@ -15,12 +15,34 @@
 		};
 		onSort: (column: 'title' | 'reason' | 'createdAt' | 'expiresAt') => void;
 		onDelete: (entry: BlocklistEntry) => void;
+		onUpdateExpiry?: (id: string, expiresInHours: number | null) => Promise<void>;
 	}
 
-	let { entries, selectedIds, onSelect, onSelectAll, sort, onSort, onDelete }: Props = $props();
+	let {
+		entries,
+		selectedIds,
+		onSelect,
+		onSelectAll,
+		sort,
+		onSort,
+		onDelete,
+		onUpdateExpiry
+	}: Props = $props();
 
 	const allSelected = $derived(entries.length > 0 && entries.every((e) => selectedIds.has(e.id)));
 	const someSelected = $derived(entries.some((e) => selectedIds.has(e.id)) && !allSelected);
+
+	let editingExpiryId = $state<string | null>(null);
+	let expiryLoading = $state(false);
+
+	const durationOptions: { label: () => string; value: number | null }[] = [
+		{ label: m.blocklist_duration_1hour, value: 1 },
+		{ label: m.blocklist_duration_6hours, value: 6 },
+		{ label: m.blocklist_duration_24hours, value: 24 },
+		{ label: m.blocklist_duration_72hours, value: 72 },
+		{ label: m.blocklist_duration_1week, value: 168 },
+		{ label: m.blocklist_duration_permanent, value: null }
+	];
 
 	function formatReason(reason: string): string {
 		const map: Record<string, string> = {
@@ -66,6 +88,17 @@
 			streaming: 'badge-accent'
 		};
 		return map[protocol] ?? 'badge-ghost';
+	}
+
+	async function handleExpiryChange(id: string, hours: number | null) {
+		if (!onUpdateExpiry) return;
+		expiryLoading = true;
+		try {
+			await onUpdateExpiry(id, hours);
+		} finally {
+			expiryLoading = false;
+			editingExpiryId = null;
+		}
 	}
 </script>
 
@@ -179,9 +212,33 @@
 					</td>
 					<td class="text-xs text-base-content/60">{formatDate(entry.createdAt)}</td>
 					<td>
-						<span class="badge badge-xs {getExpiryLabel(entry.expiresAt).variant}">
-							{getExpiryLabel(entry.expiresAt).label}
-						</span>
+						{#if editingExpiryId === entry.id}
+							<select
+								class="select-bordered select w-28 select-xs"
+								onchange={(e) =>
+									handleExpiryChange(
+										entry.id,
+										(e.currentTarget as HTMLSelectElement).value === ''
+											? null
+											: Number((e.currentTarget as HTMLSelectElement).value)
+									)}
+								disabled={expiryLoading}
+							>
+								{#each durationOptions as option (option.value)}
+									<option value={option.value === null ? '' : option.value}>
+										{option.label()}
+									</option>
+								{/each}
+							</select>
+						{:else}
+							<button
+								class="badge cursor-pointer badge-xs {getExpiryLabel(entry.expiresAt).variant}"
+								onclick={() => (editingExpiryId = entry.id)}
+								title={m.blocklist_tableEditExpiry()}
+							>
+								{getExpiryLabel(entry.expiresAt).label}
+							</button>
+						{/if}
 					</td>
 					<td>
 						<button

@@ -5,11 +5,15 @@
 	import SearchStats from './SearchStats.svelte';
 	import SearchFilters from './SearchFilters.svelte';
 	import SearchResultsList from './SearchResultsList.svelte';
+	import { BlockReleaseModal } from '$lib/components/blocklist';
 	import { getUsenetServers } from '$lib/api/usenet.js';
 	import { searchReleases } from '$lib/api/indexers.js';
+	import { addToBlocklist } from '$lib/api/settings.js';
 	import { isMultiSeasonPack } from '$lib/utils/release-analysis.js';
 	import { getGrabErrorMessage } from './grab-errors.js';
 	import { downloadDebugJson as downloadJsonFile } from './debug-export.js';
+	import { toasts } from '$lib/stores/toast.svelte';
+	import * as m from '$lib/paraglide/messages.js';
 	import type { Release } from './SearchResultRow.svelte';
 
 	interface IndexerResult {
@@ -93,6 +97,11 @@
 	let streamingIds = new SvelteSet<string>();
 	let grabErrors = new SvelteMap<string, string>();
 	let searchTriggered = $state(false);
+	let blockedIds = new SvelteSet<string>();
+	let blockModalOpen = $state(false);
+	let releaseToBlock = $state<Release | null>(null);
+	let blocking = $state(false);
+
 	let usenetStreamingState = $state<
 		'unknown' | 'available' | 'noConfiguredServers' | 'noEnabledServers' | 'unavailable'
 	>('unknown');
@@ -268,6 +277,9 @@
 			filterQuery = '';
 			searchTriggered = false;
 			usenetStreamingState = 'unknown';
+			blockedIds.clear();
+			blockModalOpen = false;
+			releaseToBlock = null;
 		}
 	});
 
@@ -335,6 +347,40 @@
 			streamingIds.delete(key);
 		}
 	}
+
+	function handleBlockClick(release: Release) {
+		releaseToBlock = release;
+		blockModalOpen = true;
+	}
+
+	async function confirmBlock(expiresInHours: number | null) {
+		if (!releaseToBlock) return;
+		blocking = true;
+		try {
+			await addToBlocklist({
+				title: releaseToBlock.title,
+				infoHash: releaseToBlock.infoHash,
+				indexerId: releaseToBlock.indexerId,
+				size: releaseToBlock.size,
+				protocol: releaseToBlock.protocol,
+				reason: 'manual',
+				expiresInHours
+			});
+			blockedIds.add(releaseKey(releaseToBlock));
+			toasts.success(m.blocklist_addedToBlocklist());
+		} catch (err) {
+			toasts.error(err instanceof Error ? err.message : 'Failed to block release');
+		} finally {
+			blocking = false;
+			blockModalOpen = false;
+			releaseToBlock = null;
+		}
+	}
+
+	function cancelBlock() {
+		blockModalOpen = false;
+		releaseToBlock = null;
+	}
 </script>
 
 <ModalWrapper
@@ -395,9 +441,19 @@
 		{canUsenetStream}
 		{usenetStreamUnavailableReason}
 		onGrab={handleGrab}
+		onBlock={handleBlockClick}
+		{blockedIds}
 	/>
 
 	<div class="modal-action shrink-0 border-t border-base-300 pt-3">
 		<button class="btn" onclick={onClose}>Close</button>
 	</div>
 </ModalWrapper>
+
+<BlockReleaseModal
+	open={blockModalOpen}
+	releaseTitle={releaseToBlock?.title ?? ''}
+	loading={blocking}
+	onConfirm={confirmBlock}
+	onCancel={cancelBlock}
+/>

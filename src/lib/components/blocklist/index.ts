@@ -1,5 +1,6 @@
 export { default as BlocklistTable } from './BlocklistTable.svelte';
 export { default as BlocklistBulkActions } from './BlocklistBulkActions.svelte';
+export { default as BlockReleaseModal } from './BlockReleaseModal.svelte';
 
 export interface BlocklistEntry {
 	id: string;

@@ -202,6 +202,28 @@ export async function purgeBlocklistExpired() {
 	return apiDelete('/api/settings/blocklist', { action: 'purgeExpired' });
 }
 
+export async function addToBlocklist(payload: {
+	title: string;
+	infoHash?: string;
+	indexerId?: string;
+	movieId?: string | null;
+	seriesId?: string | null;
+	size?: number;
+	protocol?: 'torrent' | 'usenet' | 'streaming';
+	reason?: 'manual';
+	message?: string;
+	expiresInHours?: number | null;
+}) {
+	return apiPost('/api/settings/blocklist', payload);
+}
+
+export async function updateBlocklistExpiry(payload: {
+	id: string;
+	expiresInHours: number | null;
+}) {
+	return apiPut('/api/settings/blocklist', payload);
+}
+
 export async function exportConfig(passphrase: string, includeIndexerCookies?: boolean) {
 	return apiPost('/api/settings/system/backup', { passphrase, includeIndexerCookies });
 }

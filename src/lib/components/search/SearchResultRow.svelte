@@ -11,7 +11,8 @@
 		Calendar,
 		HardDrive,
 		ArrowUpCircle,
-		ArrowDownCircle
+		ArrowDownCircle,
+		Ban
 	} from 'lucide-svelte';
 	import { formatBytes } from '$lib/utils/format';
 	import type { ScoreComponents } from '$lib/server/quality/types.js';
@@ -84,8 +85,10 @@
 	interface Props {
 		release: Release;
 		onGrab: (release: Release, streaming?: boolean) => Promise<void>;
+		onBlock?: (release: Release) => void;
 		grabbing?: boolean;
 		grabbed?: boolean;
+		blocked?: boolean;
 		error?: string | null;
 		streaming?: boolean;
 		showUsenetStreamButton?: boolean;
@@ -96,8 +99,10 @@
 	let {
 		release,
 		onGrab,
+		onBlock,
 		grabbing = false,
 		grabbed = false,
+		blocked = false,
 		error = null,
 		streaming = false,
 		showUsenetStreamButton = true,
@@ -259,6 +264,12 @@
 
 		<!-- Actions -->
 		<div class="flex shrink-0 items-center gap-1">
+			{#if blocked}
+				<span class="badge gap-1 badge-warning">
+					<Ban size={12} />
+					{m.search_releaseBlocked()}
+				</span>
+			{/if}
 			{#if grabbed}
 				<span class="badge gap-1 badge-success">
 					<Check size={12} />
@@ -269,7 +280,7 @@
 					<X size={12} />
 					{m.search_failedBadge()}
 				</span>
-			{:else}
+			{:else if !blocked}
 				{#if release.protocol === 'usenet' && showUsenetStreamButton}
 					<button
 						class="btn btn-sm btn-accent"
@@ -296,6 +307,16 @@
 					{:else}
 						<Download size={14} />
 					{/if}
+				</button>
+			{/if}
+
+			{#if onBlock && !blocked}
+				<button
+					class="btn btn-ghost btn-sm"
+					onclick={() => onBlock(release)}
+					title={m.search_blockRelease()}
+				>
+					<Ban size={14} />
 				</button>
 			{/if}
 
