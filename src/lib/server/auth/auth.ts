@@ -173,11 +173,26 @@ export const auth = betterAuth({
 	// Allow Better Auth to infer the effective host when deployed behind a reverse proxy.
 	trustedProxyHeaders: true,
 
-	// Trust origins from environment, database, or common local development URLs
-	// Also automatically trust any local network origin (RFC1918 private IPs)
-	// This allows seamless access from any device on the LAN without configuration
+	// Better Auth has a known bug where its internal origin matching rejects http origins
+	// (e.g. http://192.168.x.x:PORT) even when explicitly listed.When the request's Origin
+	// is in our trusted set, we return [origin] instead of a boolean, forcing Better Auth to
+	// evaluate matchesOriginPattern(origin, origin),
+	// regardless of whatever normalization Better Auth applies internally.
+	// The function is also called at init time with request=undefined; in that case we
+	// just return the static list so ctx.context.trustedOrigins is populated correctly.
 	trustedOrigins: async (request) => {
-		const origins = [
+		const trusted = new Set<string>();
+
+		const addOrigin = (value: string) => {
+			try {
+				trusted.add(new URL(value).origin);
+			} catch {
+				// ignore malformed entries
+			}
+		};
+
+		// Static dev origins
+		for (const o of [
 			'http://localhost:3000',
 			'http://127.0.0.1:3000',
 			'http://localhost:5173',
@@ -186,56 +201,46 @@ export const auth = betterAuth({
 			'https://127.0.0.1:3000',
 			'https://localhost:5173',
 			'https://127.0.0.1:5173'
-		];
-
-		// Dynamically trust local network origins
-		// This allows access from any device on the LAN (192.168.x.x, 10.x.x.x, etc.)
-		if (request) {
-			const requestOrigin = new URL(request.url).origin;
-			const forwardedOrigin = getForwardedOrigin(request);
-			const origin = request.headers.get('origin');
-
-			origins.push(requestOrigin);
-			if (forwardedOrigin) {
-				origins.push(forwardedOrigin);
-			}
-
-			if (
-				origin &&
-				(isLocalNetworkOrigin(origin) || origin === requestOrigin || origin === forwardedOrigin)
-			) {
-				origins.push(origin);
-			}
+		]) {
+			addOrigin(o);
 		}
 
-		// Add external URL from database (configured via settings UI)
+		// Request-specific origins — only available on per-request calls, not at init time
+		if (request) {
+			addOrigin(request.url);
+			const forwardedOrigin = getForwardedOrigin(request);
+			if (forwardedOrigin) addOrigin(forwardedOrigin);
+		}
+
+		// External URL from settings UI
 		try {
 			const settingsService = getSystemSettingsService();
 			const externalUrl = await settingsService.getExternalUrl();
-			if (externalUrl) {
-				origins.push(externalUrl);
-			}
+			if (externalUrl) addOrigin(externalUrl);
 		} catch {
-			// Database not ready yet, continue with defaults
+			// Database not ready yet; skip
 		}
 
-		// Add BETTER_AUTH_URL if set (production or custom deployment)
-		if (process.env.BETTER_AUTH_URL) {
-			origins.push(process.env.BETTER_AUTH_URL);
-		}
+		if (process.env.BETTER_AUTH_URL) addOrigin(process.env.BETTER_AUTH_URL);
+		if (process.env.ORIGIN) addOrigin(process.env.ORIGIN);
 
-		// Add ORIGIN if set (common Docker/manual deployment configuration)
-		if (process.env.ORIGIN) {
-			origins.push(process.env.ORIGIN);
-		}
-
-		// Add additional trusted origins from comma-separated env var
 		if (process.env.BETTER_AUTH_TRUSTED_ORIGINS) {
-			const additional = process.env.BETTER_AUTH_TRUSTED_ORIGINS.split(',').map((o) => o.trim());
-			origins.push(...additional);
+			for (const o of process.env.BETTER_AUTH_TRUSTED_ORIGINS.split(',')) {
+				addOrigin(o.trim());
+			}
 		}
 
-		return [...new Set(origins)];
+		// Per-request bypass: if the Origin header is explicitly trusted (or is a local
+		// network address), return [origin] as the sole pattern entry so better-auth's
+		// matchesOriginPattern(origin, origin) trivially succeeds without normalization.
+		if (request) {
+			const origin = request.headers.get('origin');
+			if (origin && (isLocalNetworkOrigin(origin) || trusted.has(origin))) {
+				return [origin];
+			}
+		}
+
+		return [...trusted];
 	},
 
 	// Use native SQLite adapter instead of Drizzle to avoid boolean binding issues
