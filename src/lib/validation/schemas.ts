@@ -545,7 +545,17 @@ export const rootFolderCreateSchema = z.object({
 	isDefault: z.boolean().default(false),
 	readOnly: z.boolean().default(false),
 	preserveSymlinks: z.boolean().default(false),
-	defaultMonitored: z.boolean().default(true)
+	defaultMonitored: z.boolean().default(true),
+	skipFolderPatterns: z.array(z.string().min(1).max(200)).default([]),
+	blockedVideoExtensions: z
+		.array(
+			z
+				.string()
+				.min(1)
+				.max(20)
+				.transform((v) => (v.startsWith('.') ? v.toLowerCase() : `.${v.toLowerCase()}`))
+		)
+		.default([])
 });
 
 /**
