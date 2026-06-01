@@ -16,84 +16,7 @@ import { ac, admin as adminRole, user as userRole } from '$lib/auth/access-contr
 import { isHardReservedUsername, isValidUsernameFormat } from '$lib/auth/username-policy.js';
 import { ensureSoleUserIsAdminRecord } from './admin-bootstrap.js';
 import { isSetupComplete } from './setup.js';
-
-/**
- * Extract IP from hostname (e.g., "192.168.1.100:5173" → "192.168.1.100")
- */
-function extractIpFromHostname(hostname: string): string | null {
-	// Remove port if present
-	const host = hostname.split(':')[0];
-
-	// Check if it's already an IP (IPv4)
-	if (/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host)) {
-		return host;
-	}
-
-	return null;
-}
-
-/**
- * Check if an IP address is in a private/local network range
- * RFC1918 private ranges + loopback + link-local
- */
-function isLocalIpAddress(ip: string): boolean {
-	// Handle IPv4-mapped IPv6 addresses
-	if (ip.startsWith('::ffff:')) {
-		ip = ip.slice(7);
-	}
-
-	// IPv4 ranges
-	if (ip.includes('.')) {
-		const parts = ip.split('.').map(Number);
-		if (parts.length === 4 && parts.every((p) => !isNaN(p) && p >= 0 && p <= 255)) {
-			// 10.0.0.0/8
-			if (parts[0] === 10) return true;
-			// 172.16.0.0/12
-			if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
-			// 192.168.0.0/16
-			if (parts[0] === 192 && parts[1] === 168) return true;
-			// 127.0.0.0/8 (loopback)
-			if (parts[0] === 127) return true;
-			// 169.254.0.0/16 (link-local/APIPA)
-			if (parts[0] === 169 && parts[1] === 254) return true;
-		}
-	}
-
-	// IPv6
-	if (ip.includes(':')) {
-		// ::1 (loopback)
-		if (ip === '::1' || ip === '0:0:0:0:0:0:0:1') return true;
-		// fc00::/7 (unique local)
-		if (/^fc[0-9a-f]/i.test(ip)) return true;
-		// fe80::/10 (link-local)
-		if (/^fe80:/i.test(ip)) return true;
-	}
-
-	return false;
-}
-
-/**
- * Check if an origin is from the local network
- * This allows seamless access from any device on the LAN without configuration
- */
-function isLocalNetworkOrigin(origin: string): boolean {
-	try {
-		const url = new URL(origin);
-		const ip = extractIpFromHostname(url.hostname);
-
-		// If it's a hostname (not an IP), check common local hostnames
-		if (!ip) {
-			// Allow common local hostnames
-			const localHostnames = ['localhost', '127.0.0.1', '0.0.0.0'];
-			if (localHostnames.includes(url.hostname)) return true;
-			return false;
-		}
-
-		return isLocalIpAddress(ip);
-	} catch {
-		return false;
-	}
-}
+import { isLocalNetworkOrigin } from '$lib/server/utils/origin.js';
 
 function getFirstForwardedHeaderValue(value: string | null): string | null {
 	if (!value) {
@@ -173,13 +96,11 @@ export const auth = betterAuth({
 	// Allow Better Auth to infer the effective host when deployed behind a reverse proxy.
 	trustedProxyHeaders: true,
 
-	// Better Auth has a known bug where its internal origin matching rejects http origins
-	// (e.g. http://192.168.x.x:PORT) even when explicitly listed.When the request's Origin
-	// is in our trusted set, we return [origin] instead of a boolean, forcing Better Auth to
-	// evaluate matchesOriginPattern(origin, origin),
-	// regardless of whatever normalization Better Auth applies internally.
-	// The function is also called at init time with request=undefined; in that case we
-	// just return the static list so ctx.context.trustedOrigins is populated correctly.
+	// Function form is required (not a static array) so origins can be resolved per-request
+	// from env vars, the database external URL, and forwarded proxy headers.
+	// better-auth calls this at init time with request=undefined to seed ctx.context.trustedOrigins,
+	// and again per-request inside validateOrigin. We return [origin] when the origin is trusted
+	// so matchesOriginPattern(origin, origin) trivially succeeds without depending on normalization.
 	trustedOrigins: async (request) => {
 		const trusted = new Set<string>();
 
