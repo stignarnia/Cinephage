@@ -305,6 +305,18 @@ const EPISODE_PATTERNS: Array<{
 		}
 	},
 
+	// Fansub/anime season+episode with dash notation: "S1 - 08", "S2 - 12v2"
+	// Must appear before the season-pack S\d pattern so "S1 - 08" is not
+	// consumed as a season-1 pack with a leftover " - 08" that can't be parsed.
+	{
+		pattern: /\bS(\d{1,2})\s+-\s+(\d{2,4})(?:v\d+)?(?=[\s(]|$)/i,
+		extract: (match) => ({
+			season: parseInt(match[1], 10),
+			episodes: [parseInt(match[2], 10)],
+			isSeasonPack: false
+		})
+	},
+
 	// Season pack patterns
 	{
 		pattern: /\bSeason[\s._-]?(\d{1,2})\b(?![\s._-]?E)/i,
@@ -339,9 +351,9 @@ const EPISODE_PATTERNS: Array<{
 			absoluteEpisode: parseInt(match[1], 10)
 		})
 	},
-	// - 045 - anime style with dashes around number
+	// - 045 or - 01v2 - anime style with dashes around number, optional version suffix
 	{
-		pattern: /\s-\s(\d{2,4})(?=\s|$)/,
+		pattern: /\s-\s(\d{2,4})(?:v\d+)?(?=\s|$)/,
 		extract: (match) => ({
 			absoluteEpisode: parseInt(match[1], 10)
 		})
