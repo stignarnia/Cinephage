@@ -1036,6 +1036,55 @@ describe('SearchOrchestrator.filterByTitleRelevance', () => {
 		expect(filtered[0].title).toContain('2025');
 	});
 
+	it('rejects releases with .exe extension in title', () => {
+		const releases = [
+			createRelease({ title: 'Backrooms.2026.1080p.HD.X264.1080p.exe' }),
+			createRelease({ title: 'Backrooms.2026.1080p.HD.X264.1080p' })
+		];
+
+		const criteria = createMovieCriteria({
+			query: 'Backrooms'
+		});
+
+		const filtered = privateApi(orchestrator).filterOutNonVideoArtifacts(releases, criteria);
+		expect(filtered).toHaveLength(1);
+		expect(filtered[0].title).toBe('Backrooms.2026.1080p.HD.X264.1080p');
+	});
+
+	it('rejects releases with .bat .sh .cmd .lnk .scr extensions', () => {
+		const releases = [
+			createRelease({ title: 'Movie.2024.1080p.BluRay.x264.bat' }),
+			createRelease({ title: 'Movie.2024.1080p.BluRay.x264.sh' }),
+			createRelease({ title: 'Movie.2024.1080p.BluRay.x264.cmd' }),
+			createRelease({ title: 'Movie.2024.1080p.WEB-DL.H.264.lnk' }),
+			createRelease({ title: 'Movie.2024.1080p.WEBRip.scr' }),
+			createRelease({ title: 'Movie.2024.1080p.BluRay.x264-GROUP' })
+		];
+
+		const criteria = createMovieCriteria({
+			query: 'Movie'
+		});
+
+		const filtered = privateApi(orchestrator).filterOutNonVideoArtifacts(releases, criteria);
+		expect(filtered).toHaveLength(1);
+		expect(filtered[0].title).toBe('Movie.2024.1080p.BluRay.x264-GROUP');
+	});
+
+	it('rejects .exe releases even when title contains video signals', () => {
+		const releases = [
+			createRelease({
+				title: 'Backrooms 2026 1080p HD X264 1080p exe'
+			})
+		];
+
+		const criteria = createMovieCriteria({
+			query: 'Backrooms'
+		});
+
+		const filtered = privateApi(orchestrator).filterOutNonVideoArtifacts(releases, criteria);
+		expect(filtered).toHaveLength(0);
+	});
+
 	it('falls back to pre-filtered releases for interactive TV when relevance removes all', () => {
 		const releases = [
 			createRelease({ title: 'Совсем другой сериал S01E01 [2026, WEB-DL 1080p]' }),

@@ -1949,6 +1949,7 @@
 	"nav_epg": "EPG",
 	"nav_general": "General",
 	"nav_globalFilters": "Global Filters",
+	"nav_blockedExtensions": "Blocked Extensions",
 	"nav_home": "Home",
 	"nav_import": "Import",
 	"nav_indexers": "Indexers",

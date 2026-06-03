@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { PROVIDER_IMPLEMENTATIONS } from '$lib/server/subtitles/types';
-import { TMDB } from '$lib/config/constants.js';
+import { TMDB, DANGEROUS_EXTENSIONS, EXECUTABLE_EXTENSIONS } from '$lib/config/constants.js';
 
 /**
  * Validation schemas for API inputs and database rows.
@@ -315,6 +315,24 @@ export const globalTmdbFiltersSchema = z.object({
 	region: z.string().default(TMDB.DEFAULT_REGION),
 	excluded_genre_ids: z.array(z.number().int()).default([])
 });
+
+/** Available extension categories for blocking */
+export const BLOCKED_EXTENSION_DEFAULTS = [
+	...DANGEROUS_EXTENSIONS,
+	...EXECUTABLE_EXTENSIONS
+] as const;
+
+/**
+ * Schema for blocked search extensions.
+ * Users toggle which file extensions should be blocked from search results.
+ */
+export const blockedSearchExtensionsSchema = z.object({
+	extensions: z
+		.array(z.string().min(1).max(20))
+		.default([...BLOCKED_EXTENSION_DEFAULTS])
+});
+
+export type BlockedSearchExtensions = z.infer<typeof blockedSearchExtensionsSchema>;
 
 // ============================================================
 // Discover API Schemas

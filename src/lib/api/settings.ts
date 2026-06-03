@@ -398,6 +398,14 @@ export async function updateUserLanguage(language: string) {
 	return apiPost('/api/user/language', { language });
 }
 
+export async function getBlockedExtensions() {
+	return apiGet('/api/settings/blocked-extensions');
+}
+
+export async function updateBlockedExtensions(payload: { extensions: string[] }) {
+	return apiPut('/api/settings/blocked-extensions', payload);
+}
+
 export async function getBlockedMedia(params?: {
 	search?: string;
 	mediaType?: string;
