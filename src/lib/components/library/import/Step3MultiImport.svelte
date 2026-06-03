@@ -33,6 +33,7 @@
 		getEffectiveMediaType = (_group: DetectionGroup) => 'movie' as MediaType,
 		getGroupEpisodeInfo = (_group: DetectionGroup) =>
 			null as { season: number; episode: number } | null,
+		lockedMediaType = undefined as MediaType | undefined,
 		getSectionDestinations = (_section: DetectionSection): DestinationLibrary[] => [],
 		getSectionEligibleCount = (_section: DetectionSection) => 0,
 		canApplyDestination = (_section: DetectionSection) => false,
@@ -59,6 +60,7 @@
 		canImport: (group: DetectionGroup) => boolean;
 		getEffectiveMediaType: (group: DetectionGroup) => MediaType;
 		getGroupEpisodeInfo: (group: DetectionGroup) => { season: number; episode: number } | null;
+		lockedMediaType?: MediaType;
 		getSectionDestinations: (section: DetectionSection) => DestinationLibrary[];
 		getSectionEligibleCount: (section: DetectionSection) => number;
 		canApplyDestination: (section: DetectionSection) => boolean;
@@ -118,32 +120,40 @@
 
 	<div class="rounded-xl border border-base-300 bg-base-100 p-4 sm:p-5">
 		<h3 class="font-semibold">{m.library_import_selectedItemsHeading()}</h3>
-		<div class="mt-3 flex flex-wrap items-center justify-between gap-2">
-			<p class="text-xs text-base-content/70">{m.library_import_filterByMediaType()}</p>
-			<div class="join">
-				<button
-					type="button"
-					class="btn join-item btn-sm {importMediaFilter === 'all' ? 'btn-primary' : 'btn-ghost'}"
-					onclick={() => (importMediaFilter = 'all')}
-				>
-					{m.library_import_filterAllMedia()}
-				</button>
-				<button
-					type="button"
-					class="btn join-item btn-sm {importMediaFilter === 'movie' ? 'btn-primary' : 'btn-ghost'}"
-					onclick={() => (importMediaFilter = 'movie')}
-				>
-					{m.common_movies()}
-				</button>
-				<button
-					type="button"
-					class="btn join-item btn-sm {importMediaFilter === 'tv' ? 'btn-primary' : 'btn-ghost'}"
-					onclick={() => (importMediaFilter = 'tv')}
-				>
-					{m.common_tvShows()}
-				</button>
+		{#if !lockedMediaType}
+			<div class="mt-3 flex flex-wrap items-center justify-between gap-2">
+				<p class="text-xs text-base-content/70">{m.library_import_filterByMediaType()}</p>
+				<div class="join">
+					<button
+						type="button"
+						class="btn join-item btn-sm {importMediaFilter === 'all'
+							? 'btn-primary'
+							: 'btn-ghost'}"
+						onclick={() => (importMediaFilter = 'all')}
+					>
+						{m.library_import_filterAllMedia()}
+					</button>
+					<button
+						type="button"
+						class="btn join-item btn-sm {importMediaFilter === 'movie'
+							? 'btn-primary'
+							: 'btn-ghost'}"
+						onclick={() => (importMediaFilter = 'movie')}
+					>
+						{m.common_movies()}
+					</button>
+					<button
+						type="button"
+						class="btn join-item btn-sm {importMediaFilter === 'tv'
+							? 'btn-primary'
+							: 'btn-ghost'}"
+						onclick={() => (importMediaFilter = 'tv')}
+					>
+						{m.common_tvShows()}
+					</button>
+				</div>
 			</div>
-		</div>
+		{/if}
 		{#if selectedImportGroupCount === 0}
 			<div
 				class="mt-3 rounded-lg border border-dashed border-base-300 p-4 text-sm text-base-content/60"

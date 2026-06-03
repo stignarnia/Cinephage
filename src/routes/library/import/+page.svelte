@@ -165,6 +165,7 @@
 	const routeImportContext = $derived.by(() => parseImportContext(page.url.searchParams));
 	const isDirectLibraryImportContext = $derived.by(() => Boolean(routeImportContext?.libraryId));
 	const isMediaTypeLockedByContext = $derived.by(() => Boolean(routeImportContext));
+	const lockedMediaType = $derived.by(() => routeImportContext?.mediaType ?? undefined);
 	const isFileOnlyContext = $derived.by(() =>
 		Boolean(
 			routeImportContext && routeImportContext.mediaType === 'movie' && routeImportContext.libraryId
@@ -2147,6 +2148,7 @@
 					{getDetectedSeasonsLabel}
 					{canApplySelectedMatchToSeason}
 					{getGroupEpisodeInfo}
+					{lockedMediaType}
 					onSwitchGroup={switchGroup}
 					onSkipGroup={markGroupSkipped}
 					onUnskipGroup={unskipGroup}
@@ -2246,6 +2248,7 @@
 			canImport={canImportGroup}
 			{getEffectiveMediaType}
 			{getGroupEpisodeInfo}
+			{lockedMediaType}
 			getSectionDestinations={getSectionDestinationOptions}
 			getSectionEligibleCount={(section) => getSectionDestinationEligibleGroups(section).length}
 			canApplyDestination={canApplySelectedDestinationToMedia}

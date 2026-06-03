@@ -15,6 +15,7 @@
 		detectedGroupQuery = $bindable(''),
 		detectedGroupFilter = $bindable('pending' as string),
 		detectedMediaFilter = $bindable('all' as QueueMediaFilter),
+		lockedMediaType = undefined as MediaType | undefined,
 		selectedGroupId = null,
 		importedGroupIds = [],
 		skippedGroupIds = [],
@@ -52,6 +53,7 @@
 		detectedGroupQuery: string;
 		detectedGroupFilter: string;
 		detectedMediaFilter: QueueMediaFilter;
+		lockedMediaType?: MediaType;
 		selectedGroupId: string | null;
 		importedGroupIds: string[];
 		skippedGroupIds: string[];
@@ -184,31 +186,37 @@
 					{m.common_all()}
 				</button>
 			</div>
-			<div class="join">
-				<button
-					type="button"
-					class="btn join-item btn-sm {detectedMediaFilter === 'all' ? 'btn-primary' : 'btn-ghost'}"
-					onclick={() => (detectedMediaFilter = 'all')}
-				>
-					{m.library_import_filterAllMedia()}
-				</button>
-				<button
-					type="button"
-					class="btn join-item btn-sm {detectedMediaFilter === 'movie'
-						? 'btn-primary'
-						: 'btn-ghost'}"
-					onclick={() => (detectedMediaFilter = 'movie')}
-				>
-					{m.common_movies()}
-				</button>
-				<button
-					type="button"
-					class="btn join-item btn-sm {detectedMediaFilter === 'tv' ? 'btn-primary' : 'btn-ghost'}"
-					onclick={() => (detectedMediaFilter = 'tv')}
-				>
-					{m.common_tvShows()}
-				</button>
-			</div>
+			{#if !lockedMediaType}
+				<div class="join">
+					<button
+						type="button"
+						class="btn join-item btn-sm {detectedMediaFilter === 'all'
+							? 'btn-primary'
+							: 'btn-ghost'}"
+						onclick={() => (detectedMediaFilter = 'all')}
+					>
+						{m.library_import_filterAllMedia()}
+					</button>
+					<button
+						type="button"
+						class="btn join-item btn-sm {detectedMediaFilter === 'movie'
+							? 'btn-primary'
+							: 'btn-ghost'}"
+						onclick={() => (detectedMediaFilter = 'movie')}
+					>
+						{m.common_movies()}
+					</button>
+					<button
+						type="button"
+						class="btn join-item btn-sm {detectedMediaFilter === 'tv'
+							? 'btn-primary'
+							: 'btn-ghost'}"
+						onclick={() => (detectedMediaFilter = 'tv')}
+					>
+						{m.common_tvShows()}
+					</button>
+				</div>
+			{/if}
 		</div>
 	</div>
 
@@ -453,7 +461,7 @@
 														<span class="text-warning">{m.library_import_needsInput()}</span>
 													{/if}
 													{#if episodeInfo}
-														<span class="badge badge-primary badge-outline badge-xs font-mono">
+														<span class="badge badge-primary badge-outline badge-xs font-mono font-bold text-base-content border-primary">
 															{formatEpisodePill(episodeInfo)}
 														</span>
 													{/if}
