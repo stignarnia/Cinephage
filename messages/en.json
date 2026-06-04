@@ -512,6 +512,7 @@
 	"formats_addCondition": "Add Condition",
 	"formats_allCategories": "All Categories",
 	"formats_allTypes": "All Types",
+	"formats_ariaDeleteFormat": "Delete format",
 	"formats_ariaEditFormat": "Edit format",
 	"formats_ariaViewFormat": "View format",
 	"formats_badgeDisabled": "disabled",

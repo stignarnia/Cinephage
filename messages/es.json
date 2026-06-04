@@ -512,6 +512,7 @@
 	"formats_addCondition": "Añadir condición",
 	"formats_allCategories": "Todas las categorías",
 	"formats_allTypes": "Todos los tipos",
+	"formats_ariaDeleteFormat": "Eliminar formato",
 	"formats_ariaEditFormat": "Editar formato",
 	"formats_ariaViewFormat": "Ver formato",
 	"formats_badgeDisabled": "deshabilitado",
