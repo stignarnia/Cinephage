@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BlockedMediaStage } from './BlockedMediaStage.js';
-import type { FilterContext } from './types.js';
 
 const mockFilter = vi.hoisted(() => vi.fn());
 

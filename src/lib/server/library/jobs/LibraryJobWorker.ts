@@ -121,7 +121,7 @@ export class LibraryJobWorker extends EventEmitter implements BackgroundService 
 				if (!queuedJob.rootFolderId) throw new Error('match_unmatched job missing rootFolderId');
 				let offset = 0;
 				let hasMore = true;
-				let matched = 0;
+				let _matched = 0;
 				let total = 0;
 				while (hasMore) {
 					const page = await mediaMatcherService.processUnmatchedByRootFolder(
@@ -129,7 +129,7 @@ export class LibraryJobWorker extends EventEmitter implements BackgroundService 
 						50,
 						offset
 					);
-					matched += page.results.filter((r) => r.matched).length;
+					_matched += page.results.filter((r) => r.matched).length;
 					total += page.results.length;
 					hasMore = page.hasMore;
 					offset += 50;

@@ -2407,9 +2407,9 @@ export class MonitoringSearchService {
 			} | null = null;
 
 			// Load scoring profile for explicit validation
-			let profile: ScoringProfile | undefined;
+			let _profile: ScoringProfile | undefined;
 			if (movie.scoringProfile) {
-				profile = (await qualityFilter.getProfile(movie.scoringProfile.id)) ?? undefined;
+				_profile = (await qualityFilter.getProfile(movie.scoringProfile.id)) ?? undefined;
 			}
 
 			for (const release of searchResult.releases) {

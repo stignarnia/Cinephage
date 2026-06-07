@@ -48,7 +48,7 @@
 		description="Releases containing these extensions in their title will be immediately excluded from all search results."
 	>
 		<div class="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-			{#each data.availableExtensions as ext}
+			{#each data.availableExtensions as ext (ext)}
 				<label class="label cursor-pointer justify-start gap-2">
 					<input
 						type="checkbox"
