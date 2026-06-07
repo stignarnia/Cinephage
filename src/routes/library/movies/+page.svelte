@@ -996,6 +996,7 @@
 		aria-hidden="true"
 	>
 		<input type="hidden" name="monitored" value="true" />
+		<input type="hidden" name="library" value={data.filters.library} />
 	</form>
 	<form
 		id="movies-unmonitor-all"
@@ -1006,6 +1007,7 @@
 		aria-hidden="true"
 	>
 		<input type="hidden" name="monitored" value="false" />
+		<input type="hidden" name="library" value={data.filters.library} />
 	</form>
 
 	<LibraryDrawer
