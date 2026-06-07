@@ -67,7 +67,7 @@
 	}
 
 	// Search state
-	let searchQuery = $state('');
+	let searchQuery = $state(page.url.searchParams.get('q') ?? '');
 	let debounceTimer = $state<ReturnType<typeof setTimeout>>();
 	// Search results from TMDB multi-search API
 	// Type is loose since TMDB returns various media types - MediaCard handles the union
@@ -104,6 +104,14 @@
 	async function handleSearch(query: string, exclude?: boolean) {
 		searchQuery = query;
 		const normalizedQuery = query.trim();
+
+		// Keep q in URL so browser back restores search state.
+		// Use native replaceState to avoid updating page.url reactively, which would
+		// re-trigger derived filter values and loop back into handleSearch.
+		const url = new URL(window.location.href);
+		if (normalizedQuery) url.searchParams.set('q', normalizedQuery);
+		else url.searchParams.delete('q');
+		history.replaceState(history.state, '', url.pathname + url.search);
 
 		if (!normalizedQuery) {
 			searchResults = [];

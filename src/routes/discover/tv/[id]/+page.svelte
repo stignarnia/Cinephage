@@ -5,8 +5,15 @@
 	import PersonCard from '$lib/components/tmdb/PersonCard.svelte';
 	import SeasonList from '$lib/components/tmdb/SeasonList.svelte';
 	import SectionRow from '$lib/components/discover/SectionRow.svelte';
+	import { ArrowLeft } from 'lucide-svelte';
 
 	let { data }: { data: PageData } = $props();
+
+	function goBack(e: MouseEvent) {
+		e.preventDefault();
+		if (window.history.length > 1) window.history.back();
+		else window.location.href = '/discover';
+	}
 </script>
 
 <svelte:head>
@@ -28,6 +35,11 @@
 	</div>
 {:else}
 	<div class="flex w-full flex-col gap-12 px-4 pb-20 lg:px-8">
+		<a href="/discover" onclick={goBack} class="btn btn-ghost btn-sm -ml-2 w-fit gap-1.5">
+			<ArrowLeft class="h-4 w-4" />
+			{m.discover_heading()}
+		</a>
+
 		<!-- Hero Section -->
 		<MediaHero item={data.tv} />
 
