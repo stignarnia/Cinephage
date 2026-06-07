@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { PROVIDER_IMPLEMENTATIONS } from '$lib/server/subtitles/types';
-import { TMDB, DANGEROUS_EXTENSIONS, EXECUTABLE_EXTENSIONS } from '$lib/config/constants.js';
+import { TMDB } from '$lib/config/constants.js';
 
 /**
  * Validation schemas for API inputs and database rows.
@@ -316,21 +316,16 @@ export const globalTmdbFiltersSchema = z.object({
 	excluded_genre_ids: z.array(z.number().int()).default([])
 });
 
-/** Available extension categories for blocking */
-export const BLOCKED_EXTENSION_DEFAULTS = [
-	...DANGEROUS_EXTENSIONS,
-	...EXECUTABLE_EXTENSIONS
-] as const;
-
 /**
- * Schema for blocked search extensions.
- * Users toggle which file extensions should be blocked from search results.
+ * Schema for the global blocked video extensions list.
+ * Applies to disk scans when a root folder has no per-folder override set.
+ * Empty by default — no video formats blocked unless the user explicitly adds them.
  */
-export const blockedSearchExtensionsSchema = z.object({
-	extensions: z.array(z.string().min(1).max(20)).default([...BLOCKED_EXTENSION_DEFAULTS])
+export const globalBlockedVideoExtensionsSchema = z.object({
+	extensions: z.array(z.string().min(2).max(10)).default([])
 });
 
-export type BlockedSearchExtensions = z.infer<typeof blockedSearchExtensionsSchema>;
+export type GlobalBlockedVideoExtensions = z.infer<typeof globalBlockedVideoExtensionsSchema>;
 
 // ============================================================
 // Discover API Schemas
@@ -2252,3 +2247,19 @@ export type CustomFormatTestRequest = z.infer<typeof customFormatTestSchema>;
 
 // LiveTV Account Type Export
 export type LiveTvAccountCreate = z.infer<typeof liveTvAccountCreateSchema>;
+
+// ============================================================
+// Calendar Preferences Schema
+// ============================================================
+
+export const calendarPreferencesSchema = z.object({
+	contentType: z.enum(['all', 'movies', 'episodes']).default('all'),
+	libraryOnly: z.boolean().default(false),
+	upcomingShowNonLibrary: z.boolean().default(true),
+	viewMode: z.enum(['grid', 'list']).default('grid'),
+	minRating: z.number().min(0).max(10).default(0),
+	genreIds: z.array(z.number()).default([]),
+	excludeAdult: z.boolean().default(false),
+	certifications: z.array(z.string()).default([])
+});
+export type CalendarPreferences = z.infer<typeof calendarPreferencesSchema>;

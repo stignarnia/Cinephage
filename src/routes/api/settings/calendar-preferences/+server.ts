@@ -1,19 +1,19 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { requireAdmin } from '$lib/server/auth/authorization.js';
-import { globalBlockedVideoExtensionsSchema } from '$lib/validation/schemas.js';
+import { calendarPreferencesSchema } from '$lib/validation/schemas.js';
 import { parseBody } from '$lib/server/api/validate.js';
 import {
-	getBlockedVideoExtensions,
-	setBlockedVideoExtensions,
-	invalidateBlockedVideoExtensionsCache
-} from '$lib/server/settings/blocked-extensions.js';
+	getCalendarPreferences,
+	setCalendarPreferences,
+	invalidateCalendarPreferencesCache
+} from '$lib/server/settings/calendar-preferences.js';
 
 export const GET: RequestHandler = async (event) => {
 	const authError = requireAdmin(event);
 	if (authError) return authError;
 
-	const data = await getBlockedVideoExtensions();
+	const data = await getCalendarPreferences();
 	return json({ success: true, ...data });
 };
 
@@ -21,11 +21,11 @@ export const PUT: RequestHandler = async (event) => {
 	const authError = requireAdmin(event);
 	if (authError) return authError;
 
-	const result = await parseBody(event.request, globalBlockedVideoExtensionsSchema);
+	const result = await parseBody(event.request, calendarPreferencesSchema);
 
-	await setBlockedVideoExtensions(result);
+	await setCalendarPreferences(result);
 
-	invalidateBlockedVideoExtensionsCache();
+	invalidateCalendarPreferencesCache();
 
 	return json({ success: true, ...result });
 };

@@ -56,8 +56,43 @@ function getMonthRange(monthStr: string): { start: string; end: string } {
 	};
 }
 
-async function fetchTmdbUpcoming(): Promise<DiscoverItem[]> {
+async function fetchTmdbUpcoming(certifications: string[] = []): Promise<DiscoverItem[]> {
 	try {
+		if (certifications.length > 0) {
+			const today = new Date();
+			const past = new Date(today);
+			past.setDate(today.getDate() - 30);
+			const future = new Date(today);
+			future.setDate(today.getDate() + 90);
+			const dateGte = past.toISOString().split('T')[0];
+			const dateLte = future.toISOString().split('T')[0];
+
+			const responses = await Promise.all(
+				certifications.map((cert) =>
+					tmdb.discoverMovies({
+						certification_country: 'US',
+						certification: cert,
+						with_release_type: '2|3',
+						'primary_release_date.gte': dateGte,
+						'primary_release_date.lte': dateLte,
+						sort_by: 'popularity.desc'
+					})
+				)
+			);
+
+			const seen = new Set<number>();
+			const merged: DiscoverItem[] = [];
+			for (const res of responses) {
+				for (const item of res.results) {
+					if (!seen.has(item.id)) {
+						seen.add(item.id);
+						merged.push(item);
+					}
+				}
+			}
+			return merged;
+		}
+
 		const [nowPlaying, upcoming] = await Promise.all([tmdb.getNowPlaying(), tmdb.getUpcoming()]);
 		const seen = new Set<number>();
 		const merged: DiscoverItem[] = [];
@@ -73,9 +108,23 @@ async function fetchTmdbUpcoming(): Promise<DiscoverItem[]> {
 	}
 }
 
+async function fetchTmdbAiringTv(): Promise<DiscoverItem[]> {
+	try {
+		const result = await tmdb.getOnTheAir();
+		return result.results;
+	} catch {
+		return [];
+	}
+}
+
 export async function getCalendarData(
 	monthStr: string,
-	type: 'all' | 'movies' | 'episodes'
+	type: 'all' | 'movies' | 'episodes',
+	libraryOnly = false,
+	minRating = 0,
+	genreIds: number[] = [],
+	excludeAdult = false,
+	certifications: string[] = []
 ): Promise<CalendarDay[]> {
 	const { start, end } = getMonthRange(monthStr);
 	const dayMap = new Map<string, CalendarDay>();
@@ -95,7 +144,7 @@ export async function getCalendarData(
 
 	if (includeMovies) {
 		const [tmdbItems, libraryMovies] = await Promise.all([
-			fetchTmdbUpcoming(),
+			fetchTmdbUpcoming(certifications),
 			db.select({ tmdbId: movies.tmdbId, id: movies.id }).from(movies)
 		]);
 
@@ -106,6 +155,12 @@ export async function getCalendarData(
 			const releaseDate = item.release_date;
 			if (!releaseDate || releaseDate < start || releaseDate > end) continue;
 			const inLibrary = libraryTmdbIds.has(item.id);
+			if (libraryOnly && !inLibrary) continue;
+			if (!inLibrary) {
+				if (minRating > 0 && item.vote_average < minRating) continue;
+				if (genreIds.length > 0 && !genreIds.some((id) => item.genre_ids.includes(id))) continue;
+				if (excludeAdult && item.adult === true) continue;
+			}
 			const day = dayMap.get(releaseDate);
 			if (!day) continue;
 			day.movies.push({
@@ -162,10 +217,15 @@ export async function getCalendarData(
 	return Array.from(dayMap.values()).sort((a, b) => a.date.localeCompare(b.date));
 }
 
-export async function getUpcomingItems(limit = 7): Promise<UpcomingItem[]> {
+export async function getUpcomingItems(
+	limit = 7,
+	showNonLibraryMovies = true,
+	excludeAdult = false,
+	certifications: string[] = []
+): Promise<UpcomingItem[]> {
 	const today = new Date().toISOString().split('T')[0];
 
-	const [episodeRows, tmdbItems] = await Promise.all([
+	const [episodeRows, tmdbItems, tmdbTvItems] = await Promise.all([
 		db
 			.select({
 				episodeId: episodes.id,
@@ -184,7 +244,8 @@ export async function getUpcomingItems(limit = 7): Promise<UpcomingItem[]> {
 			)
 			.orderBy(episodes.airDate)
 			.limit(limit),
-		fetchTmdbUpcoming()
+		fetchTmdbUpcoming(certifications),
+		fetchTmdbAiringTv()
 	]);
 
 	const items: UpcomingItem[] = [];
@@ -203,15 +264,23 @@ export async function getUpcomingItems(limit = 7): Promise<UpcomingItem[]> {
 	}
 
 	if (items.length < limit) {
-		const libraryMovies = await db.select({ tmdbId: movies.tmdbId, id: movies.id }).from(movies);
+		const [libraryMovies, librarySeries] = await Promise.all([
+			db.select({ tmdbId: movies.tmdbId, id: movies.id }).from(movies),
+			db.select({ tmdbId: series.tmdbId }).from(series)
+		]);
 		const libraryMovieMap = new Map(libraryMovies.map((m) => [m.tmdbId, m.id]));
-		const libraryTmdbIds = new Set(libraryMovieMap.keys());
+		const libraryMovieTmdbIds = new Set(libraryMovieMap.keys());
+		const librarySeriesTmdbIds = new Set(
+			librarySeries.map((s) => s.tmdbId).filter(Boolean) as number[]
+		);
 
 		for (const item of tmdbItems) {
 			if (items.length >= limit) break;
 			const releaseDate = item.release_date;
 			if (!releaseDate || releaseDate < today) continue;
-			const inLibrary = libraryTmdbIds.has(item.id);
+			const inLibrary = libraryMovieTmdbIds.has(item.id);
+			if (!showNonLibraryMovies && !inLibrary) continue;
+			if (!inLibrary && excludeAdult && item.adult === true) continue;
 			items.push({
 				type: 'movie',
 				date: releaseDate,
@@ -220,6 +289,22 @@ export async function getUpcomingItems(limit = 7): Promise<UpcomingItem[]> {
 				tmdbId: item.id,
 				movieId: inLibrary ? libraryMovieMap.get(item.id) : undefined
 			});
+		}
+
+		if (showNonLibraryMovies) {
+			for (const item of tmdbTvItems) {
+				if (items.length >= limit) break;
+				if (librarySeriesTmdbIds.has(item.id)) continue;
+				if (excludeAdult && item.adult === true) continue;
+				items.push({
+					type: 'episode',
+					date: today,
+					title: item.name ?? item.original_name ?? 'Unknown',
+					posterPath: item.poster_path,
+					tmdbId: item.id,
+					subtitle: 'Airing now'
+				});
+			}
 		}
 	}
 

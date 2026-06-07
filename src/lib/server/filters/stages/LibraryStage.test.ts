@@ -76,6 +76,7 @@ describe('LibraryStage', () => {
 
 	it('handles null input gracefully', async () => {
 		// @ts-expect-error testing null input
+		// eslint-disable-next-line prefer-spread
 		const result = await stage.apply(null, ctx);
 		expect(result).toEqual([]);
 	});
