@@ -2,6 +2,7 @@
 	import { X, ShieldAlert } from 'lucide-svelte';
 	import { updateBlockedExtensions } from '$lib/api/settings.js';
 	import { toasts } from '$lib/stores/toast.svelte';
+	import { SettingsPage } from '$lib/components/ui/settings';
 
 	let { data } = $props();
 
@@ -55,16 +56,16 @@
 	}
 </script>
 
-<div class="space-y-6 p-6">
-	<div>
-		<h1 class="text-2xl font-bold">Blocked Video Extensions</h1>
-		<p class="mt-1 text-sm text-base-content/60">
-			Video file extensions listed here will be skipped during library scans globally. A root
-			folder's own blocked extension list takes priority over this global setting.
-		</p>
-	</div>
+<SettingsPage
+	title="Blocked Video Extensions"
+	subtitle="Video file extensions listed here will be skipped during library scans globally. A root folder's own blocked extension list takes priority over this global setting."
+>
+	{#snippet actions()}
+		<button class="btn btn-primary btn-sm" onclick={handleSave} disabled={saving}>
+			{saving ? 'Saving...' : 'Save'}
+		</button>
+	{/snippet}
 
-	<!-- Hardcoded dangerous extension notice -->
 	<div class="alert alert-warning">
 		<ShieldAlert class="h-5 w-5 shrink-0" />
 		<div>
@@ -88,7 +89,6 @@
 				</p>
 			</div>
 
-			<!-- Tag list -->
 			{#if extensions.length > 0}
 				<div class="flex flex-wrap gap-2">
 					{#each extensions as ext (ext)}
@@ -108,7 +108,6 @@
 				<p class="text-sm text-base-content/40 italic">No extensions blocked globally.</p>
 			{/if}
 
-			<!-- Add input -->
 			<div class="flex gap-2">
 				<input
 					type="text"
@@ -124,8 +123,4 @@
 			</div>
 		</div>
 	</div>
-
-	<button class="btn btn-primary" onclick={handleSave} disabled={saving}>
-		{saving ? 'Saving...' : 'Save'}
-	</button>
-</div>
+</SettingsPage>

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Search, EyeOff, Film as FilmIcon } from 'lucide-svelte';
+	import { Search, EyeOff, Film as FilmIcon, Trash2 } from 'lucide-svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { toasts } from '$lib/stores/toast.svelte';
 	import { SettingsPage } from '$lib/components/ui/settings';
@@ -26,6 +26,7 @@
 	let confirmUnblockOpen = $state(false);
 	let unblockTarget = $state<BlockedEntry | null>(null);
 	let confirmBulkUnblockOpen = $state(false);
+	let confirmUnblockAllOpen = $state(false);
 
 	interface BlockedMediaFilters {
 		mediaType: string;
@@ -105,6 +106,20 @@
 		return new Date(dateStr).toLocaleDateString();
 	}
 
+	async function confirmUnblockAll() {
+		try {
+			const ids = entries.map((e) => e.id);
+			await unblockMedia(ids);
+			toasts.success(`${ids.length} items unblocked`);
+			selectedIds.clear();
+			await fetchEntries();
+		} catch (err) {
+			toasts.error(err instanceof Error ? err.message : 'Failed to unblock all');
+		} finally {
+			confirmUnblockAllOpen = false;
+		}
+	}
+
 	const bulkUnblockMessage = $derived(
 		`Unblock ${selectedIds.size} items? They will appear in discover and search again.`
 	);
@@ -123,29 +138,35 @@
 				bind:value={filters.search}
 			/>
 		</div>
-
-		<select class="select-bordered select select-sm" bind:value={filters.mediaType}>
-			<option value="">{m.blockedMedia_filterAll()}</option>
-			<option value="movie">{m.blockedMedia_filterMovies()}</option>
-			<option value="tv">{m.blockedMedia_filterTV()}</option>
-		</select>
-
+		<div class="w-full sm:w-48">
+			<select class="select-bordered select select-sm w-full" bind:value={filters.mediaType}>
+				<option value="">{m.blockedMedia_filterAll()}</option>
+				<option value="movie">{m.blockedMedia_filterMovies()}</option>
+				<option value="tv">{m.blockedMedia_filterTV()}</option>
+			</select>
+		</div>
 		<span class="text-sm text-base-content/60">
 			{m.blockedMedia_entryCount({ total })}
 		</span>
-	</div>
-
-	{#if selectedIds.size > 0}
-		<div class="mb-4 flex items-center gap-2">
+		{#if selectedIds.size > 0}
 			<span class="text-sm text-base-content/60">{selectedIds.size} selected</span>
-			<button class="btn btn-sm btn-error" onclick={() => (confirmBulkUnblockOpen = true)}>
+			<button class="btn btn-sm btn-error gap-1.5" onclick={() => (confirmBulkUnblockOpen = true)}>
+				<Trash2 class="h-3.5 w-3.5" />
 				{m.blockedMedia_unblock()}
 			</button>
-		</div>
-	{/if}
+		{/if}
+		{#if entries.length > 0}
+			<button
+				class="btn btn-sm btn-ghost btn-error gap-1.5 sm:ml-auto"
+				onclick={() => (confirmUnblockAllOpen = true)}
+			>
+				<Trash2 class="h-3.5 w-3.5" /> Remove all
+			</button>
+		{/if}
+	</div>
 
-	<div class="card bg-base-200/40 shadow-none sm:bg-base-100 sm:shadow-xl">
-		<div class="card-body p-2 sm:p-0">
+	<div class="card border border-base-300 bg-base-200">
+		<div class="card-body p-2 sm:p-4">
 			{#if entries.length > 0}
 				<div class="overflow-x-auto">
 					<table class="table table-sm">
@@ -254,4 +275,14 @@
 	message={bulkUnblockMessage}
 	confirmLabel={`${m.blockedMedia_confirmUnblockLabel()} ${selectedIds.size}`}
 	confirmVariant="warning"
+/>
+
+<ConfirmationModal
+	open={confirmUnblockAllOpen}
+	onCancel={() => (confirmUnblockAllOpen = false)}
+	onConfirm={confirmUnblockAll}
+	title="Remove all blocked media"
+	message="Unblock all {entries.length} items? They will appear in discover and search again."
+	confirmLabel="Remove all"
+	confirmVariant="error"
 />
