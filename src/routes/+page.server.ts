@@ -7,6 +7,7 @@ import {
 	getMissingEpisodes
 } from '$lib/server/dashboard/queries';
 import { getUpcomingItems } from '$lib/server/calendar/queries.js';
+import { getCalendarPreferences } from '$lib/server/settings/calendar-preferences.js';
 
 export const load: PageServerLoad = async () => {
 	try {
@@ -46,13 +47,22 @@ export const load: PageServerLoad = async () => {
 				return [];
 			});
 
-		const upcomingPromise = getUpcomingItems(7).catch((error) => {
-			logger.error(
-				{ err: error, component: 'DashboardPage' },
-				'[Dashboard] Error fetching upcoming items'
-			);
-			return [];
-		});
+		const upcomingPromise = getCalendarPreferences()
+			.catch(() => ({
+				upcomingShowNonLibrary: true,
+				excludeAdult: false,
+				certifications: [] as string[]
+			}))
+			.then((prefs) =>
+				getUpcomingItems(7, prefs.upcomingShowNonLibrary, prefs.excludeAdult, prefs.certifications)
+			)
+			.catch((error) => {
+				logger.error(
+					{ err: error, component: 'DashboardPage' },
+					'[Dashboard] Error fetching upcoming items'
+				);
+				return [];
+			});
 
 		return {
 			stats,

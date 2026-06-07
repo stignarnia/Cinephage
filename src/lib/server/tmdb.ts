@@ -472,6 +472,10 @@ export const tmdb = {
 		return this.fetch(`/movie/upcoming?page=${page}`) as Promise<DiscoverResponse>;
 	},
 
+	async getOnTheAir(page = 1): Promise<DiscoverResponse> {
+		return this.fetch(`/tv/on_the_air?page=${page}`) as Promise<DiscoverResponse>;
+	},
+
 	/**
 	 * Get movie genres list
 	 */

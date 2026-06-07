@@ -832,7 +832,9 @@
 												: null
 										: item.seriesId
 											? resolvePath(`/library/tv/${item.seriesId}`)
-											: null}
+											: item.tmdbId
+												? resolvePath(`/discover/tv/${item.tmdbId}`)
+												: null}
 								<a
 									href={href ?? '#'}
 									class="flex items-center gap-3 rounded-lg px-1 py-2 transition-colors hover:bg-base-300"

@@ -2247,3 +2247,19 @@ export type CustomFormatTestRequest = z.infer<typeof customFormatTestSchema>;
 
 // LiveTV Account Type Export
 export type LiveTvAccountCreate = z.infer<typeof liveTvAccountCreateSchema>;
+
+// ============================================================
+// Calendar Preferences Schema
+// ============================================================
+
+export const calendarPreferencesSchema = z.object({
+	contentType: z.enum(['all', 'movies', 'episodes']).default('all'),
+	libraryOnly: z.boolean().default(false),
+	upcomingShowNonLibrary: z.boolean().default(true),
+	viewMode: z.enum(['grid', 'list']).default('grid'),
+	minRating: z.number().min(0).max(10).default(0),
+	genreIds: z.array(z.number()).default([]),
+	excludeAdult: z.boolean().default(false),
+	certifications: z.array(z.string()).default([])
+});
+export type CalendarPreferences = z.infer<typeof calendarPreferencesSchema>;
