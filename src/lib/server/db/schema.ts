@@ -708,11 +708,14 @@ export const movies = sqliteTable(
 		firstSubtitleSearchAt: text('first_subtitle_search_at'),
 		tmdbCollectionId: integer('tmdb_collection_id'),
 		collectionName: text('collection_name'),
-		releaseDate: text('release_date')
+		releaseDate: text('release_date'),
+		downloadReleaseDate: text('download_release_date'),
+		downloadReleaseType: text('download_release_type')
 	},
 	(table) => [
 		index('idx_movies_monitored_hasfile').on(table.monitored, table.hasFile),
-		index('idx_movies_release_date').on(table.releaseDate)
+		index('idx_movies_release_date').on(table.releaseDate),
+		index('idx_movies_download_release_date').on(table.downloadReleaseDate)
 	]
 );
 

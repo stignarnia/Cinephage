@@ -21,7 +21,7 @@ import type {
 	ReleaseCandidate
 } from './types.js';
 import { reject, accept } from './types.js';
-import { tmdb } from '$lib/server/tmdb.js';
+import { tmdb, type MovieReleaseInfo } from '$lib/server/tmdb.js';
 import { createChildLogger } from '$lib/logging';
 
 const logger = createChildLogger({ logDomain: 'monitoring' as const });
@@ -46,10 +46,7 @@ export const AvailabilityRejectionReason = {
  * Check if a movie meets minimum availability requirements
  */
 export class MovieAvailabilitySpecification implements IMonitoringSpecification<MovieContext> {
-	private releaseInfoCache = new Map<
-		number,
-		{ status?: string; release_date?: string | null } | null
-	>();
+	private releaseInfoCache = new Map<number, MovieReleaseInfo | null>();
 
 	async isSatisfied(
 		context: MovieContext,
@@ -95,17 +92,23 @@ export class MovieAvailabilitySpecification implements IMonitoringSpecification<
 	private async getCurrentAvailability(movie: MovieContext['movie']): Promise<AvailabilityLevel> {
 		const releaseInfo = await this.getReleaseInfo(movie.tmdbId);
 
+		const releaseDates = releaseInfo?.release_dates?.results?.flatMap((c) =>
+			c.release_dates.map((rd) => ({
+				type: rd.type,
+				release_date: rd.release_date
+			}))
+		);
+
 		return getMovieAvailabilityLevel({
 			year: movie.year,
 			added: movie.added,
 			tmdbStatus: releaseInfo?.status,
-			releaseDate: releaseInfo?.release_date
+			releaseDate: releaseInfo?.release_date,
+			releaseDates
 		});
 	}
 
-	private async getReleaseInfo(
-		tmdbId: number
-	): Promise<{ status?: string; release_date?: string | null } | null> {
+	private async getReleaseInfo(tmdbId: number): Promise<MovieReleaseInfo | null> {
 		if (this.releaseInfoCache.has(tmdbId)) {
 			return this.releaseInfoCache.get(tmdbId) ?? null;
 		}

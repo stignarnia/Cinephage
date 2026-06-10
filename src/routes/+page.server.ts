@@ -82,6 +82,7 @@ export const load: PageServerLoad = async () => {
 					total: 0,
 					withFile: 0,
 					missing: 0,
+					inCinemas: 0,
 					unreleased: 0,
 					unmonitoredMissing: 0,
 					monitored: 0

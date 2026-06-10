@@ -94,6 +94,8 @@ export interface LibraryMovie {
 	wantsSubtitles: boolean | null;
 	tmdbStatus?: string | null;
 	releaseDate?: string | null;
+	downloadReleaseDate?: string | null;
+	downloadReleaseType?: string | null;
 	added: string;
 	hasFile: boolean | null;
 	tmdbCollectionId?: number | null;

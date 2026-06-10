@@ -186,6 +186,7 @@ export async function getDashboardStats() {
 			total: movieStats?.total || 0,
 			withFile: movieStats?.withFile || 0,
 			missing: missingMovieCounts.monitoredReleasedMissing,
+			inCinemas: missingMovieCounts.monitoredInCinemas,
 			unreleased: missingMovieCounts.monitoredUnreleased,
 			unmonitoredMissing: missingMovieCounts.unmonitoredMissing,
 			monitored: movieStats?.monitored || 0

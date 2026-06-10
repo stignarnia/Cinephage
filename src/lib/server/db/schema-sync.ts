@@ -121,7 +121,7 @@ import {
  * Version 89: Add blocked keywords table
  * Version 90: Add durable library job tables
  */
-export const CURRENT_SCHEMA_VERSION = 90;
+export const CURRENT_SCHEMA_VERSION = 91;
 
 export const SYSTEM_LIBRARY_SEEDS = [
 	{
@@ -496,7 +496,9 @@ const TABLE_DEFINITIONS: string[] = [
 		"first_subtitle_search_at" text,
 		"tmdb_collection_id" integer,
 		"collection_name" text,
-		"release_date" text
+		"release_date" text,
+		"download_release_date" text,
+		"download_release_type" text
 	)`,
 
 	`CREATE TABLE IF NOT EXISTS "movie_files" (
@@ -1294,6 +1296,7 @@ const INDEX_DEFINITIONS: string[] = [
 	`CREATE INDEX IF NOT EXISTS "idx_library_root_folders_root_folder" ON "library_root_folders" ("root_folder_id")`,
 	`CREATE INDEX IF NOT EXISTS "idx_movies_monitored_hasfile" ON "movies" ("monitored", "has_file")`,
 	`CREATE INDEX IF NOT EXISTS "idx_movies_release_date" ON "movies" ("release_date")`,
+	`CREATE INDEX IF NOT EXISTS "idx_movies_download_release_date" ON "movies" ("download_release_date")`,
 	`CREATE INDEX IF NOT EXISTS "idx_movies_library_id" ON "movies" ("library_id")`,
 	`CREATE INDEX IF NOT EXISTS "idx_movies_root_folder" ON "movies" ("root_folder_id")`,
 	`CREATE UNIQUE INDEX IF NOT EXISTS "idx_movie_files_unique_path" ON "movie_files" ("movie_id", "relative_path")`,

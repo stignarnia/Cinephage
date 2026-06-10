@@ -6,6 +6,55 @@ import { logger } from '$lib/logging/index.js';
 import type { TaskResult } from '../MonitoringScheduler.js';
 import type { TaskExecutionContext } from '$lib/server/tasks/TaskExecutionContext.js';
 import { TaskCancelledException } from '$lib/server/tasks/TaskCancelledException.js';
+import type { ReleaseDatesResponse } from '$lib/types/tmdb';
+
+const DOWNLOADABLE_TYPES = new Set([4, 5, 6]);
+
+const TYPE_NAME: Record<number, string> = {
+	4: 'digital',
+	5: 'physical',
+	6: 'tv'
+};
+
+function getEarliestDownloadDate(releaseDates?: ReleaseDatesResponse): string | null {
+	if (!releaseDates?.results) return null;
+
+	let earliest: string | null = null;
+
+	for (const country of releaseDates.results) {
+		for (const rd of country.release_dates) {
+			if (!DOWNLOADABLE_TYPES.has(rd.type)) continue;
+			const dateStr = rd.release_date?.substring(0, 10);
+			if (!dateStr) continue;
+			if (!earliest || dateStr < earliest) {
+				earliest = dateStr;
+			}
+		}
+	}
+
+	return earliest;
+}
+
+function getEarliestDownloadType(releaseDates?: ReleaseDatesResponse): string | null {
+	if (!releaseDates?.results) return null;
+
+	let earliestDate: string | null = null;
+	let earliestType: number | null = null;
+
+	for (const country of releaseDates.results) {
+		for (const rd of country.release_dates) {
+			if (!DOWNLOADABLE_TYPES.has(rd.type)) continue;
+			const dateStr = rd.release_date?.substring(0, 10);
+			if (!dateStr) continue;
+			if (!earliestDate || dateStr < earliestDate) {
+				earliestDate = dateStr;
+				earliestType = rd.type;
+			}
+		}
+	}
+
+	return earliestType !== null ? (TYPE_NAME[earliestType] ?? null) : null;
+}
 
 export async function executeMetadataRefreshTask(
 	ctx: TaskExecutionContext | null
@@ -58,6 +107,8 @@ export async function executeMetadataRefreshTask(
 							? new Date(tmdbMovie.release_date).getFullYear()
 							: undefined,
 						releaseDate: tmdbMovie.release_date ?? undefined,
+						downloadReleaseDate: getEarliestDownloadDate(tmdbMovie.release_dates) ?? undefined,
+						downloadReleaseType: getEarliestDownloadType(tmdbMovie.release_dates) ?? undefined,
 						imdbId: externalIds?.imdb_id ?? undefined,
 						tmdbCollectionId: tmdbMovie.belongs_to_collection?.id ?? null,
 						collectionName: tmdbMovie.belongs_to_collection?.name ?? null

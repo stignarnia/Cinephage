@@ -353,7 +353,7 @@
 
 		<!-- Preferences panel -->
 		{#if showPreferences}
-			<div class="rounded-xl border border-base-300 bg-base-200 p-4 space-y-4">
+			<div class="space-y-4 rounded-xl border border-base-300 bg-base-200 p-4">
 				<!-- Row 1: Show type + option toggles -->
 				<div class="flex flex-wrap items-start gap-x-8 gap-y-3">
 					<div class="space-y-1.5">
@@ -364,7 +364,7 @@
 							<button
 								class="btn join-item btn-xs sm:btn-sm {prefs.contentType === 'all'
 									? 'btn-primary'
-									: 'btn-ghost border border-base-300'}"
+									: 'border border-base-300 btn-ghost'}"
 								onclick={() => (prefs.contentType = 'all')}
 							>
 								{m.calendar_prefs_all()}
@@ -372,7 +372,7 @@
 							<button
 								class="btn join-item btn-xs sm:btn-sm {prefs.contentType === 'movies'
 									? 'btn-primary'
-									: 'btn-ghost border border-base-300'}"
+									: 'border border-base-300 btn-ghost'}"
 								onclick={() => (prefs.contentType = 'movies')}
 							>
 								{m.common_movies()}
@@ -380,7 +380,7 @@
 							<button
 								class="btn join-item btn-xs sm:btn-sm {prefs.contentType === 'episodes'
 									? 'btn-primary'
-									: 'btn-ghost border border-base-300'}"
+									: 'border border-base-300 btn-ghost'}"
 								onclick={() => (prefs.contentType = 'episodes')}
 							>
 								{m.common_episodes()}
@@ -417,7 +417,7 @@
 
 				<!-- Row 2: Non-library filters (only when relevant) -->
 				{#if !prefs.libraryOnly && prefs.contentType !== 'episodes'}
-					<div class="border-t border-base-300 pt-4 space-y-3">
+					<div class="space-y-3 border-t border-base-300 pt-4">
 						<!-- Rating + Content row -->
 						<div class="flex flex-wrap items-start gap-x-8 gap-y-3">
 							<div class="space-y-1.5">
@@ -429,7 +429,7 @@
 										<button
 											class="btn join-item btn-xs sm:btn-sm {prefs.minRating === rating
 												? 'btn-primary'
-												: 'btn-ghost border border-base-300'}"
+												: 'border border-base-300 btn-ghost'}"
 											onclick={() => (prefs.minRating = rating)}
 										>
 											{rating === 0 ? m.calendar_prefs_anyRating() : `${rating}+`}
@@ -444,10 +444,10 @@
 								</p>
 								<div class="flex flex-wrap items-center gap-1.5">
 									<button
-										class="badge badge-sm cursor-pointer select-none {prefs.certifications
+										class="badge cursor-pointer badge-sm select-none {prefs.certifications
 											.length === 0
 											? 'badge-primary'
-											: 'badge-ghost border border-base-300'}"
+											: 'border badge-ghost border-base-300'}"
 										onclick={() => (prefs.certifications = [])}
 									>
 										{m.calendar_prefs_allRatings()}
@@ -455,9 +455,9 @@
 									{#each ALL_CERTIFICATIONS as cert (cert)}
 										{@const selected = prefs.certifications.includes(cert)}
 										<button
-											class="badge badge-sm cursor-pointer select-none font-mono {selected
+											class="badge cursor-pointer font-mono badge-sm select-none {selected
 												? 'badge-primary'
-												: 'badge-ghost border border-base-300'}"
+												: 'border badge-ghost border-base-300'}"
 											onclick={() => {
 												if (selected) {
 													prefs.certifications = prefs.certifications.filter((c) => c !== cert);
@@ -491,9 +491,9 @@
 								</p>
 								<div class="flex flex-wrap gap-1.5">
 									<button
-										class="badge badge-sm cursor-pointer select-none {prefs.genreIds.length === 0
+										class="badge cursor-pointer badge-sm select-none {prefs.genreIds.length === 0
 											? 'badge-primary'
-											: 'badge-ghost border border-base-300'}"
+											: 'border badge-ghost border-base-300'}"
 										onclick={() => (prefs.genreIds = [])}
 									>
 										{m.calendar_prefs_allGenres()}
@@ -501,9 +501,9 @@
 									{#each genres as genre (genre.id)}
 										{@const selected = prefs.genreIds.includes(genre.id)}
 										<button
-											class="badge badge-sm cursor-pointer select-none {selected
+											class="badge cursor-pointer badge-sm select-none {selected
 												? 'badge-primary'
-												: 'badge-ghost border border-base-300'}"
+												: 'border badge-ghost border-base-300'}"
 											onclick={() => {
 												if (selected) {
 													prefs.genreIds = prefs.genreIds.filter((id) => id !== genre.id);
@@ -523,7 +523,7 @@
 
 				<!-- Save -->
 				<div class="flex justify-end border-t border-base-300 pt-3">
-					<button class="btn btn-primary btn-sm" onclick={savePreferences} disabled={savingPrefs}>
+					<button class="btn btn-sm btn-primary" onclick={savePreferences} disabled={savingPrefs}>
 						{savingPrefs ? m.common_saving() : m.action_save()}
 					</button>
 				</div>
@@ -615,7 +615,7 @@
 												class="truncate rounded-full px-1.5 py-0.5 text-[10px] font-semibold
 												{movie.inLibrary
 													? 'bg-primary/15 text-primary'
-													: 'ring-1 ring-inset ring-primary/40 text-primary/60'}"
+													: 'text-primary/60 ring-1 ring-primary/40 ring-inset'}"
 											>
 												{movie.title}
 											</div>
@@ -693,12 +693,12 @@
 											</div>
 										</div>
 										{#if movie.inLibrary}
-											<span class="badge badge-sm badge-primary shrink-0"
+											<span class="badge shrink-0 badge-sm badge-primary"
 												>{m.calendar_inLibrary()}</span
 											>
 										{:else}
 											<button
-												class="btn btn-ghost btn-xs shrink-0 gap-1"
+												class="btn shrink-0 gap-1 btn-ghost btn-xs"
 												onclick={() => openAddModal(movie)}
 											>
 												<Plus class="h-3.5 w-3.5" />
@@ -733,7 +733,7 @@
 												</span>
 											</div>
 										</div>
-										<span class="badge badge-sm badge-secondary shrink-0"
+										<span class="badge shrink-0 badge-sm badge-secondary"
 											>{m.calendar_inLibrary()}</span
 										>
 									</a>
@@ -807,7 +807,7 @@
 											<span class="badge badge-sm badge-primary">{m.calendar_inLibrary()}</span>
 										{:else}
 											<button
-												class="btn btn-ghost btn-xs gap-1 px-2"
+												class="btn gap-1 px-2 btn-ghost btn-xs"
 												onclick={() => openAddModal(movie)}
 											>
 												<Plus class="h-3.5 w-3.5" />

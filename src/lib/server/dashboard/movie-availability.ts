@@ -1,7 +1,7 @@
 import { createChildLogger } from '$lib/logging';
 
 const logger = createChildLogger({ logDomain: 'system' as const });
-import { tmdb } from '$lib/server/tmdb';
+import { tmdb, type MovieReleaseInfo } from '$lib/server/tmdb';
 import {
 	getMovieAvailabilityLevel,
 	type MovieAvailabilityLevel
@@ -12,17 +12,26 @@ interface MovieAvailabilityRow {
 	year: number | null;
 	added: string | null;
 	monitored: boolean | null;
+	downloadReleaseDate?: string | null;
+	downloadReleaseType?: string | null;
 }
-
-type MovieReleaseInfo = {
-	status?: string;
-	release_date?: string | null;
-};
 
 export interface MissingMovieAvailabilityCounts {
 	monitoredReleasedMissing: number;
+	monitoredInCinemas: number;
+	monitoredAnnounced: number;
 	monitoredUnreleased: number;
 	unmonitoredMissing: number;
+}
+
+function flattenReleaseDates(releaseInfo: MovieReleaseInfo | null) {
+	if (!releaseInfo?.release_dates?.results) return undefined;
+	return releaseInfo.release_dates.results.flatMap((c) =>
+		c.release_dates.map((rd) => ({
+			type: rd.type,
+			release_date: rd.release_date
+		}))
+	);
 }
 
 async function getReleaseInfoMap(tmdbIds: number[]): Promise<Map<number, MovieReleaseInfo | null>> {
@@ -54,6 +63,8 @@ export async function computeMissingMovieAvailabilityCounts(
 	movies: MovieAvailabilityRow[]
 ): Promise<MissingMovieAvailabilityCounts> {
 	let monitoredReleasedMissing = 0;
+	let monitoredInCinemas = 0;
+	let monitoredAnnounced = 0;
 	let monitoredUnreleased = 0;
 	let unmonitoredMissing = 0;
 
@@ -80,27 +91,50 @@ export async function computeMissingMovieAvailabilityCounts(
 			continue;
 		}
 		if (movie.year !== null && movie.year > currentYear) {
+			monitoredAnnounced++;
 			monitoredUnreleased++;
 			continue;
 		}
 
 		const releaseInfo = releaseInfoByTmdbId.get(movie.tmdbId);
+		const releaseDates = flattenReleaseDates(releaseInfo ?? null);
+
+		// Use DB-stored download date as fallback for movies not in the TMDB lookup
+		if (!releaseDates && movie.downloadReleaseDate) {
+			// If we have a stored download date that's past, it's released
+			const downloadDate = new Date(movie.downloadReleaseDate).getTime();
+			if (!Number.isNaN(downloadDate) && downloadDate <= now.getTime()) {
+				monitoredReleasedMissing++;
+				continue;
+			}
+		}
+
 		const availability = getMovieAvailabilityLevel(
 			{
 				year: movie.year,
 				added: movie.added,
 				tmdbStatus: releaseInfo?.status,
-				releaseDate: releaseInfo?.release_date
+				releaseDate: releaseInfo?.release_date,
+				releaseDates
 			},
 			now
 		);
 
-		if (availability === 'released') monitoredReleasedMissing++;
-		else monitoredUnreleased++;
+		if (availability === 'released') {
+			monitoredReleasedMissing++;
+		} else if (availability === 'inCinemas') {
+			monitoredInCinemas++;
+			monitoredUnreleased++;
+		} else {
+			monitoredAnnounced++;
+			monitoredUnreleased++;
+		}
 	}
 
 	return {
 		monitoredReleasedMissing,
+		monitoredInCinemas,
+		monitoredAnnounced,
 		monitoredUnreleased,
 		unmonitoredMissing
 	};
@@ -122,12 +156,15 @@ export async function enrichMoviesWithAvailability<T extends MovieAvailabilityRo
 
 	return movies.map((movie) => {
 		const releaseInfo = releaseInfoByTmdbId.get(movie.tmdbId);
+		const releaseDates = flattenReleaseDates(releaseInfo ?? null);
+
 		const availability = getMovieAvailabilityLevel(
 			{
 				year: movie.year,
 				added: movie.added,
 				tmdbStatus: releaseInfo?.status,
-				releaseDate: releaseInfo?.release_date
+				releaseDate: releaseInfo?.release_date,
+				releaseDates
 			},
 			now
 		);

@@ -8,7 +8,8 @@ import type {
 	Season,
 	Collection,
 	PersonDetails,
-	PersonCombinedCredits
+	PersonCombinedCredits,
+	ReleaseDatesResponse
 } from '$lib/types/tmdb';
 import { TMDB } from '$lib/config/constants';
 import { createChildLogger } from '$lib/logging';
@@ -291,7 +292,7 @@ export const tmdb = {
 		return filterBlockedResults(await requestPromise);
 	},
 	async getMovieReleaseInfo(id: number): Promise<MovieReleaseInfo> {
-		return this.fetch(`/movie/${id}`) as Promise<MovieReleaseInfo>;
+		return this.fetch(`/movie/${id}?append_to_response=release_dates`) as Promise<MovieReleaseInfo>;
 	},
 	async getMovie(id: number): Promise<MovieDetails> {
 		return this.fetch(
@@ -766,6 +767,7 @@ export interface DiscoverItem {
 export interface MovieReleaseInfo {
 	status?: string;
 	release_date?: string | null;
+	release_dates?: ReleaseDatesResponse;
 }
 
 /**
