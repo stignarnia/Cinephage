@@ -37,6 +37,8 @@
 	import { blockMedia } from '$lib/api/settings.js';
 	import { SvelteMap } from 'svelte/reactivity';
 	import { TMDB } from '$lib/config/constants.js';
+	import { extractReleaseDates } from '$lib/utils/extractReleaseDates.js';
+	import { getSmartReleaseLine } from '$lib/utils/smartReleaseLine.js';
 
 	const RELEASE_TYPE_LABELS: Record<number, () => string> = {
 		1: () => m.hero_releaseType_premiere(),
@@ -238,6 +240,16 @@
 		}
 
 		return { certification, releases };
+	});
+
+	const smartRelease = $derived.by(() => {
+		if (!tmdbMovie?.release_dates) return null;
+		const dates = extractReleaseDates(tmdbMovie.release_dates, defaultRegion);
+		return getSmartReleaseLine({
+			releaseDate: dates.theatricalDate,
+			digitalReleaseDate: dates.digitalReleaseDate,
+			physicalReleaseDate: dates.physicalReleaseDate
+		});
 	});
 
 	function formatRuntime(minutes: number | null): string {
@@ -481,10 +493,27 @@
 					class="hidden w-64 shrink-0 rounded-lg bg-base-100/30 p-4 backdrop-blur-sm md:block lg:w-80 lg:p-5"
 				>
 					<div class="grid grid-cols-2 gap-x-4 gap-y-2 lg:gap-x-6 lg:gap-y-3">
-						<div>
-							<div class="text-sm text-base-content/50">{m.hero_metadata_status()}</div>
-							<div class="font-medium">{tmdbMovie.status}</div>
-						</div>
+						{#if smartRelease}
+							<div class="col-span-2">
+								<div class="text-sm text-base-content/50">{m.hero_metadata_status()}</div>
+								<div
+									class="font-medium {smartRelease.variant === 'released'
+										? 'text-success'
+										: smartRelease.variant === 'theaters'
+											? 'text-info'
+											: smartRelease.variant === 'upcoming'
+												? 'text-primary'
+												: ''}"
+								>
+									{smartRelease.text}
+								</div>
+							</div>
+						{:else}
+							<div>
+								<div class="text-sm text-base-content/50">{m.hero_metadata_status()}</div>
+								<div class="font-medium">{tmdbMovie.status}</div>
+							</div>
+						{/if}
 
 						<div>
 							<div class="text-sm text-base-content/50">{m.hero_metadata_language()}</div>
@@ -500,10 +529,23 @@
 							</div>
 						{/if}
 
-						<div>
-							<div class="text-sm text-base-content/50">{m.hero_metadata_released()}</div>
-							<div class="font-medium">{formatDateShort(tmdbMovie.release_date)}</div>
-						</div>
+						{#if releaseInfo?.releases && releaseInfo.releases.length > 0}
+							{#each releaseInfo.releases as release (release.type)}
+								<div>
+									<div class="text-sm text-base-content/50">{release.type}</div>
+									<div class="font-medium {release.isPast ? '' : 'text-primary'}">
+										{release.date}
+									</div>
+								</div>
+							{/each}
+						{:else}
+							<div>
+								<div class="text-sm text-base-content/50">
+									{m.hero_releaseType_theatrical()}
+								</div>
+								<div class="font-medium">{formatDateShort(tmdbMovie.release_date)}</div>
+							</div>
+						{/if}
 
 						{#if tmdbMovie.budget > 0}
 							<div>
@@ -517,19 +559,6 @@
 								<div class="text-sm text-base-content/50">{m.hero_metadata_revenue()}</div>
 								<div class="font-medium">{formatCurrency(tmdbMovie.revenue)}</div>
 							</div>
-						{/if}
-
-						{#if releaseInfo?.releases && releaseInfo.releases.length > 1}
-							{#each releaseInfo.releases
-								.filter((r) => r.type !== m.hero_releaseType_theatrical())
-								.slice(0, 2) as release (release.type)}
-								<div>
-									<div class="text-sm text-base-content/50">{release.type}</div>
-									<div class="font-medium {release.isPast ? '' : 'text-primary'}">
-										{release.date}
-									</div>
-								</div>
-							{/each}
 						{/if}
 
 						{#if tmdbMovie.production_companies && tmdbMovie.production_companies.length > 0}

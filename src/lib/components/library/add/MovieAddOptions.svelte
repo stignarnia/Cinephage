@@ -21,6 +21,7 @@
 	interface Props {
 		tmdbId: number;
 		minimumAvailability: MinimumAvailability;
+		availabilityDelay: number;
 		monitored: boolean;
 		collection: CollectionInfo | null;
 		addEntireCollection: boolean;
@@ -30,6 +31,7 @@
 	let {
 		tmdbId,
 		minimumAvailability = $bindable(),
+		availabilityDelay = $bindable(),
 		monitored = $bindable(),
 		collection,
 		addEntireCollection = $bindable(),
@@ -85,6 +87,30 @@
 	</select>
 	<p class="mt-1 text-xs text-base-content/60">
 		{availabilityOptions.find((o) => o.value === minimumAvailability)?.description}
+	</p>
+</div>
+
+<!-- Availability Delay -->
+<div class="form-control min-w-0">
+	<label class="label" for="availability-delay">
+		<span class="label-text flex items-center gap-2 font-medium">
+			<Calendar class="h-4 w-4 shrink-0" />
+			Availability Delay
+		</span>
+	</label>
+	<div class="flex items-center gap-2">
+		<input
+			id="availability-delay"
+			type="number"
+			class="input-bordered input w-24"
+			min="0"
+			max="365"
+			bind:value={availabilityDelay}
+		/>
+		<span class="text-sm text-base-content/60">days</span>
+	</div>
+	<p class="mt-1 text-xs text-base-content/60">
+		Wait this many days after release before searching
 	</p>
 </div>
 

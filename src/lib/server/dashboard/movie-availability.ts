@@ -14,6 +14,8 @@ interface MovieAvailabilityRow {
 	monitored: boolean | null;
 	downloadReleaseDate?: string | null;
 	downloadReleaseType?: string | null;
+	digitalReleaseDate?: string | null;
+	physicalReleaseDate?: string | null;
 }
 
 export interface MissingMovieAvailabilityCounts {
@@ -115,7 +117,9 @@ export async function computeMissingMovieAvailabilityCounts(
 				added: movie.added,
 				tmdbStatus: releaseInfo?.status,
 				releaseDate: releaseInfo?.release_date,
-				releaseDates
+				releaseDates,
+				digitalReleaseDate: movie.digitalReleaseDate,
+				physicalReleaseDate: movie.physicalReleaseDate
 			},
 			now
 		);
@@ -164,7 +168,9 @@ export async function enrichMoviesWithAvailability<T extends MovieAvailabilityRo
 				added: movie.added,
 				tmdbStatus: releaseInfo?.status,
 				releaseDate: releaseInfo?.release_date,
-				releaseDates
+				releaseDates,
+				digitalReleaseDate: movie.digitalReleaseDate,
+				physicalReleaseDate: movie.physicalReleaseDate
 			},
 			now
 		);

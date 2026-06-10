@@ -1,5 +1,6 @@
 import { getDiscoverResults } from '$lib/server/discover';
 import { contentFilterPipeline } from '$lib/server/filters/ContentFilterPipeline.js';
+import { enrichWithReleaseDates } from '$lib/server/release-enrichment.js';
 import { tmdb } from '$lib/server/tmdb';
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
@@ -122,9 +123,10 @@ export const GET: RequestHandler = async ({ url }) => {
 			mediaType: mediaTypeFilter,
 			excludeInLibrary: params.exclude_in_library === 'true'
 		});
+		const enrichedResults = await enrichWithReleaseDates(filteredResults);
 
 		return json({
-			results: filteredResults,
+			results: enrichedResults,
 			pagination
 		});
 	} catch (e) {

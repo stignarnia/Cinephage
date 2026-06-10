@@ -710,7 +710,10 @@ export const movies = sqliteTable(
 		collectionName: text('collection_name'),
 		releaseDate: text('release_date'),
 		downloadReleaseDate: text('download_release_date'),
-		downloadReleaseType: text('download_release_type')
+		downloadReleaseType: text('download_release_type'),
+		digitalReleaseDate: text('digital_release_date'),
+		physicalReleaseDate: text('physical_release_date'),
+		availabilityDelay: integer('availability_delay').notNull().default(0)
 	},
 	(table) => [
 		index('idx_movies_monitored_hasfile').on(table.monitored, table.hasFile),

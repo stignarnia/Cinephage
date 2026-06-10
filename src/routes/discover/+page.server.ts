@@ -10,6 +10,7 @@ import {
 	hasActiveDiscoverFilters
 } from '$lib/utils/discoverParams';
 import { TMDB } from '$lib/config/constants.js';
+import { enrichWithReleaseDates } from '$lib/server/release-enrichment.js';
 import { db } from '$lib/server/db';
 import { settings } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
@@ -34,6 +35,7 @@ export const load: PageServerLoad = async ({ url }) => {
 		certification,
 		excludeInLibrary
 	} = params;
+	const { nowPlaying } = params;
 
 	// Resolve effective original language — URL param takes precedence,
 	// falling back to the user's global TMDB language filter.
@@ -178,11 +180,12 @@ export const load: PageServerLoad = async ({ url }) => {
 				trendingResults.results,
 				{ mediaType: 'all', excludeInLibrary }
 			);
+			const enrichedResults = await enrichWithReleaseDates(filteredResults, systemRegion);
 
 			return {
 				viewType: 'grid',
 				tmdbConfigured: true,
-				results: filteredResults,
+				results: enrichedResults,
 				pagination: {
 					page: trendingResults.page,
 					total_pages: trendingResults.total_pages,
@@ -235,11 +238,12 @@ export const load: PageServerLoad = async ({ url }) => {
 					mediaType: 'all',
 					excludeInLibrary
 				});
+				const enrichedResults = await enrichWithReleaseDates(filteredResults, systemRegion);
 
 				return {
 					viewType: 'grid',
 					tmdbConfigured: true,
-					results: filteredResults,
+					results: enrichedResults,
 					pagination: {
 						page: 1,
 						total_pages: Math.max(moviesData.total_pages, tvData.total_pages),
@@ -268,11 +272,12 @@ export const load: PageServerLoad = async ({ url }) => {
 				topRatedResults.results,
 				{ mediaType: mediaTypeFilter, excludeInLibrary }
 			);
+			const enrichedResults = await enrichWithReleaseDates(filteredResults, systemRegion);
 
 			return {
 				viewType: 'grid',
 				tmdbConfigured: true,
-				results: filteredResults,
+				results: enrichedResults,
 				pagination: {
 					page: topRatedResults.page,
 					total_pages: topRatedResults.total_pages,
@@ -295,15 +300,52 @@ export const load: PageServerLoad = async ({ url }) => {
 			};
 		}
 
+		if (nowPlaying === 'true' && !hasActiveDiscoverFilters(params)) {
+			const nowPlayingResults = (await tmdb.getNowPlaying(
+				Number(page) || 1
+			)) as unknown as TmdbPaginatedResult;
+			const { results: filteredResults } = await contentFilterPipeline.apply(
+				nowPlayingResults.results,
+				{ mediaType: 'movie', excludeInLibrary }
+			);
+			const enrichedResults = await enrichWithReleaseDates(filteredResults, systemRegion);
+
+			return {
+				viewType: 'grid',
+				tmdbConfigured: true,
+				results: enrichedResults,
+				pagination: {
+					page: nowPlayingResults.page,
+					total_pages: nowPlayingResults.total_pages,
+					total_results: nowPlayingResults.total_results
+				},
+				providers,
+				genres,
+				certifications: usCertifications,
+				languages,
+				filters: {
+					type,
+					sort_by: sortBy,
+					trending,
+					with_watch_providers: withWatchProviders,
+					with_genres: withGenres,
+					with_original_language: withOriginalLanguage,
+					certification,
+					exclude_in_library: excludeInLibrary
+				}
+			};
+		}
+
 		if (isDefaultViewCheck && page === '1') {
 			// Fetch sections for the dashboard-style view
-			const [trendingWeek, popularMovies, popularTV, topRatedMovies, topRatedTV] =
+			const [trendingWeek, popularMovies, popularTV, topRatedMovies, topRatedTV, nowPlayingData] =
 				(await Promise.all([
 					tmdb.fetch('/trending/all/week'),
 					tmdb.fetch('/movie/popular'),
 					tmdb.fetch('/tv/popular'),
 					tmdb.fetch('/movie/top_rated'),
-					tmdb.fetch('/tv/top_rated')
+					tmdb.fetch('/tv/top_rated'),
+					tmdb.getNowPlaying()
 				])) as TmdbPaginatedResult[];
 
 			// Enrich all sections with library status and filter blocked media
@@ -312,7 +354,8 @@ export const load: PageServerLoad = async ({ url }) => {
 				filteredPopularMovies,
 				filteredPopularTV,
 				filteredTopRatedMovies,
-				filteredTopRatedTV
+				filteredTopRatedTV,
+				filteredNowPlaying
 			] = await Promise.all([
 				contentFilterPipeline.apply(trendingWeek.results, { mediaType: 'all', excludeInLibrary }),
 				contentFilterPipeline.apply(popularMovies.results, {
@@ -324,18 +367,31 @@ export const load: PageServerLoad = async ({ url }) => {
 					mediaType: 'movie',
 					excludeInLibrary
 				}),
-				contentFilterPipeline.apply(topRatedTV.results, { mediaType: 'tv', excludeInLibrary })
+				contentFilterPipeline.apply(topRatedTV.results, { mediaType: 'tv', excludeInLibrary }),
+				contentFilterPipeline.apply(nowPlayingData.results, {
+					mediaType: 'movie',
+					excludeInLibrary
+				})
 			]);
+
+			const [enrichedTrending, enrichedPopularMovies, enrichedTopRatedMovies, enrichedNowPlaying] =
+				await Promise.all([
+					enrichWithReleaseDates(filteredTrendingWeek.results, systemRegion),
+					enrichWithReleaseDates(filteredPopularMovies.results, systemRegion),
+					enrichWithReleaseDates(filteredTopRatedMovies.results, systemRegion),
+					enrichWithReleaseDates(filteredNowPlaying.results, systemRegion)
+				]);
 
 			return {
 				viewType: 'dashboard',
 				tmdbConfigured: true,
 				sections: {
-					trendingWeek: filteredTrendingWeek.results,
-					popularMovies: filteredPopularMovies.results,
+					trendingWeek: enrichedTrending,
+					popularMovies: enrichedPopularMovies,
 					popularTV: filteredPopularTV.results,
-					topRatedMovies: filteredTopRatedMovies.results,
-					topRatedTV: filteredTopRatedTV.results
+					topRatedMovies: enrichedTopRatedMovies,
+					topRatedTV: filteredTopRatedTV.results,
+					nowPlaying: enrichedNowPlaying
 				},
 				providers,
 				genres,
@@ -377,11 +433,12 @@ export const load: PageServerLoad = async ({ url }) => {
 				mediaType: mediaTypeFilter,
 				excludeInLibrary
 			});
+			const enrichedResults = await enrichWithReleaseDates(filteredResults, systemRegion);
 
 			return {
 				viewType: 'grid',
 				tmdbConfigured: true,
-				results: filteredResults,
+				results: enrichedResults,
 				pagination,
 				providers,
 				genres,

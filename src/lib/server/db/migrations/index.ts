@@ -89,6 +89,7 @@ import { migration_v088 } from './088-add-root-folder-scan-filters.js';
 import { migration_v089 } from './089-add-blocked-keywords-table.js';
 import { migration_v090 } from './090-add-library-jobs.js';
 import { migration_v091 } from './091-add-download-release-date.js';
+import { migration_v092 } from './092-split-release-date-columns.js';
 
 export const MIGRATIONS: MigrationDefinition[] = [
 	migration_v002,
@@ -180,5 +181,6 @@ export const MIGRATIONS: MigrationDefinition[] = [
 	migration_v088,
 	migration_v089,
 	migration_v090,
-	migration_v091
+	migration_v091,
+	migration_v092
 ];

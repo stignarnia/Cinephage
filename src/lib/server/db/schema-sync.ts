@@ -121,7 +121,7 @@ import {
  * Version 89: Add blocked keywords table
  * Version 90: Add durable library job tables
  */
-export const CURRENT_SCHEMA_VERSION = 91;
+export const CURRENT_SCHEMA_VERSION = 92;
 
 export const SYSTEM_LIBRARY_SEEDS = [
 	{
@@ -498,7 +498,10 @@ const TABLE_DEFINITIONS: string[] = [
 		"collection_name" text,
 		"release_date" text,
 		"download_release_date" text,
-		"download_release_type" text
+		"download_release_type" text,
+		"digital_release_date" text,
+		"physical_release_date" text,
+		"availability_delay" integer NOT NULL DEFAULT 0
 	)`,
 
 	`CREATE TABLE IF NOT EXISTS "movie_files" (

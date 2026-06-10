@@ -45,6 +45,7 @@
 		rootFolderId: string | null;
 		moveFilesOnRootChange: boolean;
 		minimumAvailability: string;
+		availabilityDelay: number;
 		wantsSubtitles: boolean;
 		metadataProvider: 'auto' | 'tmdb' | 'anilist' | 'mal';
 		folderPath?: string;
@@ -57,6 +58,7 @@
 	let qualityProfileId = $state('');
 	let rootFolderId = $state('');
 	let minimumAvailability = $state('released');
+	let availabilityDelay = $state(0);
 	let wantsSubtitles = $state(true);
 	let metadataProvider = $state<'auto' | 'tmdb' | 'anilist' | 'mal'>('auto');
 	let moveFilesOnRootChange = $state(false);
@@ -130,6 +132,7 @@
 					: '';
 			rootFolderId = movie.rootFolderId ?? '';
 			minimumAvailability = movie.minimumAvailability ?? 'released';
+			availabilityDelay = movie.availabilityDelay ?? 0;
 			wantsSubtitles = movie.wantsSubtitles ?? true;
 			metadataProvider = movie.metadataProvider ?? 'auto';
 			moveFilesOnRootChange = false;
@@ -226,6 +229,7 @@
 			rootFolderId: rootFolderId || null,
 			moveFilesOnRootChange,
 			minimumAvailability,
+			availabilityDelay,
 			wantsSubtitles,
 			metadataProvider: showAnimeMetadataProviderControl ? metadataProvider : 'auto',
 			...(folderPathChanged && folderPath.trim() ? { folderPath: folderPath.trim() } : {})
@@ -438,6 +442,29 @@
 			<div class="label">
 				<span class="label-text-alt wrap-break-word whitespace-normal text-base-content/60">
 					{availabilityOptions.find((o) => o.value === minimumAvailability)?.description}
+				</span>
+			</div>
+		</div>
+
+		<!-- Availability Delay -->
+		<div class="form-control">
+			<label class="label" for="movie-availability-delay">
+				<span class="label-text font-medium">Availability Delay</span>
+			</label>
+			<div class="flex items-center gap-2">
+				<input
+					id="movie-availability-delay"
+					type="number"
+					class="input-bordered input w-24 input-sm"
+					min="0"
+					max="365"
+					bind:value={availabilityDelay}
+				/>
+				<span class="text-sm text-base-content/60">days</span>
+			</div>
+			<div class="label">
+				<span class="label-text-alt text-base-content/60">
+					Wait this many days after release before searching
 				</span>
 			</div>
 		</div>

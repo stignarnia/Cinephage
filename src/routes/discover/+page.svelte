@@ -711,6 +711,14 @@
 			<!-- Dashboard View -->
 			<div class="animate-in fade-in space-y-12 duration-500">
 				<SectionRow
+					title="In Theaters"
+					items={data.sections.nowPlaying}
+					link="/discover?now_playing=true{excludeInLibrary ? '&exclude_in_library=true' : ''}"
+					endpoint="movie/now_playing"
+					onAddToLibrary={handleAddToLibrary}
+					{excludeInLibrary}
+				/>
+				<SectionRow
 					title={m.discover_trendingThisWeek()}
 					items={data.sections.trendingWeek}
 					link="/discover?trending=week{excludeInLibrary ? '&exclude_in_library=true' : ''}"

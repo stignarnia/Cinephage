@@ -16,6 +16,9 @@ interface MovieAvailabilityInput {
 	releaseDate?: string | null | undefined;
 	/** Flattened release dates from TMDB release_dates response */
 	releaseDates?: Array<{ type: number; release_date: string }> | null | undefined;
+	digitalReleaseDate?: string | null | undefined;
+	physicalReleaseDate?: string | null | undefined;
+	availabilityDelay?: number;
 }
 
 const DOWNLOADABLE_TYPES = new Set([4, 5, 6]);
@@ -73,6 +76,27 @@ export function getMovieAvailabilityLevel(
 	now: Date = new Date()
 ): MovieAvailabilityLevel {
 	const releaseDates = movie.releaseDates;
+
+	if (movie.digitalReleaseDate || movie.physicalReleaseDate) {
+		const digitalMs = movie.digitalReleaseDate
+			? new Date(movie.digitalReleaseDate).getTime()
+			: null;
+		const physicalMs = movie.physicalReleaseDate
+			? new Date(movie.physicalReleaseDate).getTime()
+			: null;
+
+		const hasPastDigital =
+			digitalMs !== null && !Number.isNaN(digitalMs) && digitalMs <= now.getTime();
+		const hasPastPhysical =
+			physicalMs !== null && !Number.isNaN(physicalMs) && physicalMs <= now.getTime();
+
+		if (hasPastDigital || hasPastPhysical) return 'released';
+
+		const releaseTimestamp = movie.releaseDate ? new Date(movie.releaseDate).getTime() : Number.NaN;
+		if (!Number.isNaN(releaseTimestamp) && releaseTimestamp <= now.getTime()) return 'inCinemas';
+
+		return 'announced';
+	}
 
 	// If we have typed release_dates data, use it to determine downloadable status.
 	if (releaseDates && releaseDates.length > 0) {
@@ -148,4 +172,52 @@ export function getMovieAvailabilityLevel(
 	const daysSinceAdded = (now.getTime() - addedTimestamp) / (1000 * 60 * 60 * 24);
 	if (daysSinceAdded > 120) return 'released';
 	return 'inCinemas';
+}
+
+const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;
+
+export function isMovieAvailableForSearch(
+	movie: {
+		minimumAvailability: string | null | undefined;
+		releaseDate?: string | null;
+		digitalReleaseDate?: string | null;
+		physicalReleaseDate?: string | null;
+		availabilityDelay?: number;
+	},
+	now: Date = new Date()
+): boolean {
+	const minimum = movie.minimumAvailability || 'released';
+	const delay = (movie.availabilityDelay ?? 0) * 24 * 60 * 60 * 1000;
+	const nowMs = now.getTime();
+
+	if (minimum === 'announced') return true;
+
+	const theatricalMs = movie.releaseDate ? new Date(movie.releaseDate).getTime() : null;
+
+	if (minimum === 'inCinemas') {
+		if (theatricalMs !== null && !Number.isNaN(theatricalMs)) {
+			return theatricalMs + delay <= nowMs;
+		}
+		return false;
+	}
+
+	const digitalMs = movie.digitalReleaseDate ? new Date(movie.digitalReleaseDate).getTime() : null;
+	const physicalMs = movie.physicalReleaseDate
+		? new Date(movie.physicalReleaseDate).getTime()
+		: null;
+
+	const candidates: number[] = [];
+	if (digitalMs !== null && !Number.isNaN(digitalMs)) candidates.push(digitalMs);
+	if (physicalMs !== null && !Number.isNaN(physicalMs)) candidates.push(physicalMs);
+
+	if (candidates.length > 0) {
+		const earliest = Math.min(...candidates);
+		return earliest + delay <= nowMs;
+	}
+
+	if (theatricalMs !== null && !Number.isNaN(theatricalMs)) {
+		return theatricalMs + NINETY_DAYS_MS + delay <= nowMs;
+	}
+
+	return false;
 }

@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { getMovieAvailabilityLevel, getReleaseStageInfo } from './movieAvailability';
+import {
+	getMovieAvailabilityLevel,
+	getReleaseStageInfo,
+	isMovieAvailableForSearch
+} from './movieAvailability';
 
 describe('getMovieAvailabilityLevel', () => {
 	const now = new Date('2026-06-10T00:00:00.000Z');
@@ -221,5 +225,101 @@ describe('getReleaseStageInfo', () => {
 			date: '2026-06-01',
 			isPast: true
 		});
+	});
+});
+
+describe('isMovieAvailableForSearch', () => {
+	const now = new Date('2026-06-10');
+
+	it('announced: always available', () => {
+		expect(
+			isMovieAvailableForSearch(
+				{ minimumAvailability: 'announced', releaseDate: '2027-01-01' },
+				now
+			)
+		).toBe(true);
+	});
+
+	it('inCinemas: available when theatrical date is past', () => {
+		expect(
+			isMovieAvailableForSearch(
+				{ minimumAvailability: 'inCinemas', releaseDate: '2026-05-01' },
+				now
+			)
+		).toBe(true);
+	});
+
+	it('inCinemas: not available when theatrical date is future', () => {
+		expect(
+			isMovieAvailableForSearch(
+				{ minimumAvailability: 'inCinemas', releaseDate: '2026-07-01' },
+				now
+			)
+		).toBe(false);
+	});
+
+	it('inCinemas with delay: respects delay offset', () => {
+		expect(
+			isMovieAvailableForSearch(
+				{ minimumAvailability: 'inCinemas', releaseDate: '2026-06-05', availabilityDelay: 7 },
+				now
+			)
+		).toBe(false);
+	});
+
+	it('released: available when digital date is past', () => {
+		expect(
+			isMovieAvailableForSearch(
+				{
+					minimumAvailability: 'released',
+					releaseDate: '2026-04-01',
+					digitalReleaseDate: '2026-06-01'
+				},
+				now
+			)
+		).toBe(true);
+	});
+
+	it('released: not available when digital date is future', () => {
+		expect(
+			isMovieAvailableForSearch(
+				{
+					minimumAvailability: 'released',
+					releaseDate: '2026-05-01',
+					digitalReleaseDate: '2026-07-01'
+				},
+				now
+			)
+		).toBe(false);
+	});
+
+	it('released with delay: respects delay after digital date', () => {
+		expect(
+			isMovieAvailableForSearch(
+				{
+					minimumAvailability: 'released',
+					releaseDate: '2026-04-01',
+					digitalReleaseDate: '2026-06-05',
+					availabilityDelay: 14
+				},
+				now
+			)
+		).toBe(false);
+	});
+
+	it('released: falls back to theatrical + 90 days when no digital/physical', () => {
+		expect(
+			isMovieAvailableForSearch({ minimumAvailability: 'released', releaseDate: '2026-03-01' }, now)
+		).toBe(true);
+	});
+
+	it('released: theatrical + 90 days fallback not yet met', () => {
+		expect(
+			isMovieAvailableForSearch({ minimumAvailability: 'released', releaseDate: '2026-05-01' }, now)
+		).toBe(false);
+	});
+
+	it('released: no dates at all returns false', () => {
+		expect(isMovieAvailableForSearch({ minimumAvailability: 'released' }, now)).toBe(false);
 	});
 });

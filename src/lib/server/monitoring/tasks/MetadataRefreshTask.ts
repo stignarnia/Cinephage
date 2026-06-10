@@ -56,6 +56,28 @@ function getEarliestDownloadType(releaseDates?: ReleaseDatesResponse): string | 
 	return earliestType !== null ? (TYPE_NAME[earliestType] ?? null) : null;
 }
 
+function getEarliestDateByType(
+	releaseDates: ReleaseDatesResponse | undefined,
+	type: number
+): string | null {
+	if (!releaseDates?.results) return null;
+
+	let earliest: string | null = null;
+
+	for (const country of releaseDates.results) {
+		for (const rd of country.release_dates) {
+			if (rd.type !== type) continue;
+			const dateStr = rd.release_date?.substring(0, 10);
+			if (!dateStr) continue;
+			if (!earliest || dateStr < earliest) {
+				earliest = dateStr;
+			}
+		}
+	}
+
+	return earliest;
+}
+
 export async function executeMetadataRefreshTask(
 	ctx: TaskExecutionContext | null
 ): Promise<TaskResult> {
@@ -109,6 +131,8 @@ export async function executeMetadataRefreshTask(
 						releaseDate: tmdbMovie.release_date ?? undefined,
 						downloadReleaseDate: getEarliestDownloadDate(tmdbMovie.release_dates) ?? undefined,
 						downloadReleaseType: getEarliestDownloadType(tmdbMovie.release_dates) ?? undefined,
+						digitalReleaseDate: getEarliestDateByType(tmdbMovie.release_dates, 4) ?? undefined,
+						physicalReleaseDate: getEarliestDateByType(tmdbMovie.release_dates, 5) ?? undefined,
 						imdbId: externalIds?.imdb_id ?? undefined,
 						tmdbCollectionId: tmdbMovie.belongs_to_collection?.id ?? null,
 						collectionName: tmdbMovie.belongs_to_collection?.name ?? null

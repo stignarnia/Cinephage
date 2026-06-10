@@ -15,6 +15,8 @@
 	import { getLibraryStatus } from '$lib/api/library.js';
 	import { blockMedia } from '$lib/api/settings.js';
 	import * as m from '$lib/paraglide/messages.js';
+	import { extractReleaseDates } from '$lib/utils/extractReleaseDates.js';
+	import { getSmartReleaseLine } from '$lib/utils/smartReleaseLine.js';
 
 	const RELEASE_TYPE_LABELS: Record<number, () => string> = {
 		1: () => m.hero_releaseType_premiere(),
@@ -149,6 +151,16 @@
 		}
 
 		return { certification, releases };
+	});
+
+	const smartRelease = $derived.by(() => {
+		if (!isMovieDetails(item) || !item.release_dates) return null;
+		const dates = extractReleaseDates(item.release_dates, countryCode);
+		return getSmartReleaseLine({
+			releaseDate: dates.theatricalDate,
+			digitalReleaseDate: dates.digitalReleaseDate,
+			physicalReleaseDate: dates.physicalReleaseDate
+		});
 	});
 
 	// Get content rating for TV shows
@@ -380,10 +392,27 @@
 			class="hidden w-64 shrink-0 rounded-lg bg-base-100/30 p-4 backdrop-blur-sm md:block lg:w-80 lg:p-5"
 		>
 			<div class="grid grid-cols-2 gap-x-4 gap-y-2 lg:gap-x-6 lg:gap-y-3">
-				<div>
-					<div class="text-sm text-base-content/50">{m.hero_metadata_status()}</div>
-					<div class="font-medium">{item.status}</div>
-				</div>
+				{#if smartRelease}
+					<div class="col-span-2">
+						<div class="text-sm text-base-content/50">{m.hero_metadata_status()}</div>
+						<div
+							class="font-medium {smartRelease.variant === 'released'
+								? 'text-success'
+								: smartRelease.variant === 'theaters'
+									? 'text-info'
+									: smartRelease.variant === 'upcoming'
+										? 'text-primary'
+										: ''}"
+						>
+							{smartRelease.text}
+						</div>
+					</div>
+				{:else}
+					<div>
+						<div class="text-sm text-base-content/50">{m.hero_metadata_status()}</div>
+						<div class="font-medium">{item.status}</div>
+					</div>
+				{/if}
 
 				<div>
 					<div class="text-sm text-base-content/50">{m.hero_metadata_language()}</div>
@@ -402,10 +431,23 @@
 						</div>
 					{/if}
 
-					<div>
-						<div class="text-sm text-base-content/50">{m.hero_metadata_released()}</div>
-						<div class="font-medium">{formatDateShort(movie.release_date)}</div>
-					</div>
+					{#if releaseInfo?.releases && releaseInfo.releases.length > 0}
+						{#each releaseInfo.releases as release (release.type)}
+							<div>
+								<div class="text-sm text-base-content/50">{release.type}</div>
+								<div class="font-medium {release.isPast ? '' : 'text-primary'}">
+									{release.date}
+								</div>
+							</div>
+						{/each}
+					{:else}
+						<div>
+							<div class="text-sm text-base-content/50">
+								{m.hero_releaseType_theatrical()}
+							</div>
+							<div class="font-medium">{formatDateShort(movie.release_date)}</div>
+						</div>
+					{/if}
 
 					{#if movie.budget > 0}
 						<div>
@@ -419,17 +461,6 @@
 							<div class="text-sm text-base-content/50">{m.hero_metadata_revenue()}</div>
 							<div class="font-medium">{formatCurrency(movie.revenue)}</div>
 						</div>
-					{/if}
-
-					{#if releaseInfo?.releases && releaseInfo.releases.length > 1}
-						{#each releaseInfo.releases
-							.filter((r) => r.type !== m.hero_releaseType_theatrical())
-							.slice(0, 2) as release (release.type)}
-							<div>
-								<div class="text-sm text-base-content/50">{release.type}</div>
-								<div class="font-medium {release.isPast ? '' : 'text-primary'}">{release.date}</div>
-							</div>
-						{/each}
 					{/if}
 				{:else}
 					{@const tv = item as TVShowDetails}

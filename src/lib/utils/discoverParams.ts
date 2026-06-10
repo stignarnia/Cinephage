@@ -20,6 +20,7 @@ export interface DiscoverParams {
 	minRating: string | null;
 	certification: string | null;
 	excludeInLibrary: boolean;
+	nowPlaying: string | null;
 }
 
 /**
@@ -42,7 +43,8 @@ export function parseDiscoverParams(searchParams: URLSearchParams): DiscoverPara
 		maxDate: searchParams.get('primary_release_date.lte') || null,
 		minRating: searchParams.get('vote_average.gte') || null,
 		certification: searchParams.get('certification') || null,
-		excludeInLibrary: searchParams.get('exclude_in_library') === 'true'
+		excludeInLibrary: searchParams.get('exclude_in_library') === 'true',
+		nowPlaying: searchParams.get('now_playing')
 	};
 }
 
@@ -53,6 +55,7 @@ export function isDefaultView(searchParams: URLSearchParams, params: DiscoverPar
 	return (
 		!searchParams.has('trending') &&
 		!searchParams.has('top_rated') &&
+		!searchParams.has('now_playing') &&
 		(!searchParams.has('type') || searchParams.get('type') === 'all') &&
 		!searchParams.has('with_watch_providers') &&
 		!searchParams.has('with_genres') &&

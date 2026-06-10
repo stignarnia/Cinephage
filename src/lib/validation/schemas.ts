@@ -1548,6 +1548,7 @@ export const addMovieSchema = z.object({
 	scoringProfileId: z.string().optional(),
 	monitored: z.boolean().default(true),
 	minimumAvailability: z.enum(['announced', 'inCinemas', 'released', 'preDb']).default('released'),
+	availabilityDelay: z.number().int().min(0).max(365).default(0),
 	searchOnAdd: z.boolean().default(true),
 	wantsSubtitles: z.boolean().default(true)
 });
@@ -1591,6 +1592,7 @@ export const bulkAddMoviesSchema = z.object({
 	scoringProfileId: z.string().optional(),
 	monitored: z.boolean().default(true),
 	minimumAvailability: z.enum(['announced', 'inCinemas', 'released', 'preDb']).default('released'),
+	availabilityDelay: z.number().int().min(0).max(365).default(0),
 	searchOnAdd: z.boolean().default(true),
 	wantsSubtitles: z.boolean().default(true)
 });

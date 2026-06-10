@@ -96,6 +96,9 @@ export interface LibraryMovie {
 	releaseDate?: string | null;
 	downloadReleaseDate?: string | null;
 	downloadReleaseType?: string | null;
+	digitalReleaseDate?: string | null;
+	physicalReleaseDate?: string | null;
+	availabilityDelay?: number;
 	added: string;
 	hasFile: boolean | null;
 	tmdbCollectionId?: number | null;

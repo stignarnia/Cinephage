@@ -114,6 +114,7 @@
 	let wantsSubtitlesTouched = $state(false);
 
 	let minimumAvailability = $state<MinimumAvailability>('released');
+	let availabilityDelay = $state(0);
 	let monitored = $state(true);
 
 	let monitorType = $state<MonitorType>('all');
@@ -190,6 +191,7 @@
 			searchOnAdd = true;
 			wantsSubtitles = true;
 			minimumAvailability = 'released';
+			availabilityDelay = 0;
 			monitorType = 'all';
 			monitorNewItems = 'all';
 			monitorSpecials = false;
@@ -441,7 +443,7 @@
 			};
 
 			const result = (mediaType === 'movie'
-				? await createMovie({ ...basePayload, minimumAvailability })
+				? await createMovie({ ...basePayload, minimumAvailability, availabilityDelay })
 				: await createSeries({
 						...basePayload,
 						monitorType,
@@ -484,6 +486,7 @@
 				scoringProfileId: selectedScoringProfile || undefined,
 				monitored: willBeMonitored,
 				minimumAvailability,
+				availabilityDelay,
 				searchOnAdd: willSearchOnAdd,
 				wantsSubtitles
 			};
@@ -565,6 +568,7 @@
 				bind:searchOnAdd
 				bind:wantsSubtitles
 				bind:minimumAvailability
+				bind:availabilityDelay
 				bind:monitored
 				bind:addEntireCollection
 			/>

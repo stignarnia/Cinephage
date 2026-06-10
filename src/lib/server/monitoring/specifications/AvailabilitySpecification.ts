@@ -54,33 +54,41 @@ export class MovieAvailabilitySpecification implements IMonitoringSpecification<
 	): Promise<SpecificationResult> {
 		const { movie } = context;
 
-		// Get minimum availability setting (default to 'released' for safety)
 		const minimumAvailability = (movie.minimumAvailability as AvailabilityLevel) || 'released';
 
-		// Compare availability levels
-		const minimumIndex = AVAILABILITY_ORDER.indexOf(minimumAvailability);
-
-		if (minimumIndex === -1) {
-			// Unknown minimum availability setting, allow by default
-			return accept();
-		}
-
-		// 'announced' is the lowest threshold; every movie satisfies it.
 		if (minimumAvailability === 'announced') {
 			return accept();
 		}
 
-		// Determine current availability status from TMDB status/date (fallback: local heuristics)
+		const hasStoredDates =
+			movie.digitalReleaseDate || movie.physicalReleaseDate || movie.releaseDate;
+
+		if (hasStoredDates) {
+			const { isMovieAvailableForSearch } = await import('$lib/utils/movieAvailability');
+			const available = isMovieAvailableForSearch({
+				minimumAvailability,
+				releaseDate: movie.releaseDate ?? null,
+				digitalReleaseDate: movie.digitalReleaseDate ?? null,
+				physicalReleaseDate: movie.physicalReleaseDate ?? null,
+				availabilityDelay: movie.availabilityDelay ?? 0
+			});
+
+			if (available) return accept();
+
+			return reject(
+				`${AvailabilityRejectionReason.NOT_YET_AVAILABLE}: requires ${minimumAvailability}`
+			);
+		}
+
 		const currentAvailability = await this.getCurrentAvailability(movie);
 		const currentIndex = AVAILABILITY_ORDER.indexOf(currentAvailability);
+		const minimumIndex = AVAILABILITY_ORDER.indexOf(minimumAvailability);
 
 		if (currentIndex === -1) {
-			// Can't determine current availability - be cautious and reject
 			return reject(AvailabilityRejectionReason.UNKNOWN_AVAILABILITY);
 		}
 
 		if (currentIndex < minimumIndex) {
-			// Current availability hasn't reached minimum threshold
 			return reject(
 				`${AvailabilityRejectionReason.NOT_YET_AVAILABLE}: movie is ${currentAvailability}, requires ${minimumAvailability}`
 			);

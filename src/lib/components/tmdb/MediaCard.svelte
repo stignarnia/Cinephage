@@ -11,12 +11,16 @@
 	import TmdbImage from './TmdbImage.svelte';
 	import { Check, Clock, Plus } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages.js';
+	import { getSmartReleaseLine } from '$lib/utils/smartReleaseLine.js';
 
 	// Extended type that includes library status (added by enrichWithLibraryStatus)
 	type MediaItemWithLibraryStatus = TmdbMediaItem & {
 		inLibrary?: boolean;
 		hasFile?: boolean;
 		libraryId?: string;
+		releaseDate?: string | null;
+		digitalReleaseDate?: string | null;
+		physicalReleaseDate?: string | null;
 	};
 
 	interface Props {
@@ -50,6 +54,19 @@
 	// Library status
 	const inLibrary = $derived(item.inLibrary ?? false);
 	const hasFile = $derived(item.hasFile ?? false);
+
+	const releaseLine = $derived.by(() => {
+		const enriched = item as MediaItemWithLibraryStatus;
+		const rec = item as unknown as Record<string, unknown>;
+		const rd =
+			enriched.releaseDate ?? (rec.release_date as string | null) ?? null;
+		if (!rd && !enriched.digitalReleaseDate && !enriched.physicalReleaseDate) return null;
+		return getSmartReleaseLine({
+			releaseDate: rd,
+			digitalReleaseDate: enriched.digitalReleaseDate ?? null,
+			physicalReleaseDate: enriched.physicalReleaseDate ?? null
+		});
+	});
 </script>
 
 <a
@@ -134,6 +151,19 @@
 					</div>
 				{/if}
 			</div>
+			{#if releaseLine}
+				<div
+					class="mt-0.5 text-xs font-medium {releaseLine.variant === 'released'
+						? 'text-success'
+						: releaseLine.variant === 'theaters'
+							? 'text-info'
+							: releaseLine.variant === 'upcoming'
+								? 'text-primary'
+								: 'text-white/50'}"
+				>
+					{releaseLine.text}
+				</div>
+			{/if}
 		</div>
 	</div>
 </a>
