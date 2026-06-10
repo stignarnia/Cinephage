@@ -2,7 +2,7 @@
 	import { Calendar, Eye } from 'lucide-svelte';
 	import * as m from '$lib/paraglide/messages.js';
 
-	export type MinimumAvailability = 'announced' | 'inCinemas' | 'released' | 'preDb';
+	export type MinimumAvailability = 'announced' | 'inCinemas' | 'released';
 
 	interface CollectionPart {
 		id: number;
@@ -54,11 +54,6 @@
 				value: 'released',
 				label: m.library_availability_releasedLabel(),
 				description: m.library_availability_releasedDesc()
-			},
-			{
-				value: 'preDb',
-				label: m.library_availability_preDbLabel(),
-				description: m.library_availability_preDbDesc()
 			}
 		];
 
@@ -95,7 +90,7 @@
 	<label class="label" for="availability-delay">
 		<span class="label-text flex items-center gap-2 font-medium">
 			<Calendar class="h-4 w-4 shrink-0" />
-			Availability Delay
+			{m.library_availabilityDelay_label()}
 		</span>
 	</label>
 	<div class="flex items-center gap-2">
@@ -107,10 +102,10 @@
 			max="365"
 			bind:value={availabilityDelay}
 		/>
-		<span class="text-sm text-base-content/60">days</span>
+		<span class="text-sm text-base-content/60">{m.library_availabilityDelay_unit()}</span>
 	</div>
 	<p class="mt-1 text-xs text-base-content/60">
-		Wait this many days after release before searching
+		{m.library_availabilityDelay_desc()}
 	</p>
 </div>
 

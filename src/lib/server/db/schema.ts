@@ -693,7 +693,7 @@ export const movies = sqliteTable(
 		languageProfileId: text('language_profile_id'),
 		// Whether to monitor for upgrades
 		monitored: integer('monitored', { mode: 'boolean' }).default(true),
-		// Minimum availability before searching (announced, inCinemas, released, preDb)
+		// Minimum availability before searching (announced, inCinemas, released)
 		minimumAvailability: text('minimum_availability').default('released'),
 		added: text('added').$defaultFn(() => new Date().toISOString()),
 		// Cached: does this movie have a file?

@@ -163,19 +163,8 @@
 			added: movie.added,
 			tmdbStatus: movie.tmdbStatus,
 			releaseDate: movie.releaseDate,
-			releaseDates: movie.downloadReleaseDate
-				? [
-						{
-							type:
-								movie.downloadReleaseType === 'physical'
-									? 5
-									: movie.downloadReleaseType === 'tv'
-										? 6
-										: 4,
-							release_date: movie.downloadReleaseDate
-						}
-					]
-				: null
+			digitalReleaseDate: movie.digitalReleaseDate,
+			physicalReleaseDate: movie.physicalReleaseDate
 		})
 	);
 	const showUnreleasedBadge = $derived(

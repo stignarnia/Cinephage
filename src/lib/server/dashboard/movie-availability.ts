@@ -101,13 +101,15 @@ export async function computeMissingMovieAvailabilityCounts(
 		const releaseInfo = releaseInfoByTmdbId.get(movie.tmdbId);
 		const releaseDates = flattenReleaseDates(releaseInfo ?? null);
 
-		// Use DB-stored download date as fallback for movies not in the TMDB lookup
-		if (!releaseDates && movie.downloadReleaseDate) {
-			// If we have a stored download date that's past, it's released
-			const downloadDate = new Date(movie.downloadReleaseDate).getTime();
-			if (!Number.isNaN(downloadDate) && downloadDate <= now.getTime()) {
-				monitoredReleasedMissing++;
-				continue;
+		if (!releaseDates) {
+			const fallbackDate =
+				movie.digitalReleaseDate ?? movie.physicalReleaseDate ?? movie.downloadReleaseDate;
+			if (fallbackDate) {
+				const ts = new Date(fallbackDate).getTime();
+				if (!Number.isNaN(ts) && ts <= now.getTime()) {
+					monitoredReleasedMissing++;
+					continue;
+				}
 			}
 		}
 

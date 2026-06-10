@@ -200,11 +200,6 @@
 			value: 'released',
 			label: m.library_availability_releasedLabel(),
 			description: m.library_availability_releasedDesc()
-		},
-		{
-			value: 'preDb',
-			label: m.library_availability_preDbLabel(),
-			description: m.library_availability_preDbDesc()
 		}
 	];
 
@@ -449,7 +444,7 @@
 		<!-- Availability Delay -->
 		<div class="form-control">
 			<label class="label" for="movie-availability-delay">
-				<span class="label-text font-medium">Availability Delay</span>
+				<span class="label-text font-medium">{m.library_availabilityDelay_label()}</span>
 			</label>
 			<div class="flex items-center gap-2">
 				<input
@@ -460,11 +455,11 @@
 					max="365"
 					bind:value={availabilityDelay}
 				/>
-				<span class="text-sm text-base-content/60">days</span>
+				<span class="text-sm text-base-content/60">{m.library_availabilityDelay_unit()}</span>
 			</div>
 			<div class="label">
 				<span class="label-text-alt text-base-content/60">
-					Wait this many days after release before searching
+					{m.library_availabilityDelay_desc()}
 				</span>
 			</div>
 		</div>

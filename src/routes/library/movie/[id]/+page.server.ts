@@ -96,7 +96,13 @@ export const load: PageServerLoad = async ({ params }): Promise<LibraryMoviePage
 			wantsSubtitles: movies.wantsSubtitles,
 			added: movies.added,
 			hasFile: movies.hasFile,
-			tmdbCollectionId: movies.tmdbCollectionId
+			tmdbCollectionId: movies.tmdbCollectionId,
+			releaseDate: movies.releaseDate,
+			digitalReleaseDate: movies.digitalReleaseDate,
+			physicalReleaseDate: movies.physicalReleaseDate,
+			availabilityDelay: movies.availabilityDelay,
+			downloadReleaseDate: movies.downloadReleaseDate,
+			downloadReleaseType: movies.downloadReleaseType
 		})
 		.from(movies)
 		.leftJoin(rootFolders, eq(movies.rootFolderId, rootFolders.id))
