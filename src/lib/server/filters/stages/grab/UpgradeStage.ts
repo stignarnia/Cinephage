@@ -1,7 +1,7 @@
 import type { DecisionStage, StageResult } from '../../types.js';
 import type { GrabDecisionContext, ExistingFile, UpgradeStatus } from './types.js';
 import { isUpgrade } from '$lib/server/scoring/scorer.js';
-import { buildExistingAttrs } from '$lib/server/monitoring/specifications/utils.js';
+import { buildExistingAttrs } from '$lib/server/scoring/utils.js';
 
 export class UpgradeStage implements DecisionStage<GrabDecisionContext> {
 	name = 'upgrade';
