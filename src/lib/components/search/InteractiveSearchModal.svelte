@@ -277,6 +277,18 @@
 
 	const modeRejectedCount = $derived.by(() => modeBaseReleases.filter((r) => r.rejected).length);
 
+	const rejectionBreakdown = $derived.by(() => {
+		const groups: Record<string, number> = {};
+		for (const r of modeBaseReleases) {
+			if (r.rejected && r.rejections?.length) {
+				const reason = r.rejections[0];
+				const key = reason.length > 30 ? reason.substring(0, 30) + '...' : reason;
+				groups[key] = (groups[key] || 0) + 1;
+			}
+		}
+		return groups;
+	});
+
 	const reportedIndexerResults = $derived.by(() => {
 		if (!meta?.indexerResults) {
 			return [];
@@ -445,6 +457,7 @@
 				{filteredReleases}
 				{modeBaseReleases}
 				{modeRejectedCount}
+				{rejectionBreakdown}
 				{reportedIndexerResults}
 				{showIndexerDetails}
 				{showPipelineDetails}

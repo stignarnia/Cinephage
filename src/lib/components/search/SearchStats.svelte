@@ -60,6 +60,7 @@
 		filteredReleases: Release[];
 		modeBaseReleases: Release[];
 		modeRejectedCount: number;
+		rejectionBreakdown?: Record<string, number>;
 		reportedIndexerResults: ReportedIndexer[];
 		showIndexerDetails: boolean;
 		showPipelineDetails: boolean;
@@ -79,6 +80,7 @@
 		filteredReleases,
 		modeBaseReleases,
 		modeRejectedCount,
+		rejectionBreakdown = {},
 		reportedIndexerResults,
 		showIndexerDetails,
 		showPipelineDetails,
@@ -201,6 +203,16 @@
 							<span>&#9500; Quality rejected (hidden by default):</span>
 							<span class="font-mono">{meta.rejectedCount}</span>
 						</div>
+						{#if Object.keys(rejectionBreakdown).length}
+							<div class="ml-6 space-y-0.5">
+								{#each Object.entries(rejectionBreakdown) as [reason, count] (reason)}
+									<div class="flex justify-between text-xs text-warning/70">
+										<span class="truncate">{reason}</span>
+										<span class="font-mono">{count}</span>
+									</div>
+								{/each}
+							</div>
+						{/if}
 					{/if}
 					<div class="mt-1 flex justify-between border-t border-base-300 pt-1">
 						<span class="font-medium">5. Displayed (after limit):</span>
@@ -218,7 +230,7 @@
 					<span class="font-medium text-base-content/80"
 						>{searchMode === 'multiSeasonPack'
 							? 'Searched (multi-pack matches / raw):'
-							: 'Searched:'}</span
+							: 'Raw results per indexer (before dedup & filtering):'}</span
 					>
 					<div class="mt-1 flex flex-wrap gap-2">
 						{#each reportedIndexerResults as result (result.indexerId)}

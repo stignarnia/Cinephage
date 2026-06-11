@@ -79,8 +79,14 @@
 				enhancement?: { score: number; formats: string[] };
 				banned?: { score: number; formats: string[] };
 			};
+			isBanned?: boolean;
+			bannedReasons?: string[];
+			sizeRejected?: boolean;
+			sizeRejectionReason?: string;
 		};
 		rejected?: boolean;
+		rejections?: string[];
+		rejectionReason?: string;
 	}
 
 	interface Props {
@@ -227,6 +233,18 @@
 				{/if}
 				{#if release.torrent?.freeleech || release.torrent?.downloadFactor === 0}
 					<span class="badge badge-sm badge-success">{m.search_freeleechBadge()}</span>
+				{/if}
+				{#if release.rejected && release.rejections?.length}
+					<span
+						class="badge badge-sm badge-error gap-1"
+						title={release.rejections.join('\n')}
+					>
+						<Ban size={10} />
+						{release.rejectionReason || release.rejections[0]}
+						{#if release.rejections.length > 1}
+							+{release.rejections.length - 1}
+						{/if}
+					</span>
 				{/if}
 			</div>
 		</div>
@@ -404,6 +422,30 @@
 							{/if}
 						{/if}
 					</div>
+				</div>
+			{/if}
+
+			<!-- Rejection reasons -->
+			{#if release.rejected && release.rejections?.length}
+				<div class="mb-4">
+					<h4 class="mb-2 text-xs font-medium tracking-wide text-error uppercase">
+						Rejection reasons
+					</h4>
+					<div class="flex flex-wrap gap-1">
+						{#each release.rejections as reason (reason)}
+							<span class="badge badge-sm badge-error">{reason}</span>
+						{/each}
+					</div>
+					{#if release.scoringResult?.isBanned}
+						<div class="mt-2 text-xs text-error">
+							Banned formats: {release.scoringResult.bannedReasons?.join(', ')}
+						</div>
+					{/if}
+					{#if release.scoringResult?.sizeRejected}
+						<div class="mt-1 text-xs text-error">
+							{release.scoringResult.sizeRejectionReason}
+						</div>
+					{/if}
 				</div>
 			{/if}
 
