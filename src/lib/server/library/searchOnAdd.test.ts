@@ -7,7 +7,6 @@ const mocks = vi.hoisted(() => ({
 	seriesFindFirst: vi.fn(),
 	episodeFilesFindMany: vi.fn(),
 	searchEnhanced: vi.fn(),
-	evaluateForEpisode: vi.fn(),
 	grab: vi.fn(),
 	getIndexerManager: vi.fn(),
 	searchWithMultiSeasonPriority: vi.fn(),
@@ -34,9 +33,6 @@ vi.mock('$lib/server/indexers/IndexerManager.js', () => ({
 }));
 
 vi.mock('$lib/server/downloads/index.js', () => ({
-	releaseDecisionService: {
-		evaluateForEpisode: mocks.evaluateForEpisode
-	},
 	getCascadingSearchStrategy: vi.fn()
 }));
 
@@ -211,10 +207,6 @@ describe('SearchOnAddService.searchForEpisode monitoring behavior', () => {
 			],
 			rejectedCount: 0
 		});
-		mocks.evaluateForEpisode.mockResolvedValue({
-			accepted: true,
-			isUpgrade: false
-		});
 		mocks.grab.mockResolvedValue({
 			success: true,
 			decision: {
@@ -287,10 +279,6 @@ describe('SearchOnAddService.searchForEpisode monitoring behavior', () => {
 				}
 			],
 			rejectedCount: 0
-		});
-		mocks.evaluateForEpisode.mockResolvedValue({
-			accepted: true,
-			isUpgrade: false
 		});
 		mocks.grab.mockResolvedValue({
 			success: true,
@@ -370,10 +358,6 @@ describe('SearchOnAddService.searchForEpisode monitoring behavior', () => {
 				}
 			],
 			rejectedCount: 0
-		});
-		mocks.evaluateForEpisode.mockResolvedValue({
-			accepted: true,
-			isUpgrade: false
 		});
 		mocks.grab.mockResolvedValue({
 			success: true,

@@ -166,6 +166,21 @@ class GrabServiceImpl {
 				}));
 		}
 
+		if (target.type === 'season' || target.type === 'series') {
+			const episodeIdSet = new Set(target.episodeIds);
+			return files
+				.filter((f) => f.episodeIds?.some((id) => episodeIdSet.has(id)))
+				.map((f) => ({
+					id: f.id,
+					relativePath: f.relativePath,
+					sceneName: f.sceneName,
+					size: f.size,
+					quality: f.quality as ExistingFile['quality'],
+					releaseGroup: f.releaseGroup,
+					episodeIds: f.episodeIds
+				}));
+		}
+
 		return files.map((f) => ({
 			id: f.id,
 			relativePath: f.relativePath,

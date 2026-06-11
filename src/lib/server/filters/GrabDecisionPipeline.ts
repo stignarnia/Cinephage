@@ -39,6 +39,10 @@ export class GrabDecisionPipeline {
 
 		const rejectionType = !audit.finalResult.accepted ? this.mapRejectionType(audit) : undefined;
 
+		const existingScore = ctx.computed.existingScore;
+		const candidateScoreRaw = ctx.computed.candidateScore ?? 0;
+		const candidateScore = Number.isFinite(candidateScoreRaw) ? candidateScoreRaw : 0;
+
 		return {
 			accepted: audit.finalResult.accepted,
 			reason: audit.finalResult.reason ?? (audit.finalResult.accepted ? 'Accepted' : 'Rejected'),
@@ -46,11 +50,13 @@ export class GrabDecisionPipeline {
 			upgradeStatus:
 				ctx.computed.upgradeStatus ?? (ctx.existingFiles.length === 0 ? 'new' : 'rejected'),
 			scores: {
-				candidate: ctx.computed.candidateScore ?? 0,
-				existing: ctx.computed.existingScore,
+				candidate: candidateScore,
+				existing: existingScore !== undefined && Number.isFinite(existingScore)
+					? existingScore
+					: undefined,
 				improvement:
-					ctx.computed.existingScore !== undefined
-						? (ctx.computed.candidateScore ?? 0) - ctx.computed.existingScore
+					existingScore !== undefined && Number.isFinite(existingScore)
+						? candidateScore - existingScore
 						: undefined
 			},
 			upgradeStats,

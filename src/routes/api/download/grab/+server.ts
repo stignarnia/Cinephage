@@ -119,56 +119,46 @@ export const POST: RequestHandler = async (event) => {
 		}
 	};
 
+	let result: { success: false; decision: Awaited<ReturnType<typeof grabService.grab>>['decision']; error: string } | Awaited<ReturnType<typeof grabService.grab>>;
 	try {
-		const result = await grabService.grab(serviceRequest);
-
-		if (!result.success) {
-			if (result.error) {
-				return json({ success: false, error: result.error } satisfies GrabResponse, {
-					status: 500
-				});
-			}
-
-			const decision = result.decision;
-			return json(
-				{
-					success: false,
-					error: decision.reason || 'Release does not meet upgrade requirements',
-					rejectionType: decision.rejectionType,
-					upgradeDecision: {
-						upgradeStatus: decision.upgradeStatus,
-						reason: decision.reason,
-						isUpgrade: decision.upgradeStatus === 'upgrade',
-						candidateScore: decision.scores.candidate,
-						existingScore: decision.scores.existing,
-						upgradeStats: decision.upgradeStats
-							? {
-									...decision.upgradeStats,
-									total:
-										decision.upgradeStats.improved +
-										decision.upgradeStats.unchanged +
-										decision.upgradeStats.downgraded +
-										decision.upgradeStats.newEpisodes
-								}
-							: undefined
-					}
-				} satisfies GrabResponse,
-				{ status: 422 }
-			);
-		}
-
-		return json({
-			success: true,
-			data: {
-				...result.download!,
-				hash: result.download!.hash ?? ''
-			}
-		} satisfies GrabResponse);
+		result = await grabService.grab(serviceRequest);
 	} catch (error) {
 		const message = error instanceof Error ? error.message : 'Unknown error';
 		logger.error({ error: message, title: data.title }, 'Failed to grab release');
 		return json({ success: false, error: message } satisfies GrabResponse, { status: 500 });
 	}
+
+	if (!result.success) {
+		if (result.error) {
+			return json(
+				{
+					success: false,
+					error: result.error,
+					decision: result.decision
+				} satisfies GrabResponse,
+				{ status: 500 }
+			);
+		}
+
+		return json(
+			{
+				success: false,
+				error: result.decision.reason || 'Release does not meet requirements',
+				rejectionType: result.decision.rejectionType,
+				decision: result.decision
+			} satisfies GrabResponse,
+			{ status: 422 }
+		);
+	}
+
+	return json({
+		success: true,
+		data: {
+			...result.download!,
+			hash: result.download!.hash ?? ''
+		},
+		decision: result.decision
+	} satisfies GrabResponse);
 };
 
 function buildTarget(data: {

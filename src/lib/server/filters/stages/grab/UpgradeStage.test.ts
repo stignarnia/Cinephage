@@ -170,9 +170,9 @@ describe('UpgradeStage', () => {
 	describe('evaluate - multi-file (season/series)', () => {
 		it('accepts when majority benefits', async () => {
 			const files: ExistingFile[] = [
-				{ id: 'f1', relativePath: '/show/s01e01.mkv' },
-				{ id: 'f2', relativePath: '/show/s01e02.mkv' },
-				{ id: 'f3', relativePath: '/show/s01e03.mkv' }
+				{ id: 'f1', relativePath: '/show/s01e01.mkv', episodeIds: ['e1'] },
+				{ id: 'f2', relativePath: '/show/s01e02.mkv', episodeIds: ['e2'] },
+				{ id: 'f3', relativePath: '/show/s01e03.mkv', episodeIds: ['e3'] }
 			];
 			mockIsUpgrade
 				.mockReturnValueOnce({
@@ -205,9 +205,9 @@ describe('UpgradeStage', () => {
 
 		it('rejects when majority does not benefit', async () => {
 			const files: ExistingFile[] = [
-				{ id: 'f1', relativePath: '/show/s01e01.mkv' },
-				{ id: 'f2', relativePath: '/show/s01e02.mkv' },
-				{ id: 'f3', relativePath: '/show/s01e03.mkv' }
+				{ id: 'f1', relativePath: '/show/s01e01.mkv', episodeIds: ['e1'] },
+				{ id: 'f2', relativePath: '/show/s01e02.mkv', episodeIds: ['e2'] },
+				{ id: 'f3', relativePath: '/show/s01e03.mkv', episodeIds: ['e3'] }
 			];
 			mockIsUpgrade
 				.mockReturnValueOnce({

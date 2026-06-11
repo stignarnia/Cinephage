@@ -93,15 +93,30 @@ export class UpgradeStage implements DecisionStage<GrabDecisionContext> {
 	}
 
 	private evaluateMultiFile(ctx: GrabDecisionContext): StageResult {
-		const { release, existingFiles, profile, options } = ctx;
+		const { release, existingFiles, profile, options, target } = ctx;
+
+		const targetEpisodeIds =
+			target.type === 'season' || target.type === 'series' ? target.episodeIds : [];
+		const episodeIdSet = new Set(targetEpisodeIds);
+
+		const fileByEpisode = new Map<string, ExistingFile>();
+		for (const f of existingFiles) {
+			for (const eid of f.episodeIds ?? []) {
+				if (episodeIdSet.has(eid)) {
+					fileByEpisode.set(eid, f);
+				}
+			}
+		}
 
 		let improved = 0;
 		let unchanged = 0;
 		let downgraded = 0;
 		let newEpisodes = 0;
 
-		for (const existing of existingFiles) {
-			if (!existing.relativePath) {
+		for (const episodeId of episodeIdSet) {
+			const existing = fileByEpisode.get(episodeId);
+
+			if (!existing || !existing.relativePath) {
 				newEpisodes++;
 				continue;
 			}
