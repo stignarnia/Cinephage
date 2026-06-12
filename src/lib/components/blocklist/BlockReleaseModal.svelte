@@ -77,7 +77,7 @@
 		<button
 			type="button"
 			class="btn btn-error"
-			onclick={() => onConfirm(selectedDuration)}
+			onclick={() => onConfirm(selectedDuration === '' ? null : (typeof selectedDuration === 'string' ? Number(selectedDuration) : selectedDuration))}
 			disabled={loading}
 		>
 			{#if loading}
