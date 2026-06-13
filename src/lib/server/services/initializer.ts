@@ -119,6 +119,22 @@ async function initializeServices(): Promise<void> {
 			serviceManager.register(mediaBrowserNotifier);
 			logger.info('MediaBrowser notifier initialized for Jellyfin/Emby/Plex integration');
 
+			// Wire library events to media server notifications
+			const importSvc = getImportService();
+			importSvc.on('file:imported', (event: { importedPath?: string; wasUpgrade?: boolean }) => {
+				if (event.importedPath) {
+					mediaBrowserNotifier.queueUpdate(
+						event.importedPath,
+						event.wasUpgrade ? 'Modified' : 'Created'
+					);
+				}
+			});
+			importSvc.on('file:deleted', (event: { filePath?: string }) => {
+				if (event.filePath) {
+					mediaBrowserNotifier.queueUpdate(event.filePath, 'Deleted');
+				}
+			});
+
 			const mediaServerStatsSync = getMediaServerStatsSyncService();
 			serviceManager.register(mediaServerStatsSync);
 

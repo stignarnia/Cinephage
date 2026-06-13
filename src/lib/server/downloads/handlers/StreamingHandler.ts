@@ -259,6 +259,7 @@ export class StreamingHandler {
 		const movieEvent = {
 			mediaType: 'movie' as const,
 			movieId,
+			importedPath: filePath,
 			file: {
 				id: fileId,
 				relativePath,
@@ -384,6 +385,7 @@ export class StreamingHandler {
 			seriesId,
 			episodeIds: [episodeRow.id],
 			seasonNumber: season,
+			importedPath: filePath,
 			file: {
 				id: fileId,
 				relativePath,
