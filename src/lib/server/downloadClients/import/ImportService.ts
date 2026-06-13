@@ -999,6 +999,7 @@ export class ImportService extends EventEmitter {
 		const movieEvent = {
 			mediaType: 'movie' as const,
 			movieId: movie.id,
+			importedPath: destPath,
 			file: {
 				id: fileId,
 				relativePath: relativePath,
@@ -1551,6 +1552,7 @@ export class ImportService extends EventEmitter {
 			seriesId: seriesData.id,
 			episodeIds,
 			seasonNumber: seasonNum,
+			importedPath: destPath,
 			file: {
 				id: fileId,
 				relativePath,
@@ -2394,7 +2396,8 @@ export class ImportService extends EventEmitter {
 			this.emit('file:deleted', {
 				mediaType: 'movie',
 				movieId,
-				fileId
+				fileId,
+				filePath: fullPath
 			});
 
 			logger.info({ fileId, movieId }, 'Deleted movie file record');
@@ -2489,7 +2492,8 @@ export class ImportService extends EventEmitter {
 				mediaType: 'episode',
 				seriesId,
 				fileId,
-				episodeIds: fileRecord.episodeIds ?? []
+				episodeIds: fileRecord.episodeIds ?? [],
+				filePath: fullPath
 			});
 
 			logger.info({ fileId, seriesId }, 'Deleted episode file record');
