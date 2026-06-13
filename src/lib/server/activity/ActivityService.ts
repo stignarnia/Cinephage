@@ -223,6 +223,7 @@ export class ActivityService {
 
 			if (scope === 'active') {
 				summary = buildActivitySummary(activeUniverse);
+				summary.failedCount = failedQueueItems.length;
 			}
 		}
 
@@ -271,8 +272,7 @@ export class ActivityService {
 					'seeding',
 					'completed',
 					'postprocessing',
-					'importing',
-					'failed'
+					'importing'
 				])
 			)
 			.get();
@@ -737,8 +737,7 @@ export class ActivityService {
 			'seeding',
 			'completed',
 			'postprocessing',
-			'importing',
-			'failed'
+			'importing'
 		];
 
 		// Apply status filter at SQL level when possible
