@@ -214,6 +214,25 @@ export class ActivityDeduplicationService {
 		return candidateRecency < existingRecency;
 	}
 
+	/**
+	 * Deduplicate history activities by release+media key, keeping the most recent entry per key.
+	 * Prevents the same failed release from appearing multiple times when it was grabbed
+	 * and failed on separate attempts.
+	 */
+	deduplicateHistoryActivities(activities: UnifiedActivity[]): UnifiedActivity[] {
+		const seen = new Map<string, UnifiedActivity>();
+
+		for (const activity of activities) {
+			const key = `${activity.status}:${this.buildActiveDedupKey(activity)}`;
+			const existing = seen.get(key);
+			if (!existing || activity.startedAt > existing.startedAt) {
+				seen.set(key, activity);
+			}
+		}
+
+		return [...seen.values()];
+	}
+
 	dedupeActiveActivities(activities: UnifiedActivity[]): UnifiedActivity[] {
 		const dedupedByKey = new Map<string, UnifiedActivity>();
 		const stableOrder: string[] = [];

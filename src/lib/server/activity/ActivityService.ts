@@ -193,12 +193,19 @@ export class ActivityService {
 			mediaMaps,
 			monitoringByQueueId
 		);
-		const historyActivities = this.transformHistoryItems(
+		const rawHistoryActivities = this.transformHistoryItems(
 			historyItems,
 			mediaMaps,
 			activeDownloads,
 			failedQueueIndex
 		);
+		// Deduplicate history: when the same release was grabbed multiple times and all
+		// failed, show only the most recent attempt per release rather than all retries.
+		const historyActivities = needsHistory
+			? this.deduplicationService.deduplicateHistoryActivities(rawHistoryActivities)
+			: rawHistoryActivities;
+		const historyDeduped = historyActivities.length < rawHistoryActivities.length;
+
 		const monitoringActivities = this.transformMonitoringItems(monitoringItems, mediaMaps);
 		const moveActivities = this.transformMoveTasks(moveTasks);
 		const activities: UnifiedActivity[] = [
@@ -227,14 +234,18 @@ export class ActivityService {
 			}
 		}
 
+		// When history deduplication reduced the row count, the SQL COUNT totals are
+		// no longer accurate — fall back to the post-transform filtered length.
+		const useFilteredLength = hasJsOnlyFilters || historyDeduped;
+
 		const total =
 			scope === 'active'
 				? activeFilteredCount
 				: scope === 'history'
-					? hasJsOnlyFilters
+					? useFilteredLength
 						? filtered.length
 						: historyCount + monitoringCount + moveTaskCount
-					: hasJsOnlyFilters
+					: useFilteredLength
 						? filtered.length
 						: activeFilteredCount + historyCount + monitoringCount + moveTaskCount;
 
@@ -286,16 +297,7 @@ export class ActivityService {
 		pausedCount: number;
 		failedCount: number;
 	}> {
-		const activeFailed =
-			(
-				await db
-					.select({ count: count() })
-					.from(downloadQueue)
-					.where(eq(downloadQueue.status, 'failed'))
-					.get()
-			)?.count ?? 0;
-
-		const [queueStats, historyFailed] = await Promise.all([
+		const [queueStats, queueFailed] = await Promise.all([
 			db
 				.select({ status: downloadQueue.status, count: count() })
 				.from(downloadQueue)
@@ -314,8 +316,8 @@ export class ActivityService {
 				.groupBy(downloadQueue.status),
 			db
 				.select({ count: count() })
-				.from(downloadHistory)
-				.where(eq(downloadHistory.status, 'failed'))
+				.from(downloadQueue)
+				.where(eq(downloadQueue.status, 'failed'))
 				.get()
 		]);
 
@@ -329,7 +331,9 @@ export class ActivityService {
 			(statusMap.get('importing') ?? 0);
 		const seedingCount = statusMap.get('seeding') ?? 0;
 		const pausedCount = statusMap.get('paused') ?? 0;
-		const failedCount = activeFailed + (historyFailed?.count ?? 0);
+		// Only count items currently in the download queue — history failures are
+		// separate and shown in the History tab, not the Active tab stats.
+		const failedCount = queueFailed?.count ?? 0;
 		const totalCount = downloadingCount + seedingCount + pausedCount + failedCount;
 
 		return { totalCount, downloadingCount, seedingCount, pausedCount, failedCount };
@@ -409,7 +413,7 @@ export class ActivityService {
 		const taskIdList = Array.from(taskIds);
 		let eligibleHistoryIdList = historyIdList;
 		let eligibleTaskIdList = taskIdList;
-		let skippedRetryableFailed = 0;
+		const skippedRetryableFailed = 0;
 		let skippedRunningTasks = 0;
 
 		if (historyIdList.length > 0) {
@@ -426,7 +430,9 @@ export class ActivityService {
 				.all();
 
 			// Expand historyIds to include all sibling rows in the same dedup group so
-			// deleting a deduplicated entry removes all underlying DB rows at once
+			// deleting a deduplicated entry removes all underlying DB rows at once.
+			// This ensures that deleting the visible (most-recent) entry also clears
+			// older duplicate rows for the same release.
 			const movieIdTargets = [
 				...new Set(initialRows.filter((r) => r.movieId).map((r) => r.movieId!))
 			];
@@ -470,41 +476,7 @@ export class ActivityService {
 				}
 			}
 
-			// Fetch all rows (original + siblings) for the protection check
-			const expandedHistoryIdList = Array.from(historyIds);
-			const requestedHistoryRows = await db
-				.select({
-					id: downloadHistory.id,
-					status: downloadHistory.status,
-					downloadId: downloadHistory.downloadId,
-					title: downloadHistory.title,
-					grabbedAt: downloadHistory.grabbedAt
-				})
-				.from(downloadHistory)
-				.where(inArray(downloadHistory.id, expandedHistoryIdList))
-				.all();
-
-			const failedQueueIndex = buildFailedQueueIndex(await this.fetchFailedQueueItems());
-			const protectedHistoryIds = new Set<string>();
-
-			for (const row of requestedHistoryRows) {
-				if (row.status !== 'failed') continue;
-
-				const byDownloadId = row.downloadId
-					? failedQueueIndex.get(`download:${row.downloadId}`)
-					: undefined;
-				const byTitleGrabbed =
-					!byDownloadId && row.title && row.grabbedAt
-						? failedQueueIndex.get(`title:${row.title.toLowerCase()}|grabbed:${row.grabbedAt}`)
-						: undefined;
-
-				if (byDownloadId || byTitleGrabbed) {
-					protectedHistoryIds.add(row.id);
-				}
-			}
-
-			skippedRetryableFailed = protectedHistoryIds.size;
-			eligibleHistoryIdList = expandedHistoryIdList.filter((id) => !protectedHistoryIds.has(id));
+			eligibleHistoryIdList = Array.from(historyIds);
 		}
 
 		if (taskIdList.length > 0) {
