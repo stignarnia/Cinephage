@@ -46,11 +46,16 @@ export function normalizeFiltersForTab(nextFilters: FiltersType, tab: ActivityTa
 // ── Activity classification ───────────────────────────────────────────
 
 export function isHistoryActivity(activity: UnifiedActivity): boolean {
-	return (
+	const isHistoryRow =
 		activity.id.startsWith('history-') ||
 		activity.id.startsWith('monitoring-') ||
-		activity.id.startsWith('task-')
-	);
+		activity.id.startsWith('task-');
+	if (!isHistoryRow) return false;
+
+	// Keep failed activities retryable via queue actions; don't allow bulk-delete selection.
+	if (activity.status === 'failed' && activity.queueItemId) return false;
+
+	return true;
 }
 
 export function isQueueActivityId(activityId: string): boolean {
