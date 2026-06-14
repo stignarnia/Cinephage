@@ -79,7 +79,7 @@ export function normalizeProwlarrUrl(url: string): string {
 	return url.replace(/\/+$/, '');
 }
 
-function isIndexerFromConnection(baseUrl: string, prowlarrBase: string): boolean {
+export function isIndexerFromConnection(baseUrl: string, prowlarrBase: string): boolean {
 	if (!baseUrl.startsWith(prowlarrBase + '/')) return false;
 	const suffix = baseUrl.slice(prowlarrBase.length + 1).replace(/\/+$/, '');
 	return /^\d+$/.test(suffix);
@@ -160,36 +160,41 @@ export async function syncProwlarrIndexers(): Promise<SyncResult> {
 		const pi = prowlarrById.get(prowlarrId);
 
 		if (!pi) {
-			// Deleted in Prowlarr — remove from Cinephage
+			// No longer in Prowlarr - soft-mark as orphaned rather than hard-delete.
+			// The UI shows a "Deleted" badge; re-appearing in a future sync clears the flag.
 			try {
-				await manager.deleteIndexer(indexer.id);
-				result.removed += 1;
-				logger.info(
-					{ indexerName: indexer.name, prowlarrId },
-					'[Prowlarr] Removed indexer deleted in Prowlarr'
-				);
+				if (!indexer.orphaned) {
+					await manager.updateIndexer(indexer.id, { enabled: false, orphaned: true });
+					result.removed += 1;
+					logger.info(
+						{ indexerName: indexer.name, prowlarrId },
+						'[Prowlarr] Orphaned indexer no longer in Prowlarr'
+					);
+				}
 			} catch (err) {
 				result.failed += 1;
 				result.errors.push(
-					`Remove ${indexer.name}: ${err instanceof Error ? err.message : String(err)}`
+					`Orphan ${indexer.name}: ${err instanceof Error ? err.message : String(err)}`
 				);
 			}
 			continue;
 		}
 
-		// Still exists in Prowlarr — sync name, enabled state, API key, and prowlarrEnabled
+		// Still exists in Prowlarr - sync name, upstream enabled state, and API key.
+		// We do NOT touch `enabled` (the user's Cinephage preference) here; only
+		// `upstreamEnabled` tracks what Prowlarr thinks.
 		const updates: Record<string, unknown> = {};
 		if (pi.name !== indexer.name) updates.name = pi.name;
-		if (pi.enable !== indexer.enabled) updates.enabled = pi.enable;
+		if (pi.enable !== indexer.upstreamEnabled) updates.upstreamEnabled = pi.enable;
+		// If the indexer was previously orphaned but is now back in Prowlarr, clear the flag.
+		if (indexer.orphaned) updates.orphaned = false;
 
 		const existingSettings = indexer.settings as Record<string, unknown> | null;
 		const currentKey = existingSettings?.apikey;
-		const currentProwlarrEnabled = existingSettings?.prowlarrEnabled;
-		if (currentKey !== conn.apiKey || currentProwlarrEnabled !== pi.enable) {
+		if (currentKey !== conn.apiKey) {
 			updates.settings = {
 				...(existingSettings ?? {}),
-				apikey: conn.apiKey,
-				prowlarrEnabled: pi.enable
+				apikey: conn.apiKey
 			};
 		}
 
@@ -227,9 +232,10 @@ export async function syncProwlarrIndexers(): Promise<SyncResult> {
 					definitionId,
 					baseUrl,
 					alternateUrls: [],
-					enabled: pi.enable === true,
+					enabled: true,
+					upstreamEnabled: pi.enable,
 					priority: 25,
-					settings: { apikey: conn.apiKey, prowlarrEnabled: pi.enable },
+					settings: { apikey: conn.apiKey },
 					enableAutomaticSearch: true,
 					enableInteractiveSearch: true,
 					minimumSeeders: 1,
@@ -278,7 +284,7 @@ export async function syncProwlarrIndexers(): Promise<SyncResult> {
 			}
 		}
 	} catch {
-		// Health passthrough is best-effort — don't fail the sync if it errors
+		// Health passthrough is best-effort - don't fail the sync if it errors
 	}
 
 	conn.lastSyncAt = new Date().toISOString();

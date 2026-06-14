@@ -231,6 +231,8 @@ export class IndexerManager {
 				name: config.name,
 				definitionId: config.definitionId,
 				enabled: config.enabled,
+				upstreamEnabled: config.upstreamEnabled ?? null,
+				orphaned: config.orphaned ?? false,
 				baseUrl: config.baseUrl ?? defaultUrl,
 				alternateUrls: config.alternateUrls ?? null,
 				priority: config.priority,
@@ -303,6 +305,8 @@ export class IndexerManager {
 		const updateData: Record<string, unknown> = {};
 		if (updates.name !== undefined) updateData.name = updates.name;
 		if (updates.enabled !== undefined) updateData.enabled = updates.enabled ? 1 : 0;
+		if (updates.upstreamEnabled !== undefined) updateData.upstreamEnabled = updates.upstreamEnabled;
+		if (updates.orphaned !== undefined) updateData.orphaned = updates.orphaned ? 1 : 0;
 		if (updates.baseUrl !== undefined) updateData.baseUrl = updates.baseUrl;
 		if (updates.alternateUrls !== undefined) updateData.alternateUrls = updates.alternateUrls;
 		if (updates.priority !== undefined) updateData.priority = updates.priority;
@@ -343,17 +347,26 @@ export class IndexerManager {
 		this.indexerInstances.delete(id);
 		this.indexerFactory.removeIndexer(id);
 
-		// Update status tracking
+		// Update status tracking.
+		// The effective enabled state is: user `enabled` AND upstream not locked out.
+		// Re-evaluate whenever either flag changes so health polling stays in sync.
 		const statusTracker = getPersistentStatusTracker();
-		if (updates.enabled !== undefined) {
-			// Only change runtime health state when enabled flag actually changes.
-			// Saving unrelated edits should not reset failure/backoff history.
-			if (updates.enabled !== existing.enabled) {
-				if (updates.enabled) {
-					statusTracker.enable(id);
-				} else {
-					statusTracker.disable(id);
-				}
+		const enabledChanged = updates.enabled !== undefined && updates.enabled !== existing.enabled;
+		const upstreamChanged =
+			updates.upstreamEnabled !== undefined && updates.upstreamEnabled !== existing.upstreamEnabled;
+		const orphanedChanged =
+			updates.orphaned !== undefined && updates.orphaned !== existing.orphaned;
+
+		if (enabledChanged || upstreamChanged || orphanedChanged) {
+			const newEnabled = updates.enabled ?? existing.enabled;
+			const newUpstream =
+				updates.upstreamEnabled !== undefined ? updates.upstreamEnabled : existing.upstreamEnabled;
+			const newOrphaned = updates.orphaned !== undefined ? updates.orphaned : existing.orphaned;
+			const effectiveEnabled = newEnabled && (newUpstream ?? true) && !newOrphaned;
+			if (effectiveEnabled) {
+				statusTracker.enable(id);
+			} else {
+				statusTracker.disable(id);
 			}
 		}
 		if (updates.priority !== undefined) {
@@ -422,7 +435,11 @@ export class IndexerManager {
 	/** Get all enabled indexer instances with batch optimization */
 	async getEnabledIndexers(): Promise<IIndexer[]> {
 		const configs = await this.getIndexers();
-		const enabledConfigs = configs.filter((c) => c.enabled);
+		// Effective enabled = user toggle AND upstream not locked out.
+		// upstreamEnabled === null means no upstream constraint (Jackett / manual).
+		const enabledConfigs = configs.filter(
+			(c) => c.enabled && (c.upstreamEnabled ?? true) && !c.orphaned
+		);
 
 		// Separate cached from uncached for batch processing
 		const cached: IIndexer[] = [];
@@ -598,6 +615,8 @@ export class IndexerManager {
 			name: row.name,
 			definitionId: row.definitionId,
 			enabled: !!row.enabled,
+			upstreamEnabled: row.upstreamEnabled ?? null,
+			orphaned: !!row.orphaned,
 			baseUrl: row.baseUrl,
 			alternateUrls: row.alternateUrls ?? [],
 			priority: row.priority ?? 25,
