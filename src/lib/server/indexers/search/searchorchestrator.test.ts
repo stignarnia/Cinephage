@@ -92,7 +92,6 @@ type OrchestratorPrivateApi = {
 	): ReleaseResult[];
 	filterByIdOrTitleMatch(releases: ReleaseResult[], criteria: SearchCriteria): ReleaseResult[];
 	filterOutNonVideoArtifacts(releases: ReleaseResult[], criteria: SearchCriteria): ReleaseResult[];
-	filterByTitleRelevance(releases: ReleaseResult[], criteria: SearchCriteria): ReleaseResult[];
 };
 
 function privateApi(orchestrator: SearchOrchestrator): OrchestratorPrivateApi {
@@ -956,7 +955,7 @@ describe('SearchOrchestrator.filterByTitleRelevance', () => {
 			searchTitles: ['War Machine', 'Máquina de Guerra']
 		});
 
-		const filtered = privateApi(orchestrator).filterByTitleRelevance(releases, criteria);
+		const filtered = privateApi(orchestrator).filterByIdOrTitleMatch(releases, criteria);
 		expect(filtered).toHaveLength(1);
 		expect(filtered[0].title).toContain('War Machine');
 	});
@@ -976,7 +975,7 @@ describe('SearchOrchestrator.filterByTitleRelevance', () => {
 			searchTitles: ['Особенности национальной охоты']
 		});
 
-		const filtered = privateApi(orchestrator).filterByTitleRelevance(releases, criteria);
+		const filtered = privateApi(orchestrator).filterByIdOrTitleMatch(releases, criteria);
 		expect(filtered).toHaveLength(1);
 		expect(filtered[0].title).toContain('Особенности национальной охоты');
 	});
@@ -992,7 +991,7 @@ describe('SearchOrchestrator.filterByTitleRelevance', () => {
 			searchTitles: ['Peculiarities of the National Hunt']
 		});
 
-		const filtered = privateApi(orchestrator).filterByTitleRelevance(releases, criteria);
+		const filtered = privateApi(orchestrator).filterByIdOrTitleMatch(releases, criteria);
 		expect(filtered).toHaveLength(0);
 	});
 
@@ -1011,7 +1010,7 @@ describe('SearchOrchestrator.filterByTitleRelevance', () => {
 			searchTitles: ['The Night Agent']
 		});
 
-		const filtered = privateApi(orchestrator).filterByTitleRelevance(releases, criteria);
+		const filtered = privateApi(orchestrator).filterByIdOrTitleMatch(releases, criteria);
 		expect(filtered).toHaveLength(1);
 		expect(filtered[0].title).toContain('The Night Agent');
 	});
@@ -1093,7 +1092,7 @@ describe('SearchOrchestrator.filterByTitleRelevance', () => {
 			searchTitles: ['The Night Agent', 'Gecə Agenti']
 		});
 
-		const filtered = privateApi(orchestrator).filterByTitleRelevance(releases, criteria);
+		const filtered = privateApi(orchestrator).filterByIdOrTitleMatch(releases, criteria);
 		expect(filtered).toHaveLength(2);
 		expect(filtered).toEqual(releases);
 	});
@@ -1112,7 +1111,7 @@ describe('SearchOrchestrator.filterByTitleRelevance', () => {
 			episode: 2
 		});
 
-		const filtered = privateApi(orchestrator).filterByTitleRelevance(releases, criteria);
+		const filtered = privateApi(orchestrator).filterByIdOrTitleMatch(releases, criteria);
 		expect(filtered).toHaveLength(0);
 	});
 
@@ -1128,7 +1127,7 @@ describe('SearchOrchestrator.filterByTitleRelevance', () => {
 			searchTitles: ['The Night Agent', 'Gecə Agenti']
 		});
 
-		const filtered = privateApi(orchestrator).filterByTitleRelevance(releases, criteria);
+		const filtered = privateApi(orchestrator).filterByIdOrTitleMatch(releases, criteria);
 		expect(filtered).toHaveLength(0);
 	});
 
@@ -1183,7 +1182,7 @@ describe('SearchOrchestrator.filterByTitleRelevance', () => {
 			year: 2025
 		});
 
-		const filtered = privateApi(orchestrator).filterByTitleRelevance(releases, criteria);
+		const filtered = privateApi(orchestrator).filterByIdOrTitleMatch(releases, criteria);
 		expect(filtered).toHaveLength(0);
 	});
 
