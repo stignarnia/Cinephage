@@ -359,8 +359,11 @@ export class SearchOrchestrator {
 		// (season/episode fields are unchanged from original criteria)
 		let filtered = this.filterBySeasonEpisode(deduped, criteriaWithSource);
 
-		// Filter by category match (reject releases in wrong categories)
-		if (criteria.searchType !== 'basic') {
+		// Filter by category match (reject releases in wrong categories).
+		// Skip for season-only TV searches: the season/episode filter already validated
+		// these releases as season packs, and indexer categories are an unreliable signal
+		// for packs (see isSeasonOnlyTvSearch).
+		if (criteria.searchType !== 'basic' && !this.isSeasonOnlyTvSearch(criteriaWithSource)) {
 			const searchType = criteria.searchType as 'movie' | 'tv' | 'music' | 'book';
 			filtered = this.filterByCategoryMatch(filtered, searchType, criteriaWithSource);
 		}
@@ -552,8 +555,11 @@ export class SearchOrchestrator {
 			'[SearchOrchestrator] DEBUG: after season/episode filter'
 		);
 
-		// Filter by category match (reject releases in wrong categories)
-		if (enrichedCriteria.searchType !== 'basic') {
+		// Filter by category match (reject releases in wrong categories).
+		// Skip for season-only TV searches: the season/episode filter already validated
+		// these releases as season packs, and indexer categories are an unreliable signal
+		// for packs (see isSeasonOnlyTvSearch).
+		if (enrichedCriteria.searchType !== 'basic' && !this.isSeasonOnlyTvSearch(enrichedCriteria)) {
 			const searchType = enrichedCriteria.searchType as 'movie' | 'tv' | 'music' | 'book';
 			filtered = this.filterByCategoryMatch(filtered, searchType, enrichedCriteria);
 		}
@@ -2025,6 +2031,19 @@ export class SearchOrchestrator {
 			return `E${String(episode).padStart(2, '0')}`;
 		}
 		return `S${String(season).padStart(2, '0')}E${String(episode).padStart(2, '0')}`;
+	}
+
+	/**
+	 * Whether this is a TV search scoped to a whole season (season set, no episode).
+	 * Used to bypass {@link filterByCategoryMatch}: by the time it would run,
+	 * {@link filterBySeasonEpisode} has already validated these releases as season packs
+	 * via strict title parsing. Indexer categories are unreliable for packs (often filed as
+	 * Movies/XXX/Other on Jackett/Prowlarr and other aggregators), so applying the broad
+	 * category guard to this already-narrow set can wipe out every pack and yield zero
+	 * results. The title/season match is the authoritative signal here.
+	 */
+	private isSeasonOnlyTvSearch(criteria: SearchCriteria): boolean {
+		return isTvSearch(criteria) && criteria.season !== undefined && criteria.episode === undefined;
 	}
 
 	/**

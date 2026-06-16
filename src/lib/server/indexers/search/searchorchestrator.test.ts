@@ -90,6 +90,12 @@ type OrchestratorPrivateApi = {
 		criteria: SearchCriteria,
 		context?: { seasonEpisodeCount?: number }
 	): ReleaseResult[];
+	filterByCategoryMatch(
+		releases: ReleaseResult[],
+		searchType: 'movie' | 'tv' | 'music' | 'book',
+		criteria?: SearchCriteria
+	): ReleaseResult[];
+	isSeasonOnlyTvSearch(criteria: SearchCriteria): boolean;
 	filterByIdOrTitleMatch(releases: ReleaseResult[], criteria: SearchCriteria): ReleaseResult[];
 	filterOutNonVideoArtifacts(releases: ReleaseResult[], criteria: SearchCriteria): ReleaseResult[];
 };
@@ -1210,5 +1216,145 @@ describe('SearchOrchestrator.filterByTitleRelevance', () => {
 		const filtered = privateApi(orchestrator).filterByIdOrTitleMatch(releases, criteria);
 		expect(filtered).toHaveLength(1);
 		expect(filtered[0].title).toContain('Пикник');
+	});
+});
+
+describe('SearchOrchestrator season-only category filter', () => {
+	// Regression: a season-only TV search reduces the candidate pool to only season packs
+	// (via filterBySeasonEpisode). If those packs are categorized outside the TV range
+	// (Movies/XXX/Other — common on Jackett/Prowlarr and anime trackers), the broad
+	// filterByCategoryMatch guard would reject every pack and yield zero results.
+	// The category guard is therefore skipped for season-only TV searches.
+	const tvCaps = { ...mockCapabilities, categories: new Map([[Category.TV_HD, 'TV/HD']]) };
+
+	it('keeps a Movies-categorized season pack for a season-only TV search', async () => {
+		const orchestrator = new SearchOrchestrator();
+		const fakeIndexer = buildIndexer({
+			capabilities: tvCaps,
+			search: async () => [
+				createRelease({
+					guid: 'season-pack-filed-as-movies',
+					title: 'Smallville.S01.COMPLETE.1080p.BluRay',
+					// Movies/Foreign: would be rejected by filterByCategoryMatch for a TV search
+					categories: [Category.MOVIES_FOREIGN]
+				})
+			]
+		});
+
+		const criteria = createTvCriteria({ query: 'Smallville', season: 1 });
+
+		const result = await orchestrator.search([fakeIndexer], criteria, {
+			respectEnabled: false,
+			respectBackoff: false,
+			useCache: false
+		});
+
+		expect(result.releases).toHaveLength(1);
+		expect(result.releases[0].guid).toBe('season-pack-filed-as-movies');
+	});
+
+	it('still rejects a Movies-categorized episode for a season+episode TV search', async () => {
+		// Proves the skip is scoped to season-only: episode searches still apply the guard.
+		const orchestrator = new SearchOrchestrator();
+		const fakeIndexer = buildIndexer({
+			capabilities: tvCaps,
+			search: async () => [
+				createRelease({
+					guid: 'episode-filed-as-movies',
+					title: 'Smallville.S01E01.1080p.WEB-DL',
+					categories: [Category.MOVIES_FOREIGN]
+				})
+			]
+		});
+
+		const criteria = createTvCriteria({ query: 'Smallville', season: 1, episode: 1 });
+
+		const result = await orchestrator.search([fakeIndexer], criteria, {
+			respectEnabled: false,
+			respectBackoff: false,
+			useCache: false
+		});
+
+		expect(result.releases).toHaveLength(0);
+	});
+
+	it('isSeasonOnlyTvSearch is true only when a season is targeted without an episode', () => {
+		const orchestrator = new SearchOrchestrator();
+		const api = privateApi(orchestrator);
+
+		expect(api.isSeasonOnlyTvSearch(createTvCriteria({ season: 1 }))).toBe(true);
+		expect(api.isSeasonOnlyTvSearch(createTvCriteria({ season: 1, episode: 1 }))).toBe(false);
+		expect(api.isSeasonOnlyTvSearch(createTvCriteria({}))).toBe(false);
+		expect(api.isSeasonOnlyTvSearch(createMovieCriteria({}))).toBe(false);
+	});
+});
+
+describe('SearchOrchestrator.filterByCategoryMatch', () => {
+	const orchestrator = new SearchOrchestrator();
+
+	it('rejects a Music-categorized release for a movie search', () => {
+		// Guards against soundtracks masquerading as movies — the original purpose of this filter.
+		const releases = [
+			createRelease({ title: 'Awesome Movie Soundtrack 2024', categories: [Category.AUDIO_MP3] })
+		];
+
+		const filtered = privateApi(orchestrator).filterByCategoryMatch(releases, 'movie');
+
+		expect(filtered).toHaveLength(0);
+	});
+
+	it('keeps a Movie-categorized release for a movie search', () => {
+		const releases = [
+			createRelease({ title: 'Awesome Movie 2024 1080p', categories: [Category.MOVIES_HD] })
+		];
+
+		const filtered = privateApi(orchestrator).filterByCategoryMatch(releases, 'movie');
+
+		expect(filtered).toHaveLength(1);
+	});
+
+	it('keeps a TV-categorized release for a TV search', () => {
+		const releases = [
+			createRelease({ title: 'Awesome Show S01E01', categories: [Category.TV_HD] })
+		];
+
+		const filtered = privateApi(orchestrator).filterByCategoryMatch(
+			releases,
+			'tv',
+			createTvCriteria({})
+		);
+
+		expect(filtered).toHaveLength(1);
+	});
+
+	it('rejects a Movies-categorized release for a non-adult TV search', () => {
+		// Confirms the guard still rejects cross-type categories when it does run
+		// (i.e. the season-only skip is the only relaxation).
+		const releases = [
+			createRelease({ title: 'Awesome Show S01E01', categories: [Category.MOVIES_FOREIGN] })
+		];
+
+		const filtered = privateApi(orchestrator).filterByCategoryMatch(
+			releases,
+			'tv',
+			createTvCriteria({})
+		);
+
+		expect(filtered).toHaveLength(0);
+	});
+
+	it('accepts a Movies/XXX-categorized release for an adult TV search', () => {
+		const releases = [
+			createRelease({ title: 'Hentai OVA S01E01', categories: [Category.MOVIES_FOREIGN] }),
+			createRelease({ title: 'Hentai OVA Pack', categories: [Category.XXX_PACK] })
+		];
+
+		const filtered = privateApi(orchestrator).filterByCategoryMatch(
+			releases,
+			'tv',
+			createTvCriteria({ isAdult: true })
+		);
+
+		expect(filtered).toHaveLength(2);
 	});
 });
