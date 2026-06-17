@@ -63,6 +63,8 @@ export interface UnifiedIndexerConfig {
 	rateLimit?: RateLimitConfig;
 	/** Live capabilities fetched from Newznab indexer's /api?t=caps endpoint */
 	liveCapabilities?: NewznabCapabilities;
+	/** Extra Newznab category IDs to merge into every search request for this indexer */
+	additionalCategories?: number[];
 }
 
 /**
@@ -95,6 +97,9 @@ export class UnifiedIndexer implements IIndexer {
 	private readonly log: ReturnType<typeof createChildLogger>;
 	private readonly http: IndexerHttp;
 	private readonly hostRateLimiter: HostRateLimiter;
+	private readonly additionalCategories: number[];
+	/** True when the user explicitly configured a category restriction (even an empty/open one). */
+	private readonly categoryRestrictionEnabled: boolean;
 	private readonly dbExecutor?: DatabaseQueryExecutor;
 
 	private cookies: Record<string, string> = {};
@@ -109,7 +114,18 @@ export class UnifiedIndexer implements IIndexer {
 	}
 
 	constructor(config: UnifiedIndexerConfig) {
-		const { record, settings, protocolSettings, definition, rateLimit, liveCapabilities } = config;
+		const {
+			record,
+			settings,
+			protocolSettings,
+			definition,
+			rateLimit,
+			liveCapabilities,
+			additionalCategories
+		} = config;
+
+		this.categoryRestrictionEnabled = additionalCategories !== undefined;
+		this.additionalCategories = additionalCategories ?? [];
 
 		this.record = record;
 		this.settings = settings;
@@ -429,7 +445,9 @@ export class UnifiedIndexer implements IIndexer {
 		await this.ensureLoggedIn();
 
 		// Build requests
-		const requests = this.requestBuilder.buildSearchRequests(criteria);
+		const requests = this.requestBuilder.buildSearchRequests(
+			this.applyAdditionalCategories(criteria)
+		);
 		if (requests.length === 0) {
 			if (criteria.searchSource === 'interactive' && criteria.searchType === 'tv') {
 				this.log.debug(
@@ -775,6 +793,17 @@ export class UnifiedIndexer implements IIndexer {
 			this.log.error({ error: message }, 'Indexer test failed');
 			throw error instanceof Error ? error : new Error(message);
 		}
+	}
+
+	/**
+	 * Apply the per-indexer category restriction when one is configured.
+	 * - Not configured (null in DB) → return criteria unchanged, RequestBuilder fills defaults.
+	 * - Empty restriction [] → set categories to [] so RequestBuilder sends no cat= param (open search).
+	 * - Non-empty restriction → replace categories with the user-selected set.
+	 */
+	private applyAdditionalCategories(criteria: SearchCriteria): SearchCriteria {
+		if (!this.categoryRestrictionEnabled) return criteria;
+		return { ...criteria, categories: this.additionalCategories };
 	}
 
 	/**

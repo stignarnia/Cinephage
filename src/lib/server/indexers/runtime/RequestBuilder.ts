@@ -164,6 +164,9 @@ export class CategoryMapper {
 	 * Map Newznab category IDs to tracker-specific category IDs.
 	 */
 	mapToTracker(newznabIds: number[]): string[] {
+		// Empty input means explicit open search — return no filter, not the defaults
+		if (newznabIds.length === 0) return [];
+
 		const trackerIds: string[] = [];
 
 		for (const newznabId of newznabIds) {
@@ -302,7 +305,10 @@ export class RequestBuilder {
 	 * (from categorymappings.default), which can select the wrong content type.
 	 */
 	private withDefaultCategories(criteria: SearchCriteria): SearchCriteria {
-		if (criteria.categories && criteria.categories.length > 0) {
+		// undefined  → fill in content-type defaults
+		// []         → explicit open search (no cat= param) — do not override
+		// [...]      → explicit restriction — do not override
+		if (criteria.categories !== undefined) {
 			return criteria;
 		}
 

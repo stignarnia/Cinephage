@@ -313,6 +313,8 @@ export class IndexerManager {
 		if (updates.alternateUrls !== undefined) updateData.alternateUrls = updates.alternateUrls;
 		if (updates.priority !== undefined) updateData.priority = updates.priority;
 		if (updates.settings !== undefined) updateData.settings = updates.settings;
+		if (updates.additionalCategories !== undefined)
+			updateData.additionalCategories = updates.additionalCategories;
 
 		// Search capability toggles
 		if (updates.enableAutomaticSearch !== undefined)
@@ -644,7 +646,11 @@ export class IndexerManager {
 
 			// Usenet settings (from protocolSettings JSON)
 			rejectPasswordProtected: protocolSettings?.rejectPasswordProtected ?? true,
-			minimumCompletionPercentage: protocolSettings?.minimumCompletionPercentage ?? 95
+			minimumCompletionPercentage: protocolSettings?.minimumCompletionPercentage ?? 95,
+
+			// Newznab/Torznab category data
+			cachedCategories: row.cachedCategories ?? undefined,
+			additionalCategories: row.additionalCategories ?? undefined
 		};
 	}
 
