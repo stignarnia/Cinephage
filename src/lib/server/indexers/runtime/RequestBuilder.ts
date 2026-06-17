@@ -49,10 +49,17 @@ export class CategoryMapper {
 		// Process simple categories (id -> name)
 		if (caps.categories) {
 			for (const [trackerId, catName] of Object.entries(caps.categories)) {
-				// Look up Newznab category by name
 				const newznabId = this.getNewznabIdByName(catName);
-				if (newznabId) {
+				if (newznabId !== null) {
 					this.addMapping(trackerId, newznabId);
+				} else {
+					// Fallback for subcategories absent from the name table (e.g. XXX subcategories):
+					// Newznab/Torznab indexers use numeric tracker IDs that equal Newznab IDs directly,
+					// so we can use the numeric value when the name lookup yields nothing.
+					const directId = parseInt(trackerId, 10);
+					if (!isNaN(directId) && directId >= 1000 && directId <= 8999) {
+						this.addMapping(trackerId, directId);
+					}
 				}
 			}
 		}
@@ -198,6 +205,8 @@ export class RequestBuilder {
 	private baseUrl: string;
 	/** Supported params per search mode (e.g. 'movie' -> ['q', 'imdbid']) */
 	private supportedParams: Map<string, string[]> = new Map();
+	/** Override for the 'limit' input — set from live indexer caps */
+	private limitOverride: number | null = null;
 
 	constructor(
 		definition: CardigannDefinition,
@@ -219,6 +228,15 @@ export class RequestBuilder {
 	 */
 	setSupportedParams(mode: string, params: string[]): void {
 		this.supportedParams.set(mode, params);
+	}
+
+	/**
+	 * Override the 'limit' input for all search requests.
+	 * Called with the indexer's reported limits.max from live caps so we ask
+	 * for as many results as the indexer supports rather than a hardcoded value.
+	 */
+	setLimitOverride(limit: number): void {
+		this.limitOverride = limit;
 	}
 
 	/**
@@ -675,6 +693,12 @@ export class RequestBuilder {
 	 * Expand an input value with templates.
 	 */
 	private expandInput(key: string, template: string): string | null {
+		// When a live-caps limit override is set, use it instead of the static value
+		// in the YAML so we ask for as many results as the indexer actually supports.
+		if (key.toLowerCase() === 'limit' && this.limitOverride !== null) {
+			return String(this.limitOverride);
+		}
+
 		const expanded = this.templateEngine.expand(template);
 
 		// Check allowEmptyInputs

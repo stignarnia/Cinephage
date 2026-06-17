@@ -159,6 +159,13 @@ export class UnifiedIndexer implements IIndexer {
 				this.requestBuilder.setSupportedParams('book', caps.bookSearch.supportedParams);
 			}
 
+			// Use the indexer's reported max limit so we fetch as many results as possible.
+			// This is important for season-pack searches where packs can fall outside the
+			// default top-100 window when sorted by date (individual episodes are newer).
+			if (liveCapabilities.limits.max > 0) {
+				this.requestBuilder.setLimitOverride(liveCapabilities.limits.max);
+			}
+
 			// Also override this.capabilities search modes with live caps
 			// so that indexerSupportsSearchIds() uses the same source of truth
 			// as RequestBuilder.filterBySupportedParams()

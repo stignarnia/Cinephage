@@ -2326,65 +2326,66 @@ export class SearchOrchestrator {
 				return parsed;
 			};
 
-			// PRIORITY 1: ID Matching (if both sides have IDs)
+			// PRIORITY 1: ID Matching
+			// Any ID match → accept immediately (fast path).
+			// ID mismatch alone is NOT a hard reject: aggregators (NZBHydra, Prowlarr)
+			// attach their own IDs to results which can be wrong. Fall through to title
+			// check so it can confirm or deny. Only reject when both IDs mismatch AND
+			// title also fails, or when there is no title evidence to arbitrate.
 			const releasePrefersNativeCyrillic = prefersNativeCyrillicTitles({
 				name: release.indexerName ?? ''
 			} as IIndexer);
 
+			let hasIdMismatch = false;
+
 			// TMDB ID check
 			if (searchTmdbId && release.tmdbId) {
-				if (release.tmdbId !== searchTmdbId) {
-					logger.info(
-						{
-							releaseTitle: release.title,
-							releaseTmdbId: release.tmdbId,
-							criteriaTmdbId: searchTmdbId,
-							indexer: release.indexerName,
-							hasReleaseIds: !!(release.tmdbId || release.imdbId || release.tvdbId)
-						},
-						'[SearchOrchestrator] DEBUG: TMDB ID mismatch - removing release'
-					);
-					return false; // Hard reject
-				}
-				// IDs match - accept immediately
-				return true;
+				if (release.tmdbId === searchTmdbId) return true;
+				// Native-Cyrillic trackers (RuTracker, Kinozal, etc.) attach their own
+				// authoritative IDs — mismatch is definitive, not an aggregator artifact.
+				if (releasePrefersNativeCyrillic) return false;
+				logger.info(
+					{
+						releaseTitle: release.title,
+						releaseTmdbId: release.tmdbId,
+						criteriaTmdbId: searchTmdbId,
+						indexer: release.indexerName
+					},
+					'[SearchOrchestrator] TMDB ID mismatch - falling through to title check'
+				);
+				hasIdMismatch = true;
 			}
 
 			// IMDB ID check
 			if (searchImdbId && release.imdbId) {
-				if (release.imdbId !== searchImdbId) {
-					logger.info(
-						{
-							releaseTitle: release.title,
-							releaseImdbId: release.imdbId,
-							criteriaImdbId: searchImdbId,
-							indexer: release.indexerName,
-							hasReleaseIds: !!(release.tmdbId || release.imdbId || release.tvdbId)
-						},
-						'[SearchOrchestrator] DEBUG: IMDB ID mismatch - removing release'
-					);
-					return false; // Hard reject
-				}
-				// IDs match - accept immediately
-				return true;
+				if (release.imdbId === searchImdbId) return true;
+				if (releasePrefersNativeCyrillic) return false;
+				logger.info(
+					{
+						releaseTitle: release.title,
+						releaseImdbId: release.imdbId,
+						criteriaImdbId: searchImdbId,
+						indexer: release.indexerName
+					},
+					'[SearchOrchestrator] IMDB ID mismatch - falling through to title check'
+				);
+				hasIdMismatch = true;
 			}
 
 			// TVDB ID check (TV only)
 			if (searchTvdbId && release.tvdbId) {
-				if (release.tvdbId !== searchTvdbId) {
-					logger.debug(
-						{
-							releaseTitle: release.title,
-							releaseTvdbId: release.tvdbId,
-							criteriaTvdbId: searchTvdbId,
-							indexer: release.indexerName
-						},
-						'[SearchOrchestrator] TVDB ID mismatch - removing release'
-					);
-					return false; // Hard reject
-				}
-				// IDs match - accept immediately
-				return true;
+				if (release.tvdbId === searchTvdbId) return true;
+				if (releasePrefersNativeCyrillic) return false;
+				logger.debug(
+					{
+						releaseTitle: release.title,
+						releaseTvdbId: release.tvdbId,
+						criteriaTvdbId: searchTvdbId,
+						indexer: release.indexerName
+					},
+					'[SearchOrchestrator] TVDB ID mismatch - falling through to title check'
+				);
+				hasIdMismatch = true;
 			}
 
 			// For movies, enforce strict year matching whenever we can parse a year
@@ -2499,21 +2500,25 @@ export class SearchOrchestrator {
 							criteriaYear: searchYear,
 							titleMatch,
 							yearMatch,
+							hasIdMismatch,
 							isInteractiveSearch,
 							releaseHasAnyId,
 							normalizedCandidates,
 							similarityDetails: simDetails
 						},
-						'[SearchOrchestrator] DEBUG: TITLE/YEAR MISMATCH - removing release'
+						hasIdMismatch
+							? '[SearchOrchestrator] ID mismatch confirmed by title/year mismatch - removing release'
+							: '[SearchOrchestrator] DEBUG: TITLE/YEAR MISMATCH - removing release'
 					);
-					return false; // Hard reject
+					return false;
 				}
 
 				// Title (and year when available) match - accept
 				return true;
 			}
 
-			// No IDs and no titles to validate against - keep it
+			// No title evidence to arbitrate: reject on ID mismatch, keep otherwise.
+			if (hasIdMismatch) return false;
 			return true;
 		});
 
