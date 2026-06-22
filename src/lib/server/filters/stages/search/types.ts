@@ -11,6 +11,7 @@ export interface SearchEligibilityContext {
 		releaseDate?: string | null;
 		digitalReleaseDate?: string | null;
 		physicalReleaseDate?: string | null;
+		downloadReleaseDate?: string | null;
 		availabilityDelay?: number | null;
 		year?: number | null;
 		added?: string | null;

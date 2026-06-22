@@ -18,10 +18,14 @@ export function formatReleaseLine(result: SmartReleaseLineResult): string {
 			return m.common_availableDigital();
 		case 'availablePhysical':
 			return m.common_availablePhysical();
+		case 'availableStreaming':
+			return m.common_availableStreaming();
 		case 'digitalInDays':
 			return m.common_digitalInDays({ days });
 		case 'physicalInDays':
 			return m.common_physicalInDays({ days });
+		case 'streamingInDays':
+			return m.common_streamingInDays({ days });
 		case 'announced':
 			return m.common_announced();
 	}

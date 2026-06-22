@@ -22,6 +22,7 @@
 		releaseDate?: string | null;
 		digitalReleaseDate?: string | null;
 		physicalReleaseDate?: string | null;
+		tvReleaseDate?: string | null;
 	};
 
 	interface Props {
@@ -60,11 +61,18 @@
 		const enriched = item as MediaItemWithLibraryStatus;
 		const rec = item as unknown as Record<string, unknown>;
 		const rd = enriched.releaseDate ?? (rec.release_date as string | null) ?? null;
-		if (!rd && !enriched.digitalReleaseDate && !enriched.physicalReleaseDate) return null;
+		if (
+			!rd &&
+			!enriched.digitalReleaseDate &&
+			!enriched.physicalReleaseDate &&
+			!enriched.tvReleaseDate
+		)
+			return null;
 		return getSmartReleaseLine({
 			releaseDate: rd,
 			digitalReleaseDate: enriched.digitalReleaseDate ?? null,
 			physicalReleaseDate: enriched.physicalReleaseDate ?? null,
+			tvReleaseDate: enriched.tvReleaseDate ?? null,
 			status: rec.tmdbStatus as string | null | undefined
 		});
 	});

@@ -20,6 +20,19 @@ describe('getSmartReleaseLine', () => {
 		expect(result).toEqual({ key: 'availablePhysical', variant: 'released' });
 	});
 
+	it('returns availableStreaming when a TV/streaming date is past', () => {
+		const result = getSmartReleaseLine(
+			{
+				releaseDate: '2026-04-01',
+				digitalReleaseDate: null,
+				physicalReleaseDate: null,
+				tvReleaseDate: '2026-05-01'
+			},
+			now
+		);
+		expect(result).toEqual({ key: 'availableStreaming', variant: 'released' });
+	});
+
 	it('returns digitalInDays when in theaters with known digital date', () => {
 		const result = getSmartReleaseLine(
 			{ releaseDate: '2026-05-08', digitalReleaseDate: '2026-07-01', physicalReleaseDate: null },

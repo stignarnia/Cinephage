@@ -18,15 +18,7 @@
 	import { extractReleaseDates } from '$lib/utils/extractReleaseDates.js';
 	import { getSmartReleaseLine } from '$lib/utils/smartReleaseLine.js';
 	import { formatReleaseLine } from '$lib/utils/releaseLineText.js';
-
-	const RELEASE_TYPE_LABELS: Record<number, () => string> = {
-		1: () => m.hero_releaseType_premiere(),
-		2: () => m.hero_releaseType_limitedTheatrical(),
-		3: () => m.hero_releaseType_theatrical(),
-		4: () => m.hero_releaseType_digital(),
-		5: () => m.hero_releaseType_physical(),
-		6: () => m.hero_releaseType_tv()
-	};
+	import { releaseTypeLabel } from '$lib/utils/releaseTypeLabel.js';
 
 	// Extended type that includes library status (added by enrichWithLibraryStatus)
 	type MediaDetailsWithLibraryStatus = (MovieDetails | TVShowDetails) & {
@@ -144,7 +136,7 @@
 			if (release) {
 				const releaseDate = new Date(release.release_date);
 				releases.push({
-					type: RELEASE_TYPE_LABELS[typeNum]!(),
+					type: releaseTypeLabel(typeNum),
 					date: formatDisplayDateShort(release.release_date),
 					isPast: releaseDate <= now
 				});
@@ -161,6 +153,7 @@
 			releaseDate: dates.theatricalDate,
 			digitalReleaseDate: dates.digitalReleaseDate,
 			physicalReleaseDate: dates.physicalReleaseDate,
+			tvReleaseDate: dates.tvReleaseDate,
 			status: item.status
 		});
 	});

@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-	getMovieAvailabilityLevel,
-	getReleaseStageInfo,
-	isMovieAvailableForSearch
-} from './movieAvailability';
+import { getMovieAvailabilityLevel, isMovieAvailableForSearch } from './movieAvailability';
 
 describe('getMovieAvailabilityLevel', () => {
 	const now = new Date('2026-06-10T00:00:00.000Z');
@@ -204,72 +200,6 @@ describe('getMovieAvailabilityLevel', () => {
 	});
 });
 
-describe('getReleaseStageInfo', () => {
-	const now = new Date('2026-06-10T00:00:00.000Z');
-
-	it('returns null when no release dates provided', () => {
-		expect(getReleaseStageInfo(null, now)).toBeNull();
-		expect(getReleaseStageInfo([], now)).toBeNull();
-	});
-
-	it('returns null when only theatrical dates exist', () => {
-		const result = getReleaseStageInfo(
-			[
-				{ type: 1, release_date: '2026-05-14T00:00:00.000Z' },
-				{ type: 3, release_date: '2026-05-22T00:00:00.000Z' }
-			],
-			now
-		);
-		expect(result).toBeNull();
-	});
-
-	it('returns earliest past digital release', () => {
-		const result = getReleaseStageInfo(
-			[
-				{ type: 3, release_date: '2026-05-01T00:00:00.000Z' },
-				{ type: 4, release_date: '2026-05-19T00:00:00.000Z' },
-				{ type: 5, release_date: '2026-06-15T00:00:00.000Z' }
-			],
-			now
-		);
-		expect(result).toEqual({
-			type: 'digital',
-			date: '2026-05-19',
-			isPast: true
-		});
-	});
-
-	it('returns future digital release with isPast false', () => {
-		const result = getReleaseStageInfo(
-			[
-				{ type: 3, release_date: '2026-05-01T00:00:00.000Z' },
-				{ type: 4, release_date: '2026-07-15T00:00:00.000Z' }
-			],
-			now
-		);
-		expect(result).toEqual({
-			type: 'digital',
-			date: '2026-07-15',
-			isPast: false
-		});
-	});
-
-	it('returns earliest type when multiple downloadable types exist', () => {
-		const result = getReleaseStageInfo(
-			[
-				{ type: 4, release_date: '2026-06-20T00:00:00.000Z' },
-				{ type: 5, release_date: '2026-06-01T00:00:00.000Z' }
-			],
-			now
-		);
-		expect(result).toEqual({
-			type: 'physical',
-			date: '2026-06-01',
-			isPast: true
-		});
-	});
-});
-
 describe('isMovieAvailableForSearch', () => {
 	const now = new Date('2026-06-10');
 
@@ -358,6 +288,32 @@ describe('isMovieAvailableForSearch', () => {
 	it('released: theatrical + 90 days fallback not yet met', () => {
 		expect(
 			isMovieAvailableForSearch({ minimumAvailability: 'released', releaseDate: '2026-05-01' }, now)
+		).toBe(false);
+	});
+
+	it('released: available when downloadReleaseDate (e.g. streaming) is past', () => {
+		expect(
+			isMovieAvailableForSearch(
+				{
+					minimumAvailability: 'released',
+					releaseDate: '2026-05-01',
+					downloadReleaseDate: '2026-06-01'
+				},
+				now
+			)
+		).toBe(true);
+	});
+
+	it('released: not available when only a future downloadReleaseDate exists', () => {
+		expect(
+			isMovieAvailableForSearch(
+				{
+					minimumAvailability: 'released',
+					releaseDate: '2026-05-01',
+					downloadReleaseDate: '2026-07-01'
+				},
+				now
+			)
 		).toBe(false);
 	});
 

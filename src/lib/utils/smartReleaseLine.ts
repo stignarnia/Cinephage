@@ -7,8 +7,10 @@ export type ReleaseLineKey =
 	| 'comingToTheaters'
 	| 'availableDigital'
 	| 'availablePhysical'
+	| 'availableStreaming'
 	| 'digitalInDays'
 	| 'physicalInDays'
+	| 'streamingInDays'
 	| 'announced';
 
 export interface SmartReleaseLineResult {
@@ -23,6 +25,7 @@ export interface ReleaseLineInput {
 	releaseDate: string | null | undefined;
 	digitalReleaseDate: string | null | undefined;
 	physicalReleaseDate: string | null | undefined;
+	tvReleaseDate?: string | null | undefined;
 	status?: string | null;
 }
 
@@ -40,7 +43,8 @@ export function getSmartReleaseLine(
 		{
 			theatricalMs: toMs(input.releaseDate),
 			digitalMs: toMs(input.digitalReleaseDate),
-			physicalMs: toMs(input.physicalReleaseDate)
+			physicalMs: toMs(input.physicalReleaseDate),
+			tvMs: toMs(input.tvReleaseDate)
 		},
 		now
 	);
@@ -50,10 +54,14 @@ export function getSmartReleaseLine(
 			return { key: 'availableDigital', variant: 'released' };
 		case 'availablePhysical':
 			return { key: 'availablePhysical', variant: 'released' };
+		case 'availableStreaming':
+			return { key: 'availableStreaming', variant: 'released' };
 		case 'digitalUpcoming':
 			return { key: 'digitalInDays', params: { days: stage.days ?? 0 }, variant: 'upcoming' };
 		case 'physicalUpcoming':
 			return { key: 'physicalInDays', params: { days: stage.days ?? 0 }, variant: 'upcoming' };
+		case 'streamingUpcoming':
+			return { key: 'streamingInDays', params: { days: stage.days ?? 0 }, variant: 'upcoming' };
 		case 'inTheaters':
 			return { key: 'inTheaters', variant: 'theaters' };
 		case 'comingToTheaters':

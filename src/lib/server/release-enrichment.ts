@@ -22,6 +22,7 @@ export async function enrichWithReleaseDates<T extends { id: number; media_type?
 			theatricalDate: string | null;
 			digitalReleaseDate: string | null;
 			physicalReleaseDate: string | null;
+			tvReleaseDate: string | null;
 			status: string | null;
 		}
 	>();
@@ -53,6 +54,7 @@ export async function enrichWithReleaseDates<T extends { id: number; media_type?
 			releaseDate: dates.theatricalDate ?? rec.release_date ?? null,
 			digitalReleaseDate: dates.digitalReleaseDate,
 			physicalReleaseDate: dates.physicalReleaseDate,
+			tvReleaseDate: dates.tvReleaseDate,
 			tmdbStatus: dates.status
 		} as T;
 	});

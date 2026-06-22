@@ -61,7 +61,10 @@ export class MovieAvailabilitySpecification implements IMonitoringSpecification<
 		}
 
 		const hasStoredDates =
-			movie.digitalReleaseDate || movie.physicalReleaseDate || movie.releaseDate;
+			movie.digitalReleaseDate ||
+			movie.physicalReleaseDate ||
+			movie.downloadReleaseDate ||
+			movie.releaseDate;
 
 		if (hasStoredDates) {
 			const { isMovieAvailableForSearch } = await import('$lib/utils/movieAvailability');
@@ -70,6 +73,7 @@ export class MovieAvailabilitySpecification implements IMonitoringSpecification<
 				releaseDate: movie.releaseDate ?? null,
 				digitalReleaseDate: movie.digitalReleaseDate ?? null,
 				physicalReleaseDate: movie.physicalReleaseDate ?? null,
+				downloadReleaseDate: movie.downloadReleaseDate ?? null,
 				availabilityDelay: movie.availabilityDelay ?? 0
 			});
 
@@ -100,7 +104,14 @@ export class MovieAvailabilitySpecification implements IMonitoringSpecification<
 	private async getCurrentAvailability(movie: MovieContext['movie']): Promise<AvailabilityLevel> {
 		const releaseInfo = await this.getReleaseInfo(movie.tmdbId);
 
-		const releaseDates = releaseInfo?.release_dates?.results?.flatMap((c) =>
+		// Region-scope the release dates (fall back to all countries) so availability
+		// matches what the rest of the app shows for the user's configured region.
+		const region = (await tmdb.getRegion()).toUpperCase();
+		const allResults = releaseInfo?.release_dates?.results;
+		const regionResults = allResults?.filter((c) => c.iso_3166_1.toUpperCase() === region);
+		const source = regionResults && regionResults.length > 0 ? regionResults : allResults;
+
+		const releaseDates = source?.flatMap((c) =>
 			c.release_dates.map((rd) => ({
 				type: rd.type,
 				release_date: rd.release_date

@@ -1,9 +1,11 @@
 import type { ReleaseDatesResponse } from '$lib/types/tmdb';
+import { RELEASE_TYPE } from './releaseTypes.js';
 
 export interface ExtractedReleaseDates {
 	theatricalDate: string | null;
 	digitalReleaseDate: string | null;
 	physicalReleaseDate: string | null;
+	tvReleaseDate: string | null;
 }
 
 export function extractReleaseDates(
@@ -13,7 +15,8 @@ export function extractReleaseDates(
 	const empty: ExtractedReleaseDates = {
 		theatricalDate: null,
 		digitalReleaseDate: null,
-		physicalReleaseDate: null
+		physicalReleaseDate: null,
+		tvReleaseDate: null
 	};
 
 	if (!releaseDates?.results || releaseDates.results.length === 0) return empty;
@@ -27,24 +30,31 @@ export function extractReleaseDates(
 	let theatrical: string | null = null;
 	let digital: string | null = null;
 	let physical: string | null = null;
+	let tv: string | null = null;
 
 	for (const rd of entries) {
 		const dateStr = rd.release_date?.substring(0, 10);
 		if (!dateStr || Number.isNaN(new Date(dateStr).getTime())) continue;
 
-		if ((rd.type === 2 || rd.type === 3) && (!theatrical || dateStr < theatrical)) {
+		if (
+			(rd.type === RELEASE_TYPE.THEATRICAL_LIMITED || rd.type === RELEASE_TYPE.THEATRICAL) &&
+			(!theatrical || dateStr < theatrical)
+		) {
 			theatrical = dateStr;
-		} else if (rd.type === 4 && (!digital || dateStr < digital)) {
+		} else if (rd.type === RELEASE_TYPE.DIGITAL && (!digital || dateStr < digital)) {
 			digital = dateStr;
-		} else if (rd.type === 5 && (!physical || dateStr < physical)) {
+		} else if (rd.type === RELEASE_TYPE.PHYSICAL && (!physical || dateStr < physical)) {
 			physical = dateStr;
+		} else if (rd.type === RELEASE_TYPE.TV && (!tv || dateStr < tv)) {
+			tv = dateStr;
 		}
 	}
 
 	return {
 		theatricalDate: theatrical,
 		digitalReleaseDate: digital,
-		physicalReleaseDate: physical
+		physicalReleaseDate: physical,
+		tvReleaseDate: tv
 	};
 }
 

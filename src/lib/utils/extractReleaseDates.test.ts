@@ -13,7 +13,8 @@ describe('extractReleaseDates', () => {
 		expect(result).toEqual({
 			theatricalDate: null,
 			digitalReleaseDate: null,
-			physicalReleaseDate: null
+			physicalReleaseDate: null,
+			tvReleaseDate: null
 		});
 	});
 
@@ -22,7 +23,8 @@ describe('extractReleaseDates', () => {
 		expect(result).toEqual({
 			theatricalDate: null,
 			digitalReleaseDate: null,
-			physicalReleaseDate: null
+			physicalReleaseDate: null,
+			tvReleaseDate: null
 		});
 	});
 
@@ -63,8 +65,30 @@ describe('extractReleaseDates', () => {
 		expect(result).toEqual({
 			theatricalDate: '2026-05-08',
 			digitalReleaseDate: '2026-06-09',
-			physicalReleaseDate: '2026-07-15'
+			physicalReleaseDate: '2026-07-15',
+			tvReleaseDate: null
 		});
+	});
+
+	it('extracts TV/streaming (type 6) date', () => {
+		const response = mkResponse([
+			{
+				iso_3166_1: 'US',
+				release_dates: [
+					{
+						certification: '',
+						descriptors: [],
+						iso_639_1: '',
+						note: '',
+						release_date: '2026-04-20T00:00:00.000Z',
+						type: 6
+					}
+				]
+			}
+		]);
+
+		const result = extractReleaseDates(response, 'US');
+		expect(result.tvReleaseDate).toBe('2026-04-20');
 	});
 
 	it('falls back to earliest across all countries when region not found', () => {

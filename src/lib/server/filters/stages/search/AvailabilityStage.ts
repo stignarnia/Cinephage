@@ -24,7 +24,10 @@ export class AvailabilityStage implements DecisionStage<SearchEligibilityContext
 		}
 
 		const hasStoredDates =
-			media.digitalReleaseDate || media.physicalReleaseDate || media.releaseDate;
+			media.digitalReleaseDate ||
+			media.physicalReleaseDate ||
+			media.downloadReleaseDate ||
+			media.releaseDate;
 
 		if (hasStoredDates) {
 			const available = isMovieAvailableForSearch({
@@ -32,6 +35,7 @@ export class AvailabilityStage implements DecisionStage<SearchEligibilityContext
 				releaseDate: media.releaseDate ?? null,
 				digitalReleaseDate: media.digitalReleaseDate ?? null,
 				physicalReleaseDate: media.physicalReleaseDate ?? null,
+				downloadReleaseDate: media.downloadReleaseDate ?? null,
 				availabilityDelay: media.availabilityDelay ?? 0
 			});
 
@@ -45,7 +49,13 @@ export class AvailabilityStage implements DecisionStage<SearchEligibilityContext
 
 		try {
 			const releaseInfo = await tmdb.getMovieReleaseInfo(media.tmdbId);
-			const releaseDates = releaseInfo?.release_dates?.results?.flatMap((c) =>
+			// Region-scope (fall back to all countries) so it matches the displayed region.
+			const region = (await tmdb.getRegion()).toUpperCase();
+			const allResults = releaseInfo?.release_dates?.results;
+			const regionResults = allResults?.filter((c) => c.iso_3166_1.toUpperCase() === region);
+			const source = regionResults && regionResults.length > 0 ? regionResults : allResults;
+
+			const releaseDates = source?.flatMap((c) =>
 				c.release_dates.map((rd) => ({
 					type: rd.type,
 					release_date: rd.release_date
