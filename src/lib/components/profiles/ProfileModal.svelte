@@ -369,8 +369,7 @@
 						bind:value={description}
 						disabled={isCoreReadonly}
 						maxlength={maxDescriptionLength}
-						placeholder="Describe what this profile is for..."
-					></textarea>
+						placeholder="Describe what this profile is for..."></textarea>
 					{#if !isCoreReadonly}
 						<div class="label py-1">
 							<span class="label-text-alt text-xs {descriptionTooLong ? 'text-error' : ''}">

@@ -100,8 +100,7 @@
 				aria-describedby={describedBy}
 				bind:value
 				onfocus={handleFocus}
-				onblur={handleBlur}
-			></textarea>
+				onblur={handleBlur}></textarea>
 		{:else}
 			<input
 				{id}

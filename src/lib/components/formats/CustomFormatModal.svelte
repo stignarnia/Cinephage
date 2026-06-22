@@ -191,8 +191,7 @@
 				class="textarea-bordered textarea h-16 textarea-sm"
 				bind:value={description}
 				disabled={isReadonly}
-				placeholder={m.formats_descriptionPlaceholder()}
-			></textarea>
+				placeholder={m.formats_descriptionPlaceholder()}></textarea>
 		</div>
 
 		<!-- Tags -->
