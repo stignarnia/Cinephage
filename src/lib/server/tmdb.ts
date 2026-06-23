@@ -303,12 +303,12 @@ export const tmdb = {
 	},
 	async getMovie(id: number): Promise<MovieDetails> {
 		return this.fetch(
-			`/movie/${id}?append_to_response=credits,videos,images,recommendations,similar,watch/providers,release_dates,keywords`
+			`/movie/${id}?append_to_response=credits,videos,images,recommendations,similar,watch/providers,release_dates,keywords&include_image_language=null,en`
 		) as Promise<MovieDetails>;
 	},
 	async getTVShow(id: number): Promise<TVShowDetails> {
 		return this.fetch(
-			`/tv/${id}?append_to_response=credits,videos,images,recommendations,similar,watch/providers,content_ratings,keywords`
+			`/tv/${id}?append_to_response=credits,videos,images,recommendations,similar,watch/providers,content_ratings,keywords&include_image_language=null,en`
 		) as Promise<TVShowDetails>;
 	},
 	async getSeason(tvId: number, seasonNumber: number): Promise<Season> {
