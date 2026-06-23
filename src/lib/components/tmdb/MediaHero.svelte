@@ -72,9 +72,7 @@
 
 	const countryCode = $derived(page.data.defaultRegion || TMDB.DEFAULT_REGION);
 
-	function isMovieDetails(
-		item: MediaDetailsWithLibraryStatus
-	): item is MovieDetails & {
+	function isMovieDetails(item: MediaDetailsWithLibraryStatus): item is MovieDetails & {
 		inLibrary?: boolean;
 		hasFile?: boolean;
 		monitored?: boolean;
