@@ -114,6 +114,7 @@
 	}: Props = $props();
 
 	let showBlockConfirm = $state(false);
+	let overviewExpanded = $state(false);
 
 	async function handleBlock() {
 		try {
@@ -273,9 +274,11 @@
 			>
 		</a>
 		<div class="flex shrink-0 items-center gap-1 sm:gap-2">
-			<MonitorToggle monitored={movie.monitored ?? false} onToggle={onMonitorToggle} size="md" />
+			<div class="hidden sm:block">
+				<MonitorToggle monitored={movie.monitored ?? false} onToggle={onMonitorToggle} size="md" />
+			</div>
 			<button
-				class="btn btn-primary btn-sm gap-1.5"
+				class="btn btn-primary btn-sm gap-1.5 hidden sm:flex"
 				onclick={onAutoSearch}
 				disabled={autoSearching}
 			>
@@ -284,7 +287,7 @@
 				{:else}
 					<Zap size={14} />
 				{/if}
-				<span class="hidden sm:inline">{m.library_movieHeader_autoGrab()}</span>
+				{m.library_movieHeader_autoGrab()}
 			</button>
 			<button class="btn btn-ghost btn-sm gap-1.5 hidden sm:flex" onclick={onSearch}>
 				<Search size={14} />
@@ -296,7 +299,7 @@
 					{m.action_import()}
 				</button>
 			{/if}
-			<div class="dropdown dropdown-end">
+			<div class="dropdown dropdown-end hidden sm:block">
 				<button tabindex="0" class="btn btn-ghost btn-sm">
 					<MoreHorizontal size={18} />
 				</button>
@@ -305,22 +308,7 @@
 					tabindex="0"
 					class="dropdown-content menu z-50 w-52 rounded-box border border-base-content/10 bg-base-200 p-2 shadow-lg"
 				>
-					<li class="sm:hidden">
-						<button onclick={onSearch}>
-							<Search size={16} />
-							{m.library_movieHeader_manual()}
-						</button>
-					</li>
-					{#if onImport}
-						<li class="sm:hidden">
-							<button onclick={onImport}>
-								<Download size={16} />
-								{m.action_import()}
-							</button>
-						</li>
-					{/if}
-					<div class="divider my-1 sm:hidden"></div>
-					<li>
+					<li class="hidden sm:flex">
 						<button onclick={onEdit}>
 							<Settings size={16} />
 							{m.action_edit()}
@@ -343,6 +331,118 @@
 		</div>
 	</div>
 
+	{#snippet metaPanel()}
+		{#if tmdbMovie}
+			<div class="grid grid-cols-2 gap-x-4 gap-y-3">
+				<div class="col-span-2">
+					<div class="text-xs text-base-content/50">{m.hero_metadata_status()}</div>
+					{#if smartRelease}
+						<div
+							class="font-medium {smartRelease.variant === 'released'
+								? 'text-success'
+								: smartRelease.variant === 'theaters'
+									? 'text-info'
+									: smartRelease.variant === 'upcoming'
+										? 'text-primary'
+										: ''}"
+						>
+							{smartRelease.text}
+						</div>
+					{:else}
+						<div class="font-medium">{tmdbMovie.status}</div>
+					{/if}
+				</div>
+
+				{#if movie.added}
+					<div>
+						<div class="text-xs text-base-content/50">{m.common_added()}</div>
+						<div class="font-medium">{formatDisplayDateShort(movie.added)}</div>
+					</div>
+				{/if}
+				<div>
+					<div class="text-xs text-base-content/50">{m.hero_metadata_language()}</div>
+					<div class="font-medium">{formatLanguage(tmdbMovie.original_language)}</div>
+				</div>
+
+				{#if releaseInfo?.certification}
+					<div>
+						<div class="text-xs text-base-content/50">{m.hero_metadata_rated()}</div>
+						<div class="font-medium">{releaseInfo.certification}</div>
+					</div>
+				{/if}
+				{#if releaseInfo?.theatrical}
+					<div>
+						<div class="text-xs text-base-content/50">{m.hero_releaseType_theatrical()}</div>
+						<div class="font-medium {releaseInfo.theatrical.isPast ? '' : 'text-primary'}">
+							{releaseInfo.theatrical.date}
+						</div>
+					</div>
+				{:else if tmdbMovie.release_date}
+					<div>
+						<div class="text-xs text-base-content/50">{m.hero_releaseType_theatrical()}</div>
+						<div class="font-medium">{formatDisplayDateShort(tmdbMovie.release_date)}</div>
+					</div>
+				{/if}
+
+				{#if releaseInfo?.digital}
+					<div>
+						<div class="text-xs text-base-content/50">{m.hero_releaseType_digital()}</div>
+						<div class="font-medium {releaseInfo.digital.isPast ? '' : 'text-primary'}">
+							{releaseInfo.digital.date}
+						</div>
+					</div>
+				{/if}
+				{#if releaseInfo?.physical}
+					<div>
+						<div class="text-xs text-base-content/50">{m.hero_releaseType_physical()}</div>
+						<div class="font-medium {releaseInfo.physical.isPast ? '' : 'text-primary'}">
+							{releaseInfo.physical.date}
+						</div>
+					</div>
+				{/if}
+
+				{#if tmdbMovie.belongs_to_collection}
+					<div class="col-span-2">
+						<div class="text-xs text-base-content/50">Collection</div>
+						<div class="font-medium">{tmdbMovie.belongs_to_collection.name}</div>
+					</div>
+				{/if}
+
+				{#if tmdbMovie.production_companies && tmdbMovie.production_companies.length > 0}
+					<div class="col-span-2">
+						<div class="text-xs text-base-content/50">{m.hero_metadata_studio()}</div>
+						<div class="font-medium">{tmdbMovie.production_companies[0].name}</div>
+					</div>
+				{/if}
+
+				{#if movie.hasFile && movie.files[0]?.quality?.source}
+					<div>
+						<div class="text-xs text-base-content/50">Source</div>
+						<div class="font-medium">{formatSource(movie.files[0].quality.source)}</div>
+					</div>
+				{/if}
+
+				{#if movie.hasFile && totalSize > 0}
+					<div>
+						<div class="text-xs text-base-content/50">Size</div>
+						<div class="font-medium">{formatBytes(totalSize)}</div>
+					</div>
+				{/if}
+			</div>
+
+			{#if tmdbMovie['watch/providers']}
+				<div class="mt-4 border-t border-base-content/10 pt-4">
+					<div class="mb-2 text-xs text-base-content/50">{m.hero_metadata_whereToWatch()}</div>
+					<WatchProviders
+						providers={tmdbMovie['watch/providers']}
+						countryCode={defaultRegion}
+						limit={6}
+					/>
+				</div>
+			{/if}
+		{/if}
+	{/snippet}
+
 	<!-- Hero card -->
 	<div class="relative w-full overflow-hidden rounded-xl bg-base-200 shadow-xl">
 		<!-- Backdrop -->
@@ -352,11 +452,11 @@
 					path={movie.backdropPath}
 					size="original"
 					alt={movie.title}
-					class="h-full w-full object-cover opacity-40 blur-sm"
+					class="h-full w-full object-cover opacity-40"
 				/>
 			{/if}
 			<div
-				class="absolute inset-0 bg-linear-to-t from-base-200 via-base-200/80 to-transparent"
+				class="absolute inset-0 bg-linear-to-t from-base-200 via-base-200/60 to-transparent"
 			></div>
 			<div
 				class="absolute inset-0 bg-linear-to-r from-base-200 via-base-200/60 to-transparent"
@@ -415,8 +515,8 @@
 								<span>{formatRuntime(movie.runtime)}</span>
 							{/if}
 							{#if movie.genres && movie.genres.length > 0}
-								<span class="hidden sm:inline">•</span>
-								<span class="hidden sm:inline">{movie.genres.slice(0, 3).join(', ')}</span>
+								<span>•</span>
+								<span>{movie.genres.slice(0, 3).join(', ')}</span>
 							{/if}
 						</div>
 					</div>
@@ -428,7 +528,21 @@
 					{/if}
 
 					{#if overview}
-						<p class="text-base leading-relaxed text-base-content/90">{overview}</p>
+						<div>
+							<p
+								class="text-base leading-relaxed text-base-content/90 {overviewExpanded
+									? ''
+									: 'line-clamp-3 sm:line-clamp-none'}"
+							>
+								{overview}
+							</p>
+							<button
+								class="mt-1 text-sm text-primary/70 hover:text-primary sm:hidden"
+								onclick={() => (overviewExpanded = !overviewExpanded)}
+							>
+								{overviewExpanded ? 'Read less' : 'Read more'}
+							</button>
+						</div>
 					{/if}
 
 					{#if tmdbMovie?.credits?.crew?.length}
@@ -439,9 +553,7 @@
 
 					{#if tmdbMovie?.credits?.cast?.length}
 						<div>
-							<div class="mb-2 text-xs font-medium uppercase tracking-wider text-base-content/40">
-								Cast
-							</div>
+							<div class="mb-2 text-sm text-base-content/60">Cast</div>
 							<div class="flex gap-3 overflow-x-auto pb-1">
 								{#each tmdbMovie.credits.cast.slice(0, 8) as actor (actor.id)}
 									<div class="flex shrink-0 flex-col items-center gap-1.5 w-16">
@@ -476,9 +588,10 @@
 					{/if}
 
 					<!-- Status badges and external links -->
-					<div class="border-t border-base-content/10 pt-3"></div>
-					<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-						<div class="flex flex-wrap items-center gap-2 sm:gap-4">
+					<div
+						class="flex flex-col gap-2 border-t border-base-content/10 pt-3 sm:flex-row sm:items-center sm:justify-between"
+					>
+						<div class="flex flex-wrap items-center gap-2">
 							<StatusIndicator status={fileStatus} qualityText={statusQualityText} />
 							{#if showUnreleasedBadge}
 								<div
@@ -510,13 +623,15 @@
 								{/if}
 							{/if}
 						</div>
-						<div class="flex w-full items-center gap-2 border-t border-base-content/10 pt-2 sm:w-auto sm:border-0 sm:pt-0">
+						<div
+							class="flex w-full items-center gap-1 overflow-x-auto pb-0.5 border-t border-base-content/10 pt-2 sm:w-auto sm:shrink-0 sm:border-0 sm:pt-0 sm:overflow-x-visible sm:pb-0"
+						>
 							{#if movie.tmdbId}
 								<a
 									href="https://www.themoviedb.org/movie/{movie.tmdbId}"
 									target="_blank"
 									rel="noopener noreferrer"
-									class="btn gap-1 btn-ghost btn-xs"
+									class="btn btn-ghost btn-xs shrink-0 gap-1"
 								>
 									{m.library_movieHeader_tmdbLink()}<ExternalLink size={12} />
 								</a>
@@ -526,7 +641,7 @@
 									href="https://www.imdb.com/title/{movie.imdbId}"
 									target="_blank"
 									rel="noopener noreferrer"
-									class="btn gap-1 btn-ghost btn-xs"
+									class="btn btn-ghost btn-xs shrink-0 gap-1"
 								>
 									{m.library_movieHeader_imdbLink()}<ExternalLink size={12} />
 								</a>
@@ -536,13 +651,13 @@
 									href={providerLink.href}
 									target="_blank"
 									rel="noopener noreferrer"
-									class="btn gap-1 btn-ghost btn-xs"
+									class="btn btn-ghost btn-xs shrink-0 gap-1"
 								>
 									{providerLink.label}<ExternalLink size={12} />
 								</a>
 							{/each}
 							{#if hasTrailer}
-								<button class="btn gap-1 btn-ghost btn-xs" onclick={openTrailer}>
+								<button class="btn btn-ghost btn-xs shrink-0 gap-1" onclick={openTrailer}>
 									<Play size={12} />{m.hero_trailer()}
 								</button>
 							{/if}
@@ -550,123 +665,12 @@
 					</div>
 				</div>
 
-				<!-- Right side metadata panel -->
+				<!-- Right side metadata panel (desktop) -->
 				{#if tmdbMovie}
 					<div
 						class="hidden w-56 shrink-0 rounded-lg bg-base-100/30 p-4 backdrop-blur-sm md:block lg:w-64 lg:p-5"
 					>
-						<div class="grid grid-cols-2 gap-x-4 gap-y-3">
-							<div class="col-span-2">
-								<div class="text-xs text-base-content/50">{m.hero_metadata_status()}</div>
-								{#if smartRelease}
-									<div
-										class="font-medium {smartRelease.variant === 'released'
-											? 'text-success'
-											: smartRelease.variant === 'theaters'
-												? 'text-info'
-												: smartRelease.variant === 'upcoming'
-													? 'text-primary'
-													: ''}"
-									>
-										{smartRelease.text}
-									</div>
-								{:else}
-									<div class="font-medium">{tmdbMovie.status}</div>
-								{/if}
-							</div>
-
-							<!-- Row: Added | Language -->
-							{#if movie.added}
-								<div>
-									<div class="text-xs text-base-content/50">{m.common_added()}</div>
-									<div class="font-medium">{formatDisplayDateShort(movie.added)}</div>
-								</div>
-							{/if}
-							<div>
-								<div class="text-xs text-base-content/50">{m.hero_metadata_language()}</div>
-								<div class="font-medium">{formatLanguage(tmdbMovie.original_language)}</div>
-							</div>
-
-							<!-- Row: Rated | Theatrical -->
-							{#if releaseInfo?.certification}
-								<div>
-									<div class="text-xs text-base-content/50">{m.hero_metadata_rated()}</div>
-									<div class="font-medium">{releaseInfo.certification}</div>
-								</div>
-							{/if}
-							{#if releaseInfo?.theatrical}
-								<div>
-									<div class="text-xs text-base-content/50">{m.hero_releaseType_theatrical()}</div>
-									<div class="font-medium {releaseInfo.theatrical.isPast ? '' : 'text-primary'}">
-										{releaseInfo.theatrical.date}
-									</div>
-								</div>
-							{:else if tmdbMovie.release_date}
-								<div>
-									<div class="text-xs text-base-content/50">{m.hero_releaseType_theatrical()}</div>
-									<div class="font-medium">{formatDisplayDateShort(tmdbMovie.release_date)}</div>
-								</div>
-							{/if}
-
-							<!-- Row: Digital | Physical -->
-							{#if releaseInfo?.digital}
-								<div>
-									<div class="text-xs text-base-content/50">{m.hero_releaseType_digital()}</div>
-									<div class="font-medium {releaseInfo.digital.isPast ? '' : 'text-primary'}">
-										{releaseInfo.digital.date}
-									</div>
-								</div>
-							{/if}
-							{#if releaseInfo?.physical}
-								<div>
-									<div class="text-xs text-base-content/50">{m.hero_releaseType_physical()}</div>
-									<div class="font-medium {releaseInfo.physical.isPast ? '' : 'text-primary'}">
-										{releaseInfo.physical.date}
-									</div>
-								</div>
-							{/if}
-
-							{#if tmdbMovie.belongs_to_collection}
-								<div class="col-span-2">
-									<div class="text-xs text-base-content/50">Collection</div>
-									<div class="font-medium">{tmdbMovie.belongs_to_collection.name}</div>
-								</div>
-							{/if}
-
-							{#if tmdbMovie.production_companies && tmdbMovie.production_companies.length > 0}
-								<div class="col-span-2">
-									<div class="text-xs text-base-content/50">{m.hero_metadata_studio()}</div>
-									<div class="font-medium">{tmdbMovie.production_companies[0].name}</div>
-								</div>
-							{/if}
-
-							{#if movie.hasFile && movie.files[0]?.quality?.source}
-								<div>
-									<div class="text-xs text-base-content/50">Source</div>
-									<div class="font-medium">{formatSource(movie.files[0].quality.source)}</div>
-								</div>
-							{/if}
-
-							{#if movie.hasFile && totalSize > 0}
-								<div>
-									<div class="text-xs text-base-content/50">Size</div>
-									<div class="font-medium">{formatBytes(totalSize)}</div>
-								</div>
-							{/if}
-						</div>
-
-						{#if tmdbMovie['watch/providers']}
-							<div class="mt-4 border-t border-base-content/10 pt-4">
-								<div class="mb-2 text-xs text-base-content/50">
-									{m.hero_metadata_whereToWatch()}
-								</div>
-								<WatchProviders
-									providers={tmdbMovie['watch/providers']}
-									countryCode={defaultRegion}
-									limit={6}
-								/>
-							</div>
-						{/if}
+						{@render metaPanel()}
 					</div>
 				{/if}
 			</div>
@@ -683,3 +687,98 @@
 	confirmLabel={m.blockedMedia_confirmBlockLabel()}
 	confirmVariant="error"
 />
+
+<!-- Mobile action bar -->
+<div
+	class="fixed bottom-0 left-0 right-0 z-40 border-t border-base-content/6 bg-base-100/75 backdrop-blur-xl sm:hidden"
+	style="padding-bottom: env(safe-area-inset-bottom)"
+>
+	<div class="flex items-stretch justify-around">
+		<!-- Monitor -->
+		<button
+			class="flex flex-1 flex-col items-center gap-1 py-3 transition-colors
+				{movie.monitored ? 'text-success' : 'text-base-content/55'}"
+			onclick={() => onMonitorToggle?.(!movie.monitored)}
+		>
+			{#if movie.monitored}
+				<Eye size={20} />
+			{:else}
+				<EyeOff size={20} />
+			{/if}
+			<span class="text-[10px] tracking-wide">{movie.monitored ? 'Monitored' : 'Off'}</span>
+		</button>
+
+		<!-- Auto-grab -->
+		<button
+			class="flex flex-1 flex-col items-center gap-1 py-3 transition-colors
+				{autoSearching ? 'text-primary/40' : 'text-primary'}"
+			onclick={onAutoSearch}
+			disabled={autoSearching}
+		>
+			{#if autoSearching}
+				<span class="loading loading-xs loading-spinner"></span>
+			{:else}
+				<Zap size={20} />
+			{/if}
+			<span class="text-[10px] tracking-wide">{m.library_movieHeader_autoGrab()}</span>
+		</button>
+
+		<!-- Manual -->
+		<button
+			class="flex flex-1 flex-col items-center gap-1 py-3 text-base-content/55 transition-colors active:text-base-content/90"
+			onclick={onSearch}
+		>
+			<Search size={20} />
+			<span class="text-[10px] tracking-wide">{m.library_movieHeader_manual()}</span>
+		</button>
+
+		{#if onImport}
+			<!-- Import -->
+			<button
+				class="flex flex-1 flex-col items-center gap-1 py-3 text-base-content/55 transition-colors active:text-base-content/90"
+				onclick={onImport}
+			>
+				<Download size={20} />
+				<span class="text-[10px] tracking-wide">{m.action_import()}</span>
+			</button>
+		{/if}
+
+		<!-- Edit -->
+		<button
+			class="flex flex-1 flex-col items-center gap-1 py-3 text-base-content/55 transition-colors active:text-base-content/90"
+			onclick={onEdit}
+		>
+			<Settings size={20} />
+			<span class="text-[10px] tracking-wide">{m.action_edit()}</span>
+		</button>
+
+		<!-- Overflow -->
+		<div class="dropdown dropdown-top dropdown-end flex flex-1">
+			<button
+				tabindex="0"
+				class="flex flex-1 flex-col items-center gap-1 py-3 text-error/80 transition-colors active:text-error"
+			>
+				<MoreHorizontal size={20} />
+				<span class="text-[10px] tracking-wide">More</span>
+			</button>
+			<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+			<ul
+				tabindex="0"
+				class="dropdown-content menu z-50 mb-2 w-52 rounded-box border border-base-content/10 bg-base-200 p-2 shadow-lg"
+			>
+				<li>
+					<button class="text-error" onclick={onDelete}>
+						<Trash2 size={16} />
+						{m.action_delete()}
+					</button>
+				</li>
+				<li>
+					<button class="text-error" onclick={() => (showBlockConfirm = true)}>
+						<Ban size={16} />
+						{m.library_blockMediaTooltip()}
+					</button>
+				</li>
+			</ul>
+		</div>
+	</div>
+</div>
