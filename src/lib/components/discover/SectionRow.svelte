@@ -123,7 +123,7 @@
 	<div class="group/carousel relative">
 		{#if showLeftArrow}
 			<button
-				class="btn absolute top-1/2 left-0 z-20 btn-circle -translate-x-1/2 -translate-y-1/2 border-none bg-base-100/80 opacity-0 shadow-lg backdrop-blur-sm transition-all duration-300 btn-sm btn-neutral group-hover/carousel:opacity-100"
+				class="btn absolute top-1/2 left-0 z-20 btn-circle -translate-x-1/2 -translate-y-1/2 border-none bg-base-content text-base-100 opacity-0 shadow-lg transition-all duration-300 btn-sm group-hover/carousel:opacity-100"
 				onclick={() => scroll('left')}
 				transition:fade
 				aria-label={m.sectionRow_scrollLeft()}
@@ -174,7 +174,7 @@
 
 		{#if showRightArrow}
 			<button
-				class="btn absolute top-1/2 right-0 z-20 btn-circle translate-x-1/2 -translate-y-1/2 border-none bg-base-100/80 opacity-0 shadow-lg backdrop-blur-sm transition-all duration-300 btn-sm btn-neutral group-hover/carousel:opacity-100"
+				class="btn absolute top-1/2 right-0 z-20 btn-circle translate-x-1/2 -translate-y-1/2 border-none bg-base-content text-base-100 opacity-0 shadow-lg transition-all duration-300 btn-sm group-hover/carousel:opacity-100"
 				onclick={() => scroll('right')}
 				transition:fade
 				aria-label={m.sectionRow_scrollRight()}

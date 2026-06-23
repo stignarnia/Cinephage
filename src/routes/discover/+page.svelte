@@ -348,9 +348,17 @@
 	let isLoadingMore = $state(false);
 	let loadMoreTrigger = $state<HTMLElement>();
 
-	let debugMode = $state(false);
+	let debugMode = $state(
+		typeof localStorage !== 'undefined' && localStorage.getItem('discover_debugMode') === 'true'
+	);
 	let filteredOutResults = $state<ResultsType>([]);
 	let debugLoading = $state(false);
+
+	$effect(() => {
+		if (debugMode && filteredOutResults.length === 0 && !debugLoading) {
+			loadDebugResults();
+		}
+	});
 
 	async function loadDebugResults() {
 		debugLoading = true;
@@ -377,6 +385,7 @@
 
 	function toggleDebug() {
 		debugMode = !debugMode;
+		localStorage.setItem('discover_debugMode', String(debugMode));
 		if (debugMode) {
 			loadDebugResults();
 		} else {
