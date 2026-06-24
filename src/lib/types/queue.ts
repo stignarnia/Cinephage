@@ -9,6 +9,7 @@ export type QueueStatus =
 	| 'queued' // Added to queue, waiting to start
 	| 'downloading' // Actively downloading
 	| 'stalled' // Download stalled (no seeders/peers available)
+	| 'awaiting' // Download vanished from client, auto-retrying in poll loop
 	| 'paused' // Download paused
 	| 'completed' // Download finished, waiting for import
 	| 'postprocessing' // Download finished, post-processing in progress (usenet extraction/repair)

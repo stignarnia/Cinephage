@@ -279,6 +279,45 @@ export const POST: RequestHandler = async ({ params }) => {
 					queueItem: safeItem
 				});
 			}
+
+			// If still no path, try filesystem recovery
+			if (!importPathAvailable && client.downloadPathLocal && queueItem.title) {
+				const fsCategory = queueItem.seriesId ? client.tvCategory : client.movieCategory;
+				const folderName = queueItem.outputPath
+					? queueItem.outputPath.replace(/\\/g, '/').split('/').filter(Boolean).pop() ||
+						queueItem.title
+					: queueItem.title;
+				const candidatePath = `${client.downloadPathLocal.replace(/\/+$/, '')}/${fsCategory}/${folderName}`;
+
+				try {
+					const { stat } = await import('fs/promises');
+					await stat(candidatePath);
+
+					// Found! Update and import
+					await db
+						.update(downloadQueue)
+						.set({
+							outputPath: candidatePath,
+							clientDownloadPath: candidatePath,
+							status: 'completed',
+							completedAt: queueItem.completedAt || new Date().toISOString(),
+							errorMessage: null,
+							importAttempts: 0,
+							lastAttemptAt: new Date().toISOString()
+						})
+						.where(eq(downloadQueue.id, id));
+
+					const importResult = await getImportService().requestImport(id);
+					return json({
+						success: true,
+						message: 'Files located and import initiated',
+						retryMode: 'import',
+						importStatus: importResult.status
+					});
+				} catch {
+					// Not found, fall through to re-download
+				}
+			}
 		}
 
 		let newInfoHash: string | undefined;
