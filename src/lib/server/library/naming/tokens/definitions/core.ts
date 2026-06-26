@@ -55,6 +55,29 @@ export const coreTokens: TokenDefinition[] = [
 		}
 	},
 	{
+		name: 'OriginalTitle',
+		aliases: ['SeriesOriginalTitle', 'MovieOriginalTitle'],
+		category: 'core',
+		description: 'Original title as-is',
+		applicability: ['movie', 'series'],
+		supportsFormatSpec: false,
+		render: (info) => {
+			return info.originalTitle || info.title || '';
+		}
+	},
+	{
+		name: 'OriginalCleanTitle',
+		aliases: ['SeriesOriginalCleanTitle', 'MovieOriginalCleanTitle'],
+		category: 'core',
+		description: 'Original title with special characters removed',
+		applicability: ['movie', 'series'],
+		supportsFormatSpec: false,
+		render: (info) => {
+			const title = info.originalTitle || info.title || '';
+			return title ? generateCleanTitle(title) : '';
+		}
+	},
+	{
 		name: 'Year',
 		category: 'core',
 		description: 'Release year',
