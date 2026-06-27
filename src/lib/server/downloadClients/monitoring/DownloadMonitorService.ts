@@ -557,10 +557,24 @@ export class DownloadMonitorService extends EventEmitter implements BackgroundSe
 				.where(not(inArray(downloadQueue.status, TERMINAL_STATUSES)));
 
 			const knownHashes = new Set<string>();
+			// "Actively tracked" = a genuinely in-flight row. A hash whose only rows are
+			// failed or post-import is effectively an orphan: the queue-based stalled
+			// handler ignores it (it only acts on 'stalled' rows and excludes 'failed'
+			// from polling), so the sweep must treat it. Only 'removed' is excluded from
+			// knownHashes, so without this distinction a leftover failed row would make a
+			// stuck torrent look "tracked" and never get swept.
+			const activeHashes = new Set<string>();
+			const postImportStatusSet = new Set<string>(POST_IMPORT_STATUSES);
 			for (const item of activeQueueItems) {
 				knownHashes.add(item.downloadId.toLowerCase());
 				if (item.infoHash) {
 					knownHashes.add(item.infoHash.toLowerCase());
+				}
+				if (item.status !== 'failed' && !postImportStatusSet.has(item.status)) {
+					activeHashes.add(item.downloadId.toLowerCase());
+					if (item.infoHash) {
+						activeHashes.add(item.infoHash.toLowerCase());
+					}
 				}
 			}
 
@@ -589,11 +603,6 @@ export class DownloadMonitorService extends EventEmitter implements BackgroundSe
 					for (const download of downloads) {
 						const hashLower = download.hash.toLowerCase();
 
-						// Skip if tracked
-						if (knownHashes.has(hashLower)) {
-							continue;
-						}
-
 						// Skip if not in our category
 						const isOurCategory =
 							!client.tvCategory ||
@@ -604,23 +613,33 @@ export class DownloadMonitorService extends EventEmitter implements BackgroundSe
 							continue;
 						}
 
-						// Stalled/stuck orphan: not actively tracked but stuck in our category.
-						// Handle it under the stalled timeout instead of the completed-orphan path.
+						// Stalled/stuck orphan: a torrent stuck stalled in our category with no
+						// active queue row (untracked, or only failed/terminal rows). Items WITH an
+						// active row are owned by the queue-based handleStalledDownloads, so we leave
+						// those to it. Checked before the knownHashes skip so failed-only torrents
+						// (which are in knownHashes but not active) still get swept.
 						if (stalledHandlingEnabled && download.status === 'stalled') {
-							seenStalledHashes.add(hashLower);
-							await this.handleStalledOrphan(
-								client.id,
-								instance,
-								download,
-								{
-									progressThreshold: stalledProgressThreshold,
-									timeoutMs: stalledTimeoutMs,
-									blocklistHours: stalledBlocklistHours,
-									now: sweepNow,
-									dryRun
-								},
-								result
-							);
+							if (!activeHashes.has(hashLower)) {
+								seenStalledHashes.add(hashLower);
+								await this.handleStalledOrphan(
+									client.id,
+									instance,
+									download,
+									{
+										progressThreshold: stalledProgressThreshold,
+										timeoutMs: stalledTimeoutMs,
+										blocklistHours: stalledBlocklistHours,
+										now: sweepNow,
+										dryRun
+									},
+									result
+								);
+							}
+							continue;
+						}
+
+						// Completed/seeding orphan path: skip anything tracked by a non-removed row.
+						if (knownHashes.has(hashLower)) {
 							continue;
 						}
 
