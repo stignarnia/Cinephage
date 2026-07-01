@@ -1,7 +1,6 @@
 import Database from 'better-sqlite3';
 import { createHash } from 'node:crypto';
 import { createChildLogger } from '$lib/logging';
-import { MIGRATIONS } from './migrations/index.js';
 
 const logger = createChildLogger({ logDomain: 'system' as const });
 
@@ -490,7 +489,10 @@ export function getAppliedMigrations(
  * Backfill migration records for existing databases that were using the legacy schema_version system.
  * This ensures backward compatibility when upgrading from the old single-version tracking.
  */
-export function backfillMigrationRecords(sqlite: Database.Database): void {
+export function backfillMigrationRecords(
+	sqlite: Database.Database,
+	migrations: MigrationDefinition[]
+): void {
 	const legacyVersion = getSchemaVersion(sqlite);
 	if (legacyVersion === 0) return;
 
@@ -508,7 +510,7 @@ export function backfillMigrationRecords(sqlite: Database.Database): void {
 		VALUES (?, ?, ?, ?, 0, 1)
 	`);
 
-	for (const migration of MIGRATIONS) {
+	for (const migration of migrations) {
 		if (migration.version <= legacyVersion) {
 			stmt.run(migration.version, migration.name, computeMigrationChecksum(migration), now);
 		}

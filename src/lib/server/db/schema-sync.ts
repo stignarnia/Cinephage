@@ -1453,7 +1453,7 @@ export function syncSchema(sqlite: Database.Database): void {
 		.run();
 
 	// 2. Backfill records for legacy databases
-	backfillMigrationRecords(sqlite);
+	backfillMigrationRecords(sqlite, MIGRATIONS);
 
 	// 2.5. Detect and fix schema drift (columns missing despite version saying they should exist)
 	detectAndFixSchemaDrift(sqlite);
