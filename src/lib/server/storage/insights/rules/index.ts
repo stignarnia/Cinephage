@@ -4,6 +4,7 @@ import { UntrackedByCinephageRule } from './UntrackedByCinephageRule.js';
 import { UnplayedRule } from './UnplayedRule.js';
 import { DuplicateItemsRule } from './DuplicateItemsRule.js';
 import { OrphanedFilesRule } from './OrphanedFilesRule.js';
+import { HealthIssuesRule } from './HealthIssuesRule.js';
 
 // Rules are added in Tasks 5-12. Each new rule is appended to this array.
 export const ALL_RULES: StorageInsightRule[] = [
@@ -11,5 +12,6 @@ export const ALL_RULES: StorageInsightRule[] = [
 	new UntrackedByCinephageRule(),
 	new UnplayedRule(),
 	new DuplicateItemsRule(),
-	new OrphanedFilesRule()
+	new OrphanedFilesRule(),
+	new HealthIssuesRule()
 ];
