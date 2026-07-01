@@ -6,10 +6,9 @@
 		Library,
 		BarChart3,
 		RefreshCw,
-		ExternalLink,
-		CheckCircle
+		CheckCircle,
+		ChevronRight
 	} from 'lucide-svelte';
-	import { SvelteSet } from 'svelte/reactivity';
 	import type { StorageSummary, ScanProgress, ScanSuccess, ServerStatus } from './utils.js';
 	import type { LibraryBreakdownItem, RootFolderBreakdownItem } from './utils.js';
 	import {
@@ -20,7 +19,7 @@
 		getSyncStatusColor
 	} from './utils.js';
 	import StorageTile from './StorageTile.svelte';
-	import InsightCard from './InsightCard.svelte';
+	import { BreakdownBar } from '$lib/components/ui';
 
 	type BreakdownItem = { label: string; count: number };
 
@@ -43,6 +42,7 @@
 		mediaServerStats: {
 			uniqueItems: number;
 			resolutionBreakdown: BreakdownItem[];
+			codecBreakdown: BreakdownItem[];
 		};
 		scanning: boolean;
 		scanProgress: ScanProgress | null;
@@ -64,6 +64,7 @@
 		serverStatuses
 	}: Props = $props();
 
+	// --- Tile computations ---
 	const totalCapacity = $derived(
 		rootFolderBreakdown.reduce((sum, f) => sum + (f.totalSpaceBytes ?? 0), 0)
 	);
@@ -94,15 +95,32 @@
 		insights.find((i) => i.insightType === 'quality-below-cutoff')?.itemCount ?? 0
 	);
 
-	const topInsights = $derived(insights.slice(0, 3));
-	// SvelteSet (not a plain Set in $state) so .add()/.has() are reactive.
-	let dismissedIds = new SvelteSet<string>();
-	const visibleTopInsights = $derived(topInsights.filter((i) => !dismissedIds.has(i.id)));
+	// --- Chart segment data ---
+	const libraryStorageSegments = $derived(
+		libraryBreakdown
+			.filter((l) => l.usedBytes > 0)
+			.map((l) => ({ label: l.name, value: l.usedBytes }))
+	);
+
+	const resolutionSegments = $derived(
+		mediaServerStats.resolutionBreakdown.map((r) => ({ label: r.label, value: r.count }))
+	);
+
+	const codecSegments = $derived(
+		mediaServerStats.codecBreakdown?.map((c) => ({ label: c.label, value: c.count })) ?? []
+	);
+
+	// --- Priority insights for sidebar (top 5 by severity order, already sorted from server) ---
+	const topInsights = $derived(insights.slice(0, 5));
+
+	function severityDot(sev: string): string {
+		return sev === 'critical' ? 'bg-error' : sev === 'warning' ? 'bg-warning' : 'bg-info';
+	}
 
 	const baseUrl = '/settings/monitoring/status';
 </script>
 
-<!-- Scan alerts (transient — only show during/after scans) -->
+<!-- Scan alerts (transient) -->
 {#if scanError}
 	<div class="mb-4 alert alert-error">
 		<AlertTriangle class="h-5 w-5" />
@@ -141,9 +159,7 @@
 		label="Capacity"
 		value={formatBytes(storage.totalUsedBytes)}
 		context={totalCapacity > 0
-			? `${capacityPercent}% of ${formatBytes(totalCapacity)} \u00B7 ${folderCount} folder${
-					folderCount === 1 ? '' : 's'
-				}`
+			? `${capacityPercent}% of ${formatBytes(totalCapacity)} \u00B7 ${folderCount} folder${folderCount === 1 ? '' : 's'}`
 			: `${folderCount} folder${folderCount === 1 ? '' : 's'}`}
 		href={`${baseUrl}/folders`}
 		miniSegments={rootFolderBreakdown.length > 0
@@ -200,7 +216,7 @@
 		value={mediaServerStats.uniqueItems > 0 ? `${mediaServerStats.uniqueItems} items` : 'No data'}
 		context={belowCutoffCount > 0 ? `${belowCutoffCount} below cutoff` : 'Cutoffs met'}
 		href={`${baseUrl}/media`}
-		miniSegments={mediaServerStats.resolutionBreakdown.length > 0
+		miniSegments={resolutionSegments.length > 0
 			? [
 					{
 						value: mediaServerStats.resolutionBreakdown.find((r) => r.label === '4K')?.count ?? 0,
@@ -239,21 +255,104 @@
 	/>
 </div>
 
-<!-- TOP 3 INSIGHTS SUMMARY -->
-{#if visibleTopInsights.length > 0}
-	<div class="mt-4 space-y-2">
-		<div class="flex items-center justify-between">
-			<h3 class="text-sm font-semibold text-base-content/70">Priority Insights</h3>
-			<a href={`${baseUrl}/insights`} class="relative z-10 btn btn-ghost btn-xs gap-1">
-				View all
-				<ExternalLink class="h-3 w-3" />
+<!-- DASHBOARD BODY: charts + insights sidebar -->
+<div class="mt-4 grid gap-4 lg:grid-cols-3">
+	<!-- LEFT (2/3): Charts -->
+	<div class="space-y-4 lg:col-span-2">
+		<!-- Storage by Library -->
+		{#if libraryStorageSegments.length > 0}
+			<div class="card bg-base-200 p-4">
+				<div class="mb-3 flex items-center justify-between">
+					<h3 class="text-sm font-semibold text-base-content/70">Storage by Library</h3>
+					<span class="text-xs text-base-content/50"
+						>{formatBytes(storage.totalUsedBytes)} total</span
+					>
+				</div>
+				<BreakdownBar
+					segments={libraryStorageSegments}
+					variant="thin"
+					totalLabel={`${libraryCount} libraries`}
+				/>
+			</div>
+		{/if}
+
+		<!-- Resolution + Codec side by side -->
+		{#if resolutionSegments.length > 0 || codecSegments.length > 0}
+			<div class="grid gap-4 sm:grid-cols-2">
+				{#if resolutionSegments.length > 0}
+					<div class="card bg-base-200 p-4">
+						<h3 class="mb-3 text-sm font-semibold text-base-content/70">Resolution</h3>
+						<BreakdownBar segments={resolutionSegments} variant="thin" showLegend={false} />
+						<!-- Mini legend below -->
+						<div class="mt-2 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-base-content/60">
+							{#each mediaServerStats.resolutionBreakdown.slice(0, 5) as item (item.label)}
+								<span>{item.label}: {item.count}</span>
+							{/each}
+						</div>
+					</div>
+				{/if}
+				{#if codecSegments.length > 0}
+					<div class="card bg-base-200 p-4">
+						<h3 class="mb-3 text-sm font-semibold text-base-content/70">Video Codec</h3>
+						<BreakdownBar segments={codecSegments} variant="thin" showLegend={false} />
+						<div class="mt-2 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-base-content/60">
+							{#each mediaServerStats.codecBreakdown.slice(0, 5) as item (item.label)}
+								<span>{item.label}: {item.count}</span>
+							{/each}
+						</div>
+					</div>
+				{/if}
+			</div>
+		{/if}
+
+		<!-- Browse media link -->
+		<div class="flex justify-end">
+			<a href={`${baseUrl}/media`} class="btn btn-ghost btn-sm gap-1">
+				Browse all media
+				<ChevronRight class="h-3.5 w-3.5" />
 			</a>
 		</div>
-		{#each visibleTopInsights as insight (insight.id)}
-			<InsightCard {insight} onDismissed={() => dismissedIds.add(insight.id)} />
-		{/each}
 	</div>
-{/if}
+
+	<!-- RIGHT (1/3): Priority Insights sidebar -->
+	<div class="space-y-2">
+		<div class="flex items-center justify-between">
+			<h3 class="text-sm font-semibold text-base-content/70">Priority Insights</h3>
+			{#if insights.length > 0}
+				<a href={`${baseUrl}/insights`} class="btn btn-ghost btn-xs gap-1">
+					View all
+					<ChevronRight class="h-3 w-3" />
+				</a>
+			{/if}
+		</div>
+		{#if topInsights.length === 0}
+			<div
+				class="flex items-center gap-2 rounded-lg border border-success/20 bg-success/5 p-3 text-sm text-base-content/60"
+			>
+				<CheckCircle class="h-4 w-4 shrink-0 text-success" />
+				<span>Everything looks healthy</span>
+			</div>
+		{:else}
+			{#each topInsights as insight (insight.id)}
+				<a
+					href={`${baseUrl}/insights`}
+					class="flex items-center gap-2.5 rounded-lg border border-base-300 bg-base-200/50 p-2.5 transition-colors hover:bg-base-300/50"
+				>
+					<span
+						class={`inline-block h-2 w-2 shrink-0 rounded-full ${severityDot(insight.severity)}`}
+					></span>
+					<span class="min-w-0 flex-1 truncate text-sm text-base-content">{insight.title}</span>
+					{#if insight.itemCount > 1}
+						<span class="shrink-0 text-xs font-medium text-base-content/50"
+							>{insight.itemCount}</span
+						>
+					{/if}
+					<ChevronRight class="h-3.5 w-3.5 shrink-0 text-base-content/30" />
+				</a>
+			{/each}
+		{/if}
+	</div>
+</div>
 
 <!-- STATUS FOOTER BAR -->
 <div
