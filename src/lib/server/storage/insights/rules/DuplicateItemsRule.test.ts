@@ -79,15 +79,13 @@ describe('DuplicateItemsRule', () => {
 		await testDb.db
 			.insert(movies)
 			.values(createMovie({ id: 'm-2', tmdbId: 200, title: 'Single File' }));
-		await testDb.db
-			.insert(movieFiles)
-			.values(
-				createMovieFile({
-					id: 'mf-3',
-					movieId: 'm-2',
-					size: 1000
-				}) as typeof movieFiles.$inferInsert
-			);
+		await testDb.db.insert(movieFiles).values(
+			createMovieFile({
+				id: 'mf-3',
+				movieId: 'm-2',
+				size: 1000
+			}) as typeof movieFiles.$inferInsert
+		);
 
 		const findings = await rule.evaluate({
 			db: testDb.db as RuleContext['db'],
