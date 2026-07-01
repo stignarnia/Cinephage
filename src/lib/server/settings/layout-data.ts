@@ -1,4 +1,4 @@
-import type { LibraryBreakdownItem } from '$lib/components/libraries/storage-utils.js';
+import type { LibraryBreakdownItem } from '$lib/components/storage/utils.js';
 import { sql } from 'drizzle-orm';
 import { getRootFolderService } from '$lib/server/downloadClients/RootFolderService';
 import { getEffectiveAnimeRootFolderEnforcement } from '$lib/server/library/anime-root-enforcement-settings.js';

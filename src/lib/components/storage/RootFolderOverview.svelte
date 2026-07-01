@@ -1,11 +1,8 @@
 <script lang="ts">
 	import { HardDrive, Pencil, RefreshCw } from 'lucide-svelte';
 	import { formatBytes } from '$lib/utils/format.js';
-	import {
-		getRootFolderScanLabel,
-		getRootFolderScanBadgeClass
-	} from '$lib/components/libraries/storage-utils.js';
-	import type { RootFolderBreakdownItem } from '$lib/components/libraries/storage-utils.js';
+	import { getRootFolderScanLabel, getRootFolderScanBadgeClass } from './utils.js';
+	import type { RootFolderBreakdownItem } from './utils.js';
 
 	interface Props {
 		rootFolders: RootFolderBreakdownItem[];

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Library, Pencil } from 'lucide-svelte';
 	import { formatBytes } from '$lib/utils/format.js';
-	import type { LibraryBreakdownItem } from '$lib/components/libraries/storage-utils.js';
+	import type { LibraryBreakdownItem } from './utils.js';
 
 	interface Props {
 		libraries: LibraryBreakdownItem[];

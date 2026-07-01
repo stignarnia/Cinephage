@@ -1,14 +1,6 @@
 <script lang="ts">
-	import type {
-		StorageSummary,
-		ScanProgress,
-		ScanSuccess,
-		ServerStatus
-	} from '$lib/components/libraries/storage-utils.js';
-	import type {
-		LibraryBreakdownItem,
-		RootFolderBreakdownItem
-	} from '$lib/components/libraries/storage-utils.js';
+	import type { StorageSummary, ScanProgress, ScanSuccess, ServerStatus } from './utils.js';
+	import type { LibraryBreakdownItem, RootFolderBreakdownItem } from './utils.js';
 	import StorageHero from './StorageHero.svelte';
 	import InsightsPanel from './InsightsPanel.svelte';
 	import LibraryOverview from './LibraryOverview.svelte';
@@ -20,7 +12,7 @@
 		getScanTone,
 		getServerTypeBadgeClass,
 		getSyncStatusColor
-	} from '$lib/components/libraries/storage-utils.js';
+	} from './utils.js';
 
 	type BreakdownItem = { label: string; count: number };
 
