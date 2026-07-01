@@ -519,10 +519,12 @@ export class RootFolderService {
 		for (const folder of folders) {
 			try {
 				const freeSpaceBytes = await this.getFreeSpace(folder.path);
+				const totalSpaceBytes = await this.getTotalSpace(folder.path);
 				await db
 					.update(rootFoldersTable)
 					.set({
 						freeSpaceBytes,
+						totalSpaceBytes,
 						lastCheckedAt: now
 					})
 					.where(eq(rootFoldersTable.id, folder.id));
