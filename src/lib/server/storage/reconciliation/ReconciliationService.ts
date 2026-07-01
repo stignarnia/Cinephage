@@ -1,3 +1,4 @@
+import { EventEmitter } from 'node:events';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { ServiceStatus, BackgroundService } from '$lib/server/services/background-service.js';
 import { db } from '$lib/server/db';
@@ -33,7 +34,7 @@ type SourceRow = {
 	libraryId: string | null;
 };
 
-class ReconciliationService implements BackgroundService {
+class ReconciliationService extends EventEmitter implements BackgroundService {
 	readonly name = 'ReconciliationService';
 	private _status: ServiceStatus = 'pending';
 	private _error?: Error;
@@ -349,10 +350,11 @@ class ReconciliationService implements BackgroundService {
 				};
 			});
 
-			logger.info(
-				`[ReconciliationService] reconcile complete: ${result.itemsInserted} new, ${result.itemsUpdated} updated, ${result.itemsDeleted} removed, ${result.linksUpserted} links, ${result.errorCount} errors in ${result.durationMs}ms`
-			);
-			return result;
+		logger.info(
+			`[ReconciliationService] reconcile complete: ${result.itemsInserted} new, ${result.itemsUpdated} updated, ${result.itemsDeleted} removed, ${result.linksUpserted} links, ${result.errorCount} errors in ${result.durationMs}ms`
+		);
+		this.emit('reconcileComplete', result);
+		return result;
 		} catch (e) {
 			this._error = e instanceof Error ? e : new Error(String(e));
 			logger.error('[ReconciliationService] reconcile threw', this._error);
