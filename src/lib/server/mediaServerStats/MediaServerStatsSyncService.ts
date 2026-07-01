@@ -8,10 +8,11 @@ import { db } from '$lib/server/db';
 import { mediaServerSyncedItems, mediaServerSyncedRuns } from '$lib/server/db/schema';
 import { eq, and, notInArray } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
+import { EventEmitter } from 'node:events';
 
 const DEFAULT_SYNC_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
-class MediaServerStatsSyncService implements BackgroundService {
+class MediaServerStatsSyncService extends EventEmitter implements BackgroundService {
 	readonly name = 'MediaServerStatsSyncService';
 	private _status: ServiceStatus = 'pending';
 	private _error?: Error;
@@ -219,6 +220,14 @@ class MediaServerStatsSyncService implements BackgroundService {
 				})
 				.where(eq(mediaServerSyncedRuns.id, runId));
 
+			this.emit('syncComplete', {
+				serverId: server.id,
+				itemsSynced,
+				itemsAdded,
+				itemsUpdated,
+				itemsRemoved
+			});
+
 			logger.info(
 				{
 					serverId: server.id,
@@ -249,6 +258,8 @@ class MediaServerStatsSyncService implements BackgroundService {
 					duration
 				})
 				.where(eq(mediaServerSyncedRuns.id, runId));
+
+			this.emit('syncError', { serverId: server.id, error });
 
 			logger.error(
 				{
