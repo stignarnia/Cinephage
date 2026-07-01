@@ -8,7 +8,7 @@
 		ChevronDown,
 		ChevronsUpDown
 	} from 'lucide-svelte';
-	import { SettingsSection } from '$lib/components/ui/settings';
+	import { SettingsSection, BreakdownBar } from '$lib/components/ui';
 	import { formatBytes, formatDisplayDateShort } from '$lib/utils/format.js';
 
 	type BreakdownItem = { label: string; count: number };
@@ -127,15 +127,21 @@
 		return { visible: sorted.slice(0, largestLimit), total: sorted.length };
 	});
 
-	function barWidth(count: number, max: number): string {
-		if (max <= 0) return '0%';
-		return `${Math.max(4, Math.round((count / max) * 100))}%`;
-	}
-
-	function maxOf(breakdown: BreakdownItem[]): number {
-		if (breakdown.length === 0) return 0;
-		return Math.max(...breakdown.map((b) => b.count));
-	}
+	const resolutionItems = $derived(
+		stats.resolutionBreakdown.map(({ label, count }) => ({ label, value: count }))
+	);
+	const codecItems = $derived(
+		stats.codecBreakdown.map(({ label, count }) => ({ label, value: count }))
+	);
+	const hdrItems = $derived(
+		stats.hdrBreakdown.map(({ label, count }) => ({ label, value: count }))
+	);
+	const audioCodecItems = $derived(
+		stats.audioCodecBreakdown.map(({ label, count }) => ({ label, value: count }))
+	);
+	const containerItems = $derived(
+		stats.containerBreakdown.map(({ label, count }) => ({ label, value: count }))
+	);
 
 	function formatResolution(height: number | null): string {
 		if (!height) return '—';
@@ -205,138 +211,25 @@
 
 	<div class="mt-4 grid gap-4 md:grid-cols-3">
 		<SettingsSection title="Resolution" variant="card">
-			{#if stats.resolutionBreakdown.length > 0}
-				{@const max = maxOf(stats.resolutionBreakdown)}
-				<div class="space-y-2">
-					{#each stats.resolutionBreakdown as item (item.label)}
-						<div class="flex items-center gap-2">
-							<span class="w-14 shrink-0 text-right text-xs font-medium text-base-content/70"
-								>{item.label}</span
-							>
-							<div class="flex-1">
-								<div class="relative h-2 overflow-hidden rounded-full bg-base-300">
-									<div
-										class="absolute inset-y-0 left-0 rounded-full bg-primary transition-all"
-										style="width: {barWidth(item.count, max)}"
-									></div>
-								</div>
-							</div>
-							<span class="w-12 text-right text-xs text-base-content/70">{item.count}</span>
-						</div>
-					{/each}
-				</div>
-			{:else}
-				<p class="text-sm text-base-content/50">No resolution data available</p>
-			{/if}
+			<BreakdownBar items={resolutionItems} />
 		</SettingsSection>
 
 		<SettingsSection title="Video Codec" variant="card">
-			{#if stats.codecBreakdown.length > 0}
-				{@const max = maxOf(stats.codecBreakdown)}
-				<div class="space-y-2">
-					{#each stats.codecBreakdown as item (item.label)}
-						<div class="flex items-center gap-2">
-							<span
-								class="w-14 shrink-0 truncate text-right text-xs font-medium text-base-content/70"
-								>{item.label}</span
-							>
-							<div class="flex-1">
-								<div class="relative h-2 overflow-hidden rounded-full bg-base-300">
-									<div
-										class="absolute inset-y-0 left-0 rounded-full bg-secondary transition-all"
-										style="width: {barWidth(item.count, max)}"
-									></div>
-								</div>
-							</div>
-							<span class="w-12 text-right text-xs text-base-content/70">{item.count}</span>
-						</div>
-					{/each}
-				</div>
-			{:else}
-				<p class="text-sm text-base-content/50">No codec data available</p>
-			{/if}
+			<BreakdownBar items={codecItems} />
 		</SettingsSection>
 
 		<SettingsSection title="HDR / SDR" variant="card">
-			{#if stats.hdrBreakdown.length > 0}
-				{@const max = maxOf(stats.hdrBreakdown)}
-				<div class="space-y-2">
-					{#each stats.hdrBreakdown as item (item.label)}
-						<div class="flex items-center gap-2">
-							<span class="w-14 shrink-0 text-right text-xs font-medium text-base-content/70"
-								>{item.label}</span
-							>
-							<div class="flex-1">
-								<div class="relative h-2 overflow-hidden rounded-full bg-base-300">
-									<div
-										class="absolute inset-y-0 left-0 rounded-full bg-accent transition-all"
-										style="width: {barWidth(item.count, max)}"
-									></div>
-								</div>
-							</div>
-							<span class="w-12 text-right text-xs text-base-content/70">{item.count}</span>
-						</div>
-					{/each}
-				</div>
-			{:else}
-				<p class="text-sm text-base-content/50">No HDR data available</p>
-			{/if}
+			<BreakdownBar items={hdrItems} />
 		</SettingsSection>
 	</div>
 
 	<div class="mt-4 grid gap-4 md:grid-cols-2">
 		<SettingsSection title="Audio Codec" variant="card">
-			{#if stats.audioCodecBreakdown.length > 0}
-				{@const max = maxOf(stats.audioCodecBreakdown)}
-				<div class="space-y-2">
-					{#each stats.audioCodecBreakdown as item (item.label)}
-						<div class="flex items-center gap-2">
-							<span
-								class="w-14 shrink-0 truncate text-right text-xs font-medium text-base-content/70"
-								>{item.label}</span
-							>
-							<div class="flex-1">
-								<div class="relative h-2 overflow-hidden rounded-full bg-base-300">
-									<div
-										class="absolute inset-y-0 left-0 rounded-full bg-info transition-all"
-										style="width: {barWidth(item.count, max)}"
-									></div>
-								</div>
-							</div>
-							<span class="w-12 text-right text-xs text-base-content/70">{item.count}</span>
-						</div>
-					{/each}
-				</div>
-			{:else}
-				<p class="text-sm text-base-content/50">No audio codec data available</p>
-			{/if}
+			<BreakdownBar items={audioCodecItems} />
 		</SettingsSection>
 
 		<SettingsSection title="Container Format" variant="card">
-			{#if stats.containerBreakdown.length > 0}
-				{@const max = maxOf(stats.containerBreakdown)}
-				<div class="space-y-2">
-					{#each stats.containerBreakdown as item (item.label)}
-						<div class="flex items-center gap-2">
-							<span
-								class="w-14 shrink-0 truncate text-right text-xs font-medium text-base-content/70"
-								>{item.label}</span
-							>
-							<div class="flex-1">
-								<div class="relative h-2 overflow-hidden rounded-full bg-base-300">
-									<div
-										class="absolute inset-y-0 left-0 rounded-full bg-warning transition-all"
-										style="width: {barWidth(item.count, max)}"
-									></div>
-								</div>
-							</div>
-							<span class="w-12 text-right text-xs text-base-content/70">{item.count}</span>
-						</div>
-					{/each}
-				</div>
-			{:else}
-				<p class="text-sm text-base-content/50">No container data available</p>
-			{/if}
+			<BreakdownBar items={containerItems} />
 		</SettingsSection>
 	</div>
 
