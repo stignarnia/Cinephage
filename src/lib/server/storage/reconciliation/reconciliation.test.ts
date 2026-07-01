@@ -13,6 +13,7 @@ import {
 	episodeFiles,
 	movies,
 	series,
+	episodes,
 	mediaServerSyncedItems,
 	mediaBrowserServers
 } from '$lib/server/db/schema';
@@ -57,6 +58,7 @@ import {
 	createMovie,
 	createMovieFile,
 	createSeries,
+	createEpisode,
 	createEpisodeFile
 } from '../../../../test/fixtures/index.js';
 import { createMediaServerItem } from '../../../../test/fixtures/storage.js';
@@ -264,5 +266,98 @@ describe('ReconciliationService', () => {
 		await first;
 
 		expect(second.skipped).toBe(true);
+	});
+
+	it('expands a multi-episode file to per-episode storage_items rows', async () => {
+		await testDb.db
+			.insert(series)
+			.values(createSeries({ id: 'series-ep', tmdbId: 800, title: 'Multi Ep Show' }));
+		await testDb.db.insert(episodes).values(
+			createEpisode({
+				id: 'ep-1',
+				seriesId: 'series-ep',
+				seasonNumber: 1,
+				episodeNumber: 1
+			}) as typeof episodes.$inferInsert
+		);
+		await testDb.db.insert(episodes).values(
+			createEpisode({
+				id: 'ep-2',
+				seriesId: 'series-ep',
+				seasonNumber: 1,
+				episodeNumber: 2
+			}) as typeof episodes.$inferInsert
+		);
+		await testDb.db.insert(episodeFiles).values(
+			createEpisodeFile({
+				id: 'ef-multi',
+				seriesId: 'series-ep',
+				seasonNumber: 1,
+				episodeIds: ['ep-1', 'ep-2']
+			}) as typeof episodeFiles.$inferInsert
+		);
+
+		const service = getReconciliationService();
+		await service.reconcile();
+
+		const items = await testDb.db.select().from(storageItems);
+		expect(items).toHaveLength(2);
+		// Both rows should reference the same episode file
+		expect(items.every((i) => i.episodeFileId === 'ef-multi')).toBe(true);
+		// And carry distinct episode numbers (1 and 2) rather than collapsing via COALESCE(-1)
+		const episodeNumbers = items.map((i) => i.episodeNumber).sort((a, b) => (a ?? 0) - (b ?? 0));
+		expect(episodeNumbers).toEqual([1, 2]);
+	});
+
+	it('links a single storage_items row to multiple media servers', async () => {
+		await testDb.db.insert(mediaBrowserServers).values({
+			id: 'srv-2',
+			name: 'Test Plex',
+			serverType: 'plex',
+			host: 'http://test2',
+			apiKey: 'key2',
+			enabled: true
+		});
+		await testDb.db
+			.insert(movies)
+			.values(createMovie({ id: 'movie-ms', tmdbId: 900, title: 'Multi Server' }));
+		await testDb.db
+			.insert(movieFiles)
+			.values(
+				createMovieFile({ id: 'mf-ms', movieId: 'movie-ms' }) as typeof movieFiles.$inferInsert
+			);
+		await testDb.db.insert(mediaServerSyncedItems).values(
+			createMediaServerItem({
+				id: 'msi-a',
+				serverId: 'srv-1',
+				serverItemId: 'jf-a',
+				tmdbId: 900,
+				itemType: 'movie'
+			})
+		);
+		await testDb.db.insert(mediaServerSyncedItems).values(
+			createMediaServerItem({
+				id: 'msi-b',
+				serverId: 'srv-2',
+				serverItemId: 'jf-b',
+				tmdbId: 900,
+				itemType: 'movie'
+			})
+		);
+
+		const service = getReconciliationService();
+		const result = await service.reconcile();
+
+		expect(result.skipped).toBe(false);
+		expect(result.linksUpserted).toBe(2);
+
+		const items = await testDb.db.select().from(storageItems);
+		expect(items).toHaveLength(1);
+		expect(items[0].sourceSystem).toBe('both');
+
+		const links = await testDb.db.select().from(storageItemServerLinks);
+		expect(links).toHaveLength(2);
+		const serverIds = links.map((l) => l.serverId).sort();
+		expect(serverIds).toEqual(['srv-1', 'srv-2']);
 	});
 });

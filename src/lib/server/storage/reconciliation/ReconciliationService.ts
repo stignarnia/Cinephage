@@ -3,6 +3,7 @@ import type { ServiceStatus, BackgroundService } from '$lib/server/services/back
 import { db } from '$lib/server/db';
 import {
 	episodeFiles,
+	episodes,
 	mediaServerSyncedItems,
 	movies,
 	movieFiles,
@@ -79,27 +80,39 @@ class ReconciliationService implements BackgroundService {
 		if (this.listenersAttached) return;
 		this.listenersAttached = true;
 		// Lazy-import to avoid circular deps at module load time
-		void import('$lib/server/library/library-scheduler.js').then(({ getLibraryScheduler }) => {
-			getLibraryScheduler().on('scanComplete', this.handleTrigger);
-		});
-		void import('$lib/server/mediaServerStats/MediaServerStatsSyncService.js').then(
-			({ getMediaServerStatsSyncService }) => {
+		void import('$lib/server/library/library-scheduler.js')
+			.then(({ getLibraryScheduler }) => {
+				getLibraryScheduler().on('scanComplete', this.handleTrigger);
+			})
+			.catch((e) => {
+				logger.error('[ReconciliationService] failed to subscribe to scanComplete', e);
+			});
+		void import('$lib/server/mediaServerStats/MediaServerStatsSyncService.js')
+			.then(({ getMediaServerStatsSyncService }) => {
 				getMediaServerStatsSyncService().on('syncComplete', this.handleTrigger);
-			}
-		);
+			})
+			.catch((e) => {
+				logger.error('[ReconciliationService] failed to subscribe to syncComplete', e);
+			});
 	}
 
 	private detachListeners(): void {
 		if (!this.listenersAttached) return;
 		this.listenersAttached = false;
-		void import('$lib/server/library/library-scheduler.js').then(({ getLibraryScheduler }) => {
-			getLibraryScheduler().off('scanComplete', this.handleTrigger);
-		});
-		void import('$lib/server/mediaServerStats/MediaServerStatsSyncService.js').then(
-			({ getMediaServerStatsSyncService }) => {
+		void import('$lib/server/library/library-scheduler.js')
+			.then(({ getLibraryScheduler }) => {
+				getLibraryScheduler().off('scanComplete', this.handleTrigger);
+			})
+			.catch((e) => {
+				logger.error('[ReconciliationService] failed to unsubscribe from scanComplete', e);
+			});
+		void import('$lib/server/mediaServerStats/MediaServerStatsSyncService.js')
+			.then(({ getMediaServerStatsSyncService }) => {
 				getMediaServerStatsSyncService().off('syncComplete', this.handleTrigger);
-			}
-		);
+			})
+			.catch((e) => {
+				logger.error('[ReconciliationService] failed to unsubscribe from syncComplete', e);
+			});
 	}
 
 	private handleTrigger = (): void => {
@@ -122,6 +135,7 @@ class ReconciliationService implements BackgroundService {
 				itemsUpdated: 0,
 				itemsDeleted: 0,
 				linksUpserted: 0,
+				errorCount: 0,
 				durationMs: 0,
 				skipped: true
 			};
@@ -135,172 +149,200 @@ class ReconciliationService implements BackgroundService {
 				db.select().from(storageItemServerLinks)
 			]);
 
-			// Desired state from local sources: Map<logicalKey, SourceRow>
-			const desired = new Map<string, SourceRow>();
-			for (const row of localRows) {
-				if (row.tmdbId === null) continue;
-				const key = logicalKey(row.itemType, row.tmdbId, row.seasonNumber, row.episodeNumber);
-				if (!desired.has(key)) desired.set(key, row); // first row wins (matches existing dedup)
-			}
-
-			// Server items: Map<logicalKey, serverItem[]>
-			const serverByKey = new Map<string, Array<typeof mediaServerSyncedItems.$inferSelect>>();
-			for (const s of serverItemRows) {
-				const key = logicalKey(
-					s.itemType as 'movie' | 'episode',
-					s.tmdbId,
-					s.seasonNumber,
-					s.episodeNumber
-				);
-				if (!serverByKey.has(key)) serverByKey.set(key, []);
-				serverByKey.get(key)!.push(s);
-			}
-
-			// Existing rows indexed by logical key
-			const existingByKey = new Map<string, typeof storageItems.$inferSelect>();
-			for (const item of existingItems) {
-				const key = logicalKey(
-					item.itemType as 'movie' | 'episode',
-					item.tmdbId,
-					item.seasonNumber,
-					item.episodeNumber
-				);
-				existingByKey.set(key, item);
-			}
-			const existingLinkIds = new Set(existingLinks.map((l) => `${l.storageItemId}:${l.serverId}`));
-
-			const keepItemIds = new Set<string>();
-			let itemsInserted = 0;
-			let itemsUpdated = 0;
-			let linksUpserted = 0;
-			const now = new Date().toISOString();
-
-			const allKeys = new Set<string>([...desired.keys(), ...serverByKey.keys()]);
-
-			for (const key of allKeys) {
-				const localRow = desired.get(key) ?? null;
-				const serverItems = serverByKey.get(key) ?? [];
-				const existing = existingByKey.get(key);
-
-				const hasLocal = localRow !== null;
-				const hasServer = serverItems.length > 0;
-				const sourceSystem = hasLocal && hasServer ? 'both' : hasLocal ? 'local' : 'server';
-				const matchConfidence = hasLocal ? 'exact' : 'id';
-
-				const title = localRow?.title ?? serverItems[0]?.title ?? 'Unknown';
-				const year = localRow?.year ?? serverItems[0]?.year ?? null;
-				const seriesName = serverItems[0]?.seriesName ?? null;
-				const itemType = (localRow?.itemType ?? serverItems[0]?.itemType ?? 'movie') as
-					| 'movie'
-					| 'episode'
-					| 'series'
-					| 'season';
-				const tmdbId = localRow?.tmdbId ?? serverItems[0]?.tmdbId ?? null;
-				const tvdbId = serverItems[0]?.tvdbId ?? null;
-				const imdbId = serverItems[0]?.imdbId ?? null;
-				const seasonNumber = localRow?.seasonNumber ?? serverItems[0]?.seasonNumber ?? null;
-				const episodeNumber = localRow?.episodeNumber ?? serverItems[0]?.episodeNumber ?? null;
-
-				let itemId: string;
-				if (existing) {
-					itemId = existing.id;
-					await db
-						.update(storageItems)
-						.set({
-							title,
-							year,
-							seriesName,
-							itemType,
-							tmdbId,
-							tvdbId,
-							imdbId,
-							seasonNumber,
-							episodeNumber,
-							movieFileId: localRow?.movieFileId ?? null,
-							episodeFileId: localRow?.episodeFileId ?? null,
-							rootFolderId: localRow?.rootFolderId ?? null,
-							libraryId: localRow?.libraryId ?? null,
-							sourceSystem,
-							matchConfidence,
-							lastReconciledAt: now
-						})
-						.where(eq(storageItems.id, existing.id));
-					itemsUpdated++;
-				} else {
-					const [inserted] = await db
-						.insert(storageItems)
-						.values({
-							itemType,
-							tmdbId,
-							tvdbId,
-							imdbId,
-							title,
-							year,
-							seriesName,
-							seasonNumber,
-							episodeNumber,
-							movieFileId: localRow?.movieFileId ?? null,
-							episodeFileId: localRow?.episodeFileId ?? null,
-							rootFolderId: localRow?.rootFolderId ?? null,
-							libraryId: localRow?.libraryId ?? null,
-							sourceSystem,
-							matchConfidence,
-							firstSeenAt: now,
-							lastReconciledAt: now
-						})
-						.returning({ id: storageItems.id });
-					itemId = inserted.id;
-					itemsInserted++;
+			// All writes run inside a single transaction so a 10k-item library
+			// commits once instead of issuing 20k+ autocommit round-trips, and a
+			// crash mid-reconcile cannot leave partial state. Note: better-sqlite3
+			// transactions are synchronous, so the callback must not be async —
+			// we use the sync query methods (.run()/.all()) on `tx`.
+			const result = db.transaction((tx) => {
+				// Desired state from local sources: Map<logicalKey, SourceRow>
+				const desired = new Map<string, SourceRow>();
+				for (const row of localRows) {
+					if (row.tmdbId === null) continue;
+					const key = logicalKey(row.itemType, row.tmdbId, row.seasonNumber, row.episodeNumber);
+					if (!desired.has(key)) desired.set(key, row); // first row wins (matches existing dedup)
 				}
-				keepItemIds.add(itemId);
 
-				// Upsert server links
-				for (const s of serverItems) {
-					const linkKey = `${itemId}:${s.serverId}`;
-					if (!existingLinkIds.has(linkKey)) {
-						await db
-							.insert(storageItemServerLinks)
-							.values({
-								storageItemId: itemId,
-								serverId: s.serverId,
-								syncedItemId: s.id,
-								lastSeenAt: now
-							})
-							.onConflictDoNothing();
-						linksUpserted++;
-					} else {
-						await db
-							.update(storageItemServerLinks)
-							.set({ lastSeenAt: now, syncedItemId: s.id })
-							.where(
-								and(
-									eq(storageItemServerLinks.storageItemId, itemId),
-									eq(storageItemServerLinks.serverId, s.serverId)
-								)
-							);
+				// Server items: Map<logicalKey, serverItem[]>
+				const serverByKey = new Map<string, Array<typeof mediaServerSyncedItems.$inferSelect>>();
+				for (const s of serverItemRows) {
+					const key = logicalKey(
+						s.itemType as 'movie' | 'episode',
+						s.tmdbId,
+						s.seasonNumber,
+						s.episodeNumber
+					);
+					if (!serverByKey.has(key)) serverByKey.set(key, []);
+					serverByKey.get(key)!.push(s);
+				}
+
+				// Existing rows indexed by logical key
+				const existingByKey = new Map<string, typeof storageItems.$inferSelect>();
+				for (const item of existingItems) {
+					const key = logicalKey(
+						item.itemType as 'movie' | 'episode',
+						item.tmdbId,
+						item.seasonNumber,
+						item.episodeNumber
+					);
+					existingByKey.set(key, item);
+				}
+				const existingLinkIds = new Set(
+					existingLinks.map((l) => `${l.storageItemId}:${l.serverId}`)
+				);
+
+				const keepItemIds = new Set<string>();
+				let itemsInserted = 0;
+				let itemsUpdated = 0;
+				let linksUpserted = 0;
+				let errorCount = 0;
+				const now = new Date().toISOString();
+
+				const allKeys = new Set<string>([...desired.keys(), ...serverByKey.keys()]);
+
+				for (const key of allKeys) {
+					try {
+						const localRow = desired.get(key) ?? null;
+						const serverItems = serverByKey.get(key) ?? [];
+						const existing = existingByKey.get(key);
+
+						// Preserve any pre-existing row even if this iteration later
+						// throws, so a transient update failure doesn't cause a
+						// stale-cleanup deletion.
+						if (existing) keepItemIds.add(existing.id);
+
+						const hasLocal = localRow !== null;
+						const hasServer = serverItems.length > 0;
+						const sourceSystem = hasLocal && hasServer ? 'both' : hasLocal ? 'local' : 'server';
+						const matchConfidence = hasLocal ? 'exact' : 'id';
+
+						const title = localRow?.title ?? serverItems[0]?.title ?? 'Unknown';
+						const year = localRow?.year ?? serverItems[0]?.year ?? null;
+						const seriesName = serverItems[0]?.seriesName ?? null;
+						const itemType = (localRow?.itemType ?? serverItems[0]?.itemType ?? 'movie') as
+							| 'movie'
+							| 'episode'
+							| 'series'
+							| 'season';
+						const tmdbId = localRow?.tmdbId ?? serverItems[0]?.tmdbId ?? null;
+						const tvdbId = serverItems[0]?.tvdbId ?? null;
+						const imdbId = serverItems[0]?.imdbId ?? null;
+						const seasonNumber = localRow?.seasonNumber ?? serverItems[0]?.seasonNumber ?? null;
+						const episodeNumber = localRow?.episodeNumber ?? serverItems[0]?.episodeNumber ?? null;
+
+						let itemId: string;
+						if (existing) {
+							itemId = existing.id;
+							tx.update(storageItems)
+								.set({
+									title,
+									year,
+									seriesName,
+									itemType,
+									tmdbId,
+									tvdbId,
+									imdbId,
+									seasonNumber,
+									episodeNumber,
+									movieFileId: localRow?.movieFileId ?? null,
+									episodeFileId: localRow?.episodeFileId ?? null,
+									rootFolderId: localRow?.rootFolderId ?? null,
+									libraryId: localRow?.libraryId ?? null,
+									sourceSystem,
+									matchConfidence,
+									lastReconciledAt: now
+								})
+								.where(eq(storageItems.id, existing.id))
+								.run();
+							itemsUpdated++;
+						} else {
+							const [inserted] = tx
+								.insert(storageItems)
+								.values({
+									itemType,
+									tmdbId,
+									tvdbId,
+									imdbId,
+									title,
+									year,
+									seriesName,
+									seasonNumber,
+									episodeNumber,
+									movieFileId: localRow?.movieFileId ?? null,
+									episodeFileId: localRow?.episodeFileId ?? null,
+									rootFolderId: localRow?.rootFolderId ?? null,
+									libraryId: localRow?.libraryId ?? null,
+									sourceSystem,
+									matchConfidence,
+									firstSeenAt: now,
+									lastReconciledAt: now
+								})
+								.returning({ id: storageItems.id })
+								.all();
+							itemId = inserted.id;
+							itemsInserted++;
+						}
+						keepItemIds.add(itemId);
+
+						// Upsert server links
+						for (const s of serverItems) {
+							const linkKey = `${itemId}:${s.serverId}`;
+							if (!existingLinkIds.has(linkKey)) {
+								tx.insert(storageItemServerLinks)
+									.values({
+										storageItemId: itemId,
+										serverId: s.serverId,
+										syncedItemId: s.id,
+										lastSeenAt: now
+									})
+									.onConflictDoNothing()
+									.run();
+							} else {
+								tx.update(storageItemServerLinks)
+									.set({ lastSeenAt: now, syncedItemId: s.id })
+									.where(
+										and(
+											eq(storageItemServerLinks.storageItemId, itemId),
+											eq(storageItemServerLinks.serverId, s.serverId)
+										)
+									)
+									.run();
+							}
+							linksUpserted++;
+						}
+					} catch (itemError) {
+						// Isolate per-item failures so one bad row can't abort the
+						// whole run (and re-abort on every subsequent run).
+						errorCount++;
+						logger.warn(`[ReconciliationService] failed to reconcile key ${key}`, {
+							error: itemError instanceof Error ? itemError : new Error(String(itemError))
+						});
+						continue;
 					}
 				}
-			}
 
-			// Stale cleanup: remove rows no longer present in any source
-			let itemsDeleted = 0;
-			const staleIds = existingItems.filter((i) => !keepItemIds.has(i.id)).map((i) => i.id);
-			if (staleIds.length > 0) {
-				await db.delete(storageItems).where(inArray(storageItems.id, staleIds));
-				itemsDeleted = staleIds.length;
-			}
+				// Stale cleanup: remove rows no longer present in any source
+				let itemsDeleted = 0;
+				const staleIds = existingItems.filter((i) => !keepItemIds.has(i.id)).map((i) => i.id);
+				if (staleIds.length > 0) {
+					tx.delete(storageItems).where(inArray(storageItems.id, staleIds)).run();
+					itemsDeleted = staleIds.length;
+				}
 
-			const result: ReconcileResult = {
-				itemsUpserted: itemsInserted + itemsUpdated,
-				itemsInserted,
-				itemsUpdated,
-				itemsDeleted,
-				linksUpserted,
-				durationMs: Date.now() - start,
-				skipped: false
-			};
+				return {
+					itemsUpserted: itemsInserted + itemsUpdated,
+					itemsInserted,
+					itemsUpdated,
+					itemsDeleted,
+					linksUpserted,
+					errorCount,
+					durationMs: Date.now() - start,
+					skipped: false as const
+				};
+			});
+
 			logger.info(
-				`[ReconciliationService] reconcile complete: ${result.itemsInserted} new, ${result.itemsUpdated} updated, ${result.itemsDeleted} removed, ${result.linksUpserted} links in ${result.durationMs}ms`
+				`[ReconciliationService] reconcile complete: ${result.itemsInserted} new, ${result.itemsUpdated} updated, ${result.itemsDeleted} removed, ${result.linksUpserted} links, ${result.errorCount} errors in ${result.durationMs}ms`
 			);
 			return result;
 		} catch (e) {
@@ -313,7 +355,7 @@ class ReconciliationService implements BackgroundService {
 	}
 
 	private async loadLocalRows(): Promise<SourceRow[]> {
-		const [movieFileRows, episodeFileRows] = await Promise.all([
+		const [movieFileRows, episodeFileRows, episodeRows] = await Promise.all([
 			db
 				.select({
 					movieId: movies.id,
@@ -335,11 +377,29 @@ class ReconciliationService implements BackgroundService {
 					year: series.year,
 					libraryId: series.libraryId,
 					rootFolderId: series.rootFolderId,
-					seasonNumber: episodeFiles.seasonNumber
+					seasonNumber: episodeFiles.seasonNumber,
+					episodeIds: episodeFiles.episodeIds
 				})
 				.from(series)
-				.innerJoin(episodeFiles, eq(episodeFiles.seriesId, series.id))
+				.innerJoin(episodeFiles, eq(episodeFiles.seriesId, series.id)),
+			db
+				.select({
+					id: episodes.id,
+					episodeNumber: episodes.episodeNumber,
+					seasonNumber: episodes.seasonNumber,
+					seriesId: episodes.seriesId
+				})
+				.from(episodes)
 		]);
+
+		// Map<episodeId, { episodeNumber, seasonNumber }> for per-episode expansion.
+		// An episode file can cover multiple episodes (e.g. double episodes); we emit
+		// one SourceRow per covered episode so each gets its own storage_items row
+		// instead of collapsing to a single row via the COALESCE(-1) unique index.
+		const episodeById = new Map<string, { episodeNumber: number; seasonNumber: number }>();
+		for (const e of episodeRows) {
+			episodeById.set(e.id, { episodeNumber: e.episodeNumber, seasonNumber: e.seasonNumber });
+		}
 
 		const movieRows: SourceRow[] = movieFileRows
 			.filter((r) => r.tmdbId !== null && r.movieFileId !== null)
@@ -356,20 +416,47 @@ class ReconciliationService implements BackgroundService {
 				libraryId: r.libraryId ?? null
 			}));
 
-		const epRows: SourceRow[] = episodeFileRows
-			.filter((r) => r.tmdbId !== null)
-			.map((r) => ({
-				itemType: 'episode' as const,
-				tmdbId: r.tmdbId,
-				title: r.title,
-				year: r.year ?? null,
-				seasonNumber: r.seasonNumber,
-				episodeNumber: null, // episode files can be multi-episode; simplified for v1
-				movieFileId: null,
-				episodeFileId: r.episodeFileId,
-				rootFolderId: r.rootFolderId ?? null,
-				libraryId: r.libraryId ?? null
-			}));
+		const epRows: SourceRow[] = [];
+		for (const r of episodeFileRows) {
+			if (r.tmdbId === null) continue;
+			const ids = r.episodeIds ?? [];
+			const resolved = ids
+				.map((id) => episodeById.get(id))
+				.filter((e): e is { episodeNumber: number; seasonNumber: number } => e !== undefined);
+
+			if (resolved.length > 0) {
+				for (const ep of resolved) {
+					epRows.push({
+						itemType: 'episode' as const,
+						tmdbId: r.tmdbId,
+						title: r.title,
+						year: r.year ?? null,
+						seasonNumber: ep.seasonNumber,
+						episodeNumber: ep.episodeNumber,
+						movieFileId: null,
+						episodeFileId: r.episodeFileId,
+						rootFolderId: r.rootFolderId ?? null,
+						libraryId: r.libraryId ?? null
+					});
+				}
+			} else {
+				// No episode linkage resolved (empty/null episodeIds, or IDs missing
+				// from the episodes table): fall back to file-granularity, preserving
+				// backwards compatibility.
+				epRows.push({
+					itemType: 'episode' as const,
+					tmdbId: r.tmdbId,
+					title: r.title,
+					year: r.year ?? null,
+					seasonNumber: r.seasonNumber,
+					episodeNumber: null,
+					movieFileId: null,
+					episodeFileId: r.episodeFileId,
+					rootFolderId: r.rootFolderId ?? null,
+					libraryId: r.libraryId ?? null
+				});
+			}
+		}
 
 		return [...movieRows, ...epRows];
 	}

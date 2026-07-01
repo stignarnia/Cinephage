@@ -34,6 +34,7 @@ export interface ReconcileResult {
 	itemsUpdated: number;
 	itemsDeleted: number;
 	linksUpserted: number;
+	errorCount: number;
 	durationMs: number;
 	skipped: boolean;
 }
