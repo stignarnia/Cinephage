@@ -9,6 +9,7 @@
 	import { LibraryList } from '$lib/components/libraries';
 	import { ModalWrapper, ModalHeader, ModalFooter } from '$lib/components/ui/modal';
 	import { toasts } from '$lib/stores/toast.svelte';
+	import { formatBytes } from '$lib/utils/format.js';
 	import { createLibrary, updateLibrary, deleteLibrary } from '$lib/api/settings.js';
 	import type { LibraryCreate, LibraryUpdate } from '$lib/validation/schemas.js';
 
@@ -77,14 +78,6 @@
 		if (!url.searchParams.has('edit')) return;
 		url.searchParams.delete('edit');
 		await goto(url.toString(), { replaceState: true, noScroll: true, keepFocus: true });
-	}
-
-	function formatBytes(bytes: number): string {
-		if (bytes === 0) return '0 B';
-		const k = 1024;
-		const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-		const i = Math.floor(Math.log(bytes) / Math.log(k));
-		return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 	}
 
 	function openAddLibraryModal() {

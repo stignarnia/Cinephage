@@ -6,6 +6,7 @@
 	import { StorageMaintenanceSection } from '$lib/components/libraries';
 	import { MediaServerStatsSection } from '$lib/components/status';
 	import { createSSE } from '$lib/sse';
+	import { formatBytes } from '$lib/utils/format.js';
 	import { layoutState, deriveMobileSseStatus } from '$lib/layout.svelte';
 	import { invalidateAll } from '$app/navigation';
 	import type {
@@ -150,21 +151,6 @@
 		layoutState.setMobileSseStatus(deriveMobileSseStatus(sse));
 		return () => layoutState.clearMobileSseStatus();
 	});
-
-	function formatBytes(value: number) {
-		if (!value) return '0 B';
-
-		const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-		let size = value;
-		let unitIndex = 0;
-
-		while (size >= 1024 && unitIndex < units.length - 1) {
-			size /= 1024;
-			unitIndex += 1;
-		}
-
-		return `${size.toFixed(size >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
-	}
 
 	function resetScanState() {
 		scanError = null;
