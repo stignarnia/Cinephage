@@ -541,6 +541,8 @@ export const rootFolders = sqliteTable('root_folders', {
 	defaultMonitored: integer('default_monitored', { mode: 'boolean' }).default(true),
 	// Cached free space in bytes (updated periodically)
 	freeSpaceBytes: integer('free_space_bytes'),
+	// Cached total disk capacity in bytes (added v105; populated by RootFolderService.refreshFreeSpace)
+	totalSpaceBytes: integer('total_space_bytes'),
 	// Last time free space was checked
 	lastCheckedAt: text('last_checked_at'),
 	// JSON string[] — folder names to skip during disk scan (case-insensitive exact match)
@@ -2911,6 +2913,102 @@ export type MediaServerSyncedItemRecord = typeof mediaServerSyncedItems.$inferSe
 export type NewMediaServerSyncedItemRecord = typeof mediaServerSyncedItems.$inferInsert;
 export type MediaServerSyncedRunRecord = typeof mediaServerSyncedRuns.$inferSelect;
 export type NewMediaServerSyncedRunRecord = typeof mediaServerSyncedRuns.$inferInsert;
+
+/**
+ * Storage Items - Unified directory of media items across local library and media servers.
+ * Reference-model: holds identity + FK references; size/quality/playback stay on source tables.
+ * Populated by ReconciliationService (Phase 2).
+ */
+export const storageItems = sqliteTable('storage_items', {
+	id: text('id')
+		.primaryKey()
+		.$defaultFn(() => randomUUID()),
+	itemType: text('item_type', { enum: ['movie', 'episode', 'series', 'season'] }).notNull(),
+	tmdbId: integer('tmdb_id'),
+	tvdbId: integer('tvdb_id'),
+	imdbId: text('imdb_id'),
+	title: text('title').notNull(),
+	year: integer('year'),
+	seriesName: text('series_name'),
+	seasonNumber: integer('season_number'),
+	episodeNumber: integer('episode_number'),
+	// FK to local file row (nullable when item only exists on a media server)
+	movieFileId: text('movie_file_id').references(() => movieFiles.id, { onDelete: 'set null' }),
+	episodeFileId: text('episode_file_id').references(() => episodeFiles.id, {
+		onDelete: 'set null'
+	}),
+	rootFolderId: text('root_folder_id').references(() => rootFolders.id, { onDelete: 'set null' }),
+	libraryId: text('library_id').references(() => libraries.id, { onDelete: 'set null' }),
+	sourceSystem: text('source_system', { enum: ['local', 'server', 'both'] }).notNull(),
+	matchConfidence: text('match_confidence', { enum: ['exact', 'id', 'fuzzy', 'none'] }).notNull(),
+	firstSeenAt: text('first_seen_at')
+		.notNull()
+		.$defaultFn(() => new Date().toISOString()),
+	lastReconciledAt: text('last_reconciled_at')
+});
+
+export type StorageItemRecord = typeof storageItems.$inferSelect;
+export type NewStorageItemRecord = typeof storageItems.$inferInsert;
+
+/**
+ * Storage Item Server Links - Sidecar mapping items to media-server presence.
+ * One item can be tracked by N servers; each (storageItemId, serverId) pair is unique.
+ */
+export const storageItemServerLinks = sqliteTable(
+	'storage_item_server_links',
+	{
+		storageItemId: text('storage_item_id')
+			.notNull()
+			.references(() => storageItems.id, { onDelete: 'cascade' }),
+		serverId: text('server_id')
+			.notNull()
+			.references(() => mediaBrowserServers.id, { onDelete: 'cascade' }),
+		syncedItemId: text('synced_item_id')
+			.notNull()
+			.references(() => mediaServerSyncedItems.id, { onDelete: 'cascade' }),
+		lastSeenAt: text('last_seen_at')
+			.notNull()
+			.$defaultFn(() => new Date().toISOString())
+	},
+	(table) => [
+		primaryKey({ columns: [table.storageItemId, table.serverId] }),
+		index('idx_storage_links_synced').on(table.syncedItemId)
+	]
+);
+
+export type StorageItemServerLinkRecord = typeof storageItemServerLinks.$inferSelect;
+export type NewStorageItemServerLinkRecord = typeof storageItemServerLinks.$inferInsert;
+
+/**
+ * Storage Insights - Cached, dismissible findings produced by the InsightsService (Phase 3).
+ * One row per detected finding; dismissed findings remain for audit and can be re-detected on change.
+ */
+export const storageInsights = sqliteTable('storage_insights', {
+	id: text('id')
+		.primaryKey()
+		.$defaultFn(() => randomUUID()),
+	insightType: text('insight_type').notNull(),
+	severity: text('severity', { enum: ['info', 'warning', 'critical'] }).notNull(),
+	scope: text('scope', { enum: ['global', 'library', 'root_folder', 'item'] }).notNull(),
+	scopeId: text('scope_id'),
+	title: text('title').notNull(),
+	summary: text('summary'),
+	detailsJson: text('details_json'),
+	reclaimableBytes: integer('reclaimable_bytes'),
+	itemCount: integer('item_count').notNull().default(0),
+	firstDetectedAt: text('first_detected_at')
+		.notNull()
+		.$defaultFn(() => new Date().toISOString()),
+	lastDetectedAt: text('last_detected_at')
+		.notNull()
+		.$defaultFn(() => new Date().toISOString()),
+	dismissedAt: text('dismissed_at'),
+	// Soft ref to auth DB user id - auth DB is separate, no FK possible (matches session/account convention)
+	dismissedBy: text('dismissed_by')
+});
+
+export type StorageInsightRecord = typeof storageInsights.$inferSelect;
+export type NewStorageInsightRecord = typeof storageInsights.$inferInsert;
 
 // ============================================================================
 // LIVE TV - STALKER PORTALS
