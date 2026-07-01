@@ -154,6 +154,14 @@ class ReconciliationService implements BackgroundService {
 			// crash mid-reconcile cannot leave partial state. Note: better-sqlite3
 			// transactions are synchronous, so the callback must not be async —
 			// we use the sync query methods (.run()/.all()) on `tx`.
+			//
+			// SCALING NOTE: The entire transaction runs synchronously and blocks
+			// the Node event loop for its duration. For typical libraries (<1k items)
+			// this is <100ms — unnoticeable. For large libraries (10k+ items) the
+			// blocking window grows to ~500ms-2s, which delays request handling.
+			// If this becomes a problem: refactor to chunked transactions (batches
+			// of ~500 items, each in its own short transaction, yield via setImmediate
+			// between batches). See docs/superpowers/plans/2026-07-01-storage-overhaul-phase-2-reconciliation.md.
 			const result = db.transaction((tx) => {
 				// Desired state from local sources: Map<logicalKey, SourceRow>
 				const desired = new Map<string, SourceRow>();
