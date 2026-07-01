@@ -3,7 +3,8 @@ import { db } from '$lib/server/db';
 import {
 	mediaServerSyncedItems,
 	mediaServerSyncedRuns,
-	mediaBrowserServers
+	mediaBrowserServers,
+	storageInsights
 } from '$lib/server/db/schema';
 import { desc, sql } from 'drizzle-orm';
 
@@ -144,6 +145,21 @@ export const load: PageServerLoad = async ({ parent }) => {
 		})
 	);
 
+	const insights = db
+		.select()
+		.from(storageInsights)
+		.where(sql`${storageInsights.dismissedAt} IS NULL`)
+		.orderBy(
+			sql`CASE ${storageInsights.severity}
+				WHEN 'critical' THEN 0
+				WHEN 'warning' THEN 1
+				WHEN 'info' THEN 2
+				ELSE 3
+			END`,
+			storageInsights.insightType
+		)
+		.all();
+
 	return {
 		mediaServerStats: {
 			totalPlays,
@@ -168,6 +184,7 @@ export const load: PageServerLoad = async ({ parent }) => {
 		serverStatuses,
 		topItems,
 		largestItems,
-		servers
+		servers,
+		insights
 	};
 };
