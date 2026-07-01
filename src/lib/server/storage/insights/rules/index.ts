@@ -5,6 +5,7 @@ import { UnplayedRule } from './UnplayedRule.js';
 import { DuplicateItemsRule } from './DuplicateItemsRule.js';
 import { OrphanedFilesRule } from './OrphanedFilesRule.js';
 import { HealthIssuesRule } from './HealthIssuesRule.js';
+import { QualityBelowCutoffRule } from './QualityBelowCutoffRule.js';
 
 // Rules are added in Tasks 5-12. Each new rule is appended to this array.
 export const ALL_RULES: StorageInsightRule[] = [
@@ -13,5 +14,6 @@ export const ALL_RULES: StorageInsightRule[] = [
 	new UnplayedRule(),
 	new DuplicateItemsRule(),
 	new OrphanedFilesRule(),
-	new HealthIssuesRule()
+	new HealthIssuesRule(),
+	new QualityBelowCutoffRule()
 ];
