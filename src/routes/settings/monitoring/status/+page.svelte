@@ -3,21 +3,13 @@
 	import { HardDrive, RefreshCw } from 'lucide-svelte';
 	import { SettingsPage } from '$lib/components/ui/settings';
 	import { StorageDashboard } from '$lib/components/storage';
-	import { LibraryEditModal } from '$lib/components/libraries';
-	import { RootFolderModal } from '$lib/components/rootFolders';
 	import { createSSE } from '$lib/sse';
 	import { layoutState, deriveMobileSseStatus } from '$lib/layout.svelte';
 	import { invalidateAll } from '$app/navigation';
 	import { toasts } from '$lib/stores/toast.svelte';
 	import { scanLibrary } from '$lib/api/library.js';
-	import { syncMediaServerStats, validateRootFolder, updateRootFolder } from '$lib/api/settings.js';
+	import { syncMediaServerStats } from '$lib/api/settings.js';
 	import type { PageData } from './$types';
-	import type {
-		RootFolder,
-		RootFolderFormData,
-		PathValidationResult
-	} from '$lib/types/downloadClient';
-	import type { RootFolderUpdate } from '$lib/validation/schemas.js';
 
 	let { data }: { data: PageData } = $props();
 
@@ -41,14 +33,6 @@
 	let scanError = $state<string | null>(null);
 	let scanSuccess = $state<ScanSuccess | null>(null);
 	let syncing = $state(false);
-
-	let libraryModalOpen = $state(false);
-	let editingLibraryId = $state<string | null>(null);
-
-	let folderModalOpen = $state(false);
-	let editingFolder = $state<RootFolder | null>(null);
-	let folderSaving = $state(false);
-	let folderSaveError = $state<string | null>(null);
 
 	const sse = createSSE<{
 		status: { inProgress?: boolean; isScanning?: boolean };
@@ -116,68 +100,6 @@
 		}
 	}
 
-	function openEditLibraryModal(libraryId: string) {
-		editingLibraryId = libraryId;
-		libraryModalOpen = true;
-	}
-
-	function closeLibraryModal() {
-		libraryModalOpen = false;
-		editingLibraryId = null;
-	}
-
-	function openEditFolderModal(rootFolderId: string) {
-		const folder = data.rootFolders.find((f) => f.id === rootFolderId);
-		if (!folder) {
-			toasts.error('Root folder not found');
-			return;
-		}
-		editingFolder = folder;
-		folderSaveError = null;
-		folderModalOpen = true;
-	}
-
-	function closeFolderModal() {
-		folderModalOpen = false;
-		editingFolder = null;
-		folderSaveError = null;
-	}
-
-	async function handleValidatePath(
-		path: string,
-		_readOnly = false,
-		folderId?: string
-	): Promise<PathValidationResult> {
-		try {
-			const payload = await validateRootFolder(path, undefined, folderId);
-			return payload as unknown as PathValidationResult;
-		} catch (error) {
-			return {
-				valid: false,
-				exists: false,
-				writable: false,
-				error: error instanceof Error ? error.message : 'Unknown error'
-			};
-		}
-	}
-
-	async function handleFolderSave(formData: RootFolderFormData) {
-		if (!editingFolder) return;
-		folderSaving = true;
-		folderSaveError = null;
-
-		try {
-			await updateRootFolder(editingFolder.id, formData as RootFolderUpdate);
-			await invalidateAll();
-			closeFolderModal();
-			toasts.success('Root folder updated');
-		} catch (error) {
-			folderSaveError = error instanceof Error ? error.message : 'Failed to save root folder';
-		} finally {
-			folderSaving = false;
-		}
-	}
-
 	$effect(() => {
 		void sse.status;
 	});
@@ -207,7 +129,7 @@
 					{m.settings_general_scanLibraries()}
 				{/if}
 			</button>
-			{#if data.servers.length > 0}
+			{#if data.servers?.length > 0}
 				<button
 					type="button"
 					class="btn btn-outline btn-sm gap-2"
@@ -232,30 +154,5 @@
 		{scanError}
 		{scanSuccess}
 		serverStatuses={data.serverStatuses}
-		onEditLibrary={openEditLibraryModal}
-		onEditRootFolder={openEditFolderModal}
-		onScanRootFolder={triggerLibraryScan}
 	/>
 </SettingsPage>
-
-{#if libraryModalOpen}
-	<LibraryEditModal
-		open={libraryModalOpen}
-		libraryId={editingLibraryId}
-		libraries={data.libraries}
-		rootFolders={data.rootFolders}
-		onClose={closeLibraryModal}
-	/>
-{/if}
-
-<RootFolderModal
-	open={folderModalOpen}
-	mode="edit"
-	folder={editingFolder}
-	saving={folderSaving}
-	error={folderSaveError}
-	onClose={closeFolderModal}
-	lockScroll={false}
-	onSave={handleFolderSave}
-	onValidatePath={handleValidatePath}
-/>

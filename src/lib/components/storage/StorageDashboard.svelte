@@ -49,9 +49,6 @@
 		scanError: string | null;
 		scanSuccess: ScanSuccess | null;
 		serverStatuses: ServerStatus[];
-		onEditLibrary: (libraryId: string) => void;
-		onEditRootFolder: (folderId: string) => void;
-		onScanRootFolder: (folderId: string) => void;
 	}
 
 	let {
@@ -64,10 +61,7 @@
 		scanProgress,
 		scanError,
 		scanSuccess,
-		serverStatuses,
-		onEditLibrary: _onEditLibrary,
-		onEditRootFolder: _onEditRootFolder,
-		onScanRootFolder: _onScanRootFolder
+		serverStatuses
 	}: Props = $props();
 
 	const totalCapacity = $derived(
