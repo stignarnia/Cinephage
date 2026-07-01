@@ -10,6 +10,13 @@ import {
 	rootFolders,
 	series
 } from '$lib/server/db/schema';
+import {
+	extractResolution,
+	extractVideoCodec,
+	extractHdrFormat,
+	extractAudioCodec,
+	extractContainer
+} from '$lib/server/storage/reconciliation/matchers.js';
 
 export type MediaExplorerItem = {
 	id: string;
@@ -39,53 +46,6 @@ export type MediaExplorerItem = {
 	episodeFileCount: number | null;
 	posterPath: string | null;
 };
-
-function heightToResolution(height: number | null | undefined): string | null {
-	if (!height) return null;
-	if (height >= 2160) return '4K';
-	if (height >= 1080) return '1080p';
-	if (height >= 720) return '720p';
-	if (height >= 480) return '480p';
-	return 'SD';
-}
-
-function extractResolution(
-	quality: { resolution?: string } | null | undefined,
-	mediaInfo: { height?: number } | null | undefined
-): string | null {
-	if (quality?.resolution) return quality.resolution;
-	return heightToResolution(mediaInfo?.height);
-}
-
-function extractVideoCodec(
-	quality: { codec?: string } | null | undefined,
-	mediaInfo: { videoCodec?: string } | null | undefined
-): string | null {
-	if (quality?.codec) return quality.codec.toUpperCase();
-	if (mediaInfo?.videoCodec) return mediaInfo.videoCodec.toUpperCase();
-	return null;
-}
-
-function extractHdrFormat(
-	quality: { hdr?: string } | null | undefined,
-	mediaInfo: { videoHdrFormat?: string } | null | undefined
-): string | null {
-	if (quality?.hdr) return quality.hdr;
-	if (mediaInfo?.videoHdrFormat) return mediaInfo.videoHdrFormat;
-	return null;
-}
-
-function extractAudioCodec(mediaInfo: { audioCodec?: string } | null | undefined): string | null {
-	if (mediaInfo?.audioCodec) return mediaInfo.audioCodec.toUpperCase();
-	return null;
-}
-
-function extractContainer(
-	mediaInfo: { containerFormat?: string } | null | undefined
-): string | null {
-	if (mediaInfo?.containerFormat) return mediaInfo.containerFormat.toUpperCase();
-	return null;
-}
 
 export const load: PageServerLoad = async ({ url, parent }) => {
 	await parent();
