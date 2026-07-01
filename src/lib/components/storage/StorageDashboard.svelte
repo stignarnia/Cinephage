@@ -125,14 +125,15 @@
 	class="mt-4 flex flex-col gap-3 rounded-lg border border-base-300 bg-base-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
 >
 	<div class="flex items-center gap-3 text-sm">
-		<span
-			class="inline-block h-2 w-2 rounded-full {getScanTone(storage.health.lastScan?.status)}"
+		<span class="inline-block h-2 w-2 rounded-full {getScanTone(storage.health.lastScan?.status)}"
 		></span>
 		{#if storage.health.lastScan}
 			<span class="text-base-content/70">
 				Last scan:
 				<strong class="text-base-content">
-					{formatTimestamp(storage.health.lastScan.completedAt ?? storage.health.lastScan.startedAt)}
+					{formatTimestamp(
+						storage.health.lastScan.completedAt ?? storage.health.lastScan.startedAt
+					)}
 				</strong>
 			</span>
 		{:else}

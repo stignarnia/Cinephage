@@ -5,10 +5,7 @@
 	import { toasts } from '$lib/stores/toast.svelte';
 	import { invalidateAll } from '$app/navigation';
 	import { updateLibrary } from '$lib/api/settings.js';
-	import type {
-		RootFolderMediaType,
-		RootFolderMediaSubType
-	} from '$lib/types/downloadClient';
+	import type { RootFolderMediaType, RootFolderMediaSubType } from '$lib/types/downloadClient';
 
 	type LibraryRootFolderRef = {
 		id: string;
@@ -122,7 +119,7 @@
 
 <ModalWrapper
 	{open}
-	onClose={onClose}
+	{onClose}
 	maxWidth="2xl"
 	labelledBy="status-library-edit-modal-title"
 	lockScroll={false}
