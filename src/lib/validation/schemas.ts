@@ -1003,6 +1003,36 @@ export type NntpServerUpdate = z.infer<typeof nntpServerUpdateSchema>;
 export type NntpServerTest = z.infer<typeof nntpServerTestSchema>;
 
 // ============================================================
+// CinephageAPI subsystem schemas
+// ============================================================
+
+/**
+ * Subsystem-level config update. All fields optional — the API accepts
+ * partial updates and the settings panel sends only what changed.
+ */
+export const cinephageSubsystemUpdateSchema = z.object({
+	enabled: z.boolean().optional(),
+	baseUrl: z.string().trim().min(1).optional(),
+	versionOverride: z.string().trim().nullable().optional(),
+	commitOverride: z.string().trim().nullable().optional()
+});
+
+export type CinephageSubsystemUpdate = z.infer<typeof cinephageSubsystemUpdateSchema>;
+
+/**
+ * Per-module config update. Settings is a free-form JSON bag whose shape
+ * is validated by the module's settingsSchema at the server (currently
+ * only library-streaming declares one).
+ */
+export const cinephageModuleUpdateSchema = z.object({
+	moduleId: z.string().min(1),
+	enabled: z.boolean().optional(),
+	settings: z.record(z.string(), z.unknown()).optional()
+});
+
+export type CinephageModuleUpdate = z.infer<typeof cinephageModuleUpdateSchema>;
+
+// ============================================================
 // Media server notification schemas
 // ============================================================
 

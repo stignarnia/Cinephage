@@ -97,6 +97,10 @@ import { migration_v096 } from './096-add-adult-columns.js';
 import { migration_v097 } from './097-add-episode-group-id.js';
 import { migration_v098 } from './098-add-indexer-categories.js';
 import { migration_v100 } from './100-add-scoring-profile-prevent-downgrades.js';
+import { migration_v101 } from './101-add-cinephage-api-tables.js';
+import { migration_v102 } from './102-add-indexers-is-built-in.js';
+import { migration_v103 } from './103-migrate-streaming-settings.js';
+import { migration_v104 } from './104-drop-indexer-definitions-table.js';
 
 export const MIGRATIONS: MigrationDefinition[] = [
 	migration_v002,
@@ -196,5 +200,9 @@ export const MIGRATIONS: MigrationDefinition[] = [
 	migration_v096,
 	migration_v097,
 	migration_v098,
-	migration_v100
+	migration_v100,
+	migration_v101,
+	migration_v102,
+	migration_v103,
+	migration_v104
 ];

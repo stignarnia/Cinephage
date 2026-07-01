@@ -10,7 +10,8 @@
 		GripVertical,
 		ToggleLeft,
 		ToggleRight,
-		Settings
+		Settings,
+		ExternalLink
 	} from 'lucide-svelte';
 	import IndexerStatusBadge from './IndexerStatusBadge.svelte';
 	import type { IndexerWithStatus } from '$lib/types/indexer';
@@ -123,9 +124,20 @@
 	<!-- Name -->
 	<td>
 		<div class="flex flex-wrap items-center gap-1.5">
-			<button class="link font-bold link-hover" onclick={() => onEdit(indexer)}>
-				{indexer.name}
-			</button>
+			{#if indexer.isBuiltIn}
+				<a
+					href="/settings/integrations/cinephage"
+					class="link font-bold link-hover inline-flex items-center gap-1"
+				>
+					{indexer.name}
+					<ExternalLink class="h-3 w-3" />
+				</a>
+				<span class="badge badge-xs badge-primary">Managed</span>
+			{:else}
+				<button class="link font-bold link-hover" onclick={() => onEdit(indexer)}>
+					{indexer.name}
+				</button>
+			{/if}
 			{#if isProwlarrIndexer()}
 				<span class="badge badge-xs badge-primary">Prowlarr</span>
 				{#if indexer.orphaned}
@@ -239,16 +251,16 @@
 			<button
 				class="btn btn-ghost btn-xs"
 				onclick={() => onEdit(indexer)}
-				disabled={reorderMode}
-				title="Edit indexer"
+				disabled={reorderMode || indexer.isBuiltIn}
+				title={indexer.isBuiltIn ? 'Managed by Cinephage' : 'Edit indexer'}
 			>
 				<Settings class="h-4 w-4" />
 			</button>
 			<button
 				class="btn text-error btn-ghost btn-xs"
 				onclick={() => onDelete(indexer)}
-				disabled={reorderMode}
-				title="Delete indexer"
+				disabled={reorderMode || indexer.isBuiltIn}
+				title={indexer.isBuiltIn ? 'Built-in indexers cannot be deleted' : 'Delete indexer'}
 			>
 				<Trash2 class="h-4 w-4" />
 			</button>

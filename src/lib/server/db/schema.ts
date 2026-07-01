@@ -152,67 +152,6 @@ export const settings = sqliteTable('settings', {
 });
 
 // ============================================================================
-// Indexer Definitions - Cached metadata from YAML files
-// ============================================================================
-
-/**
- * Indexer Definitions - Cached metadata loaded from YAML definition files.
- * This table stores parsed YAML definitions for quick lookup without
- * re-reading files on every request.
- */
-export const indexerDefinitions = sqliteTable(
-	'indexer_definitions',
-	{
-		// Definition ID (e.g., 'knaben', 'nzbgeek', 'cinephage-stream')
-		id: text('id').primaryKey(),
-		name: text('name').notNull(),
-		description: text('description'),
-		// Protocol type
-		protocol: text('protocol', { enum: ['torrent', 'usenet', 'streaming'] }).notNull(),
-		// Access type
-		type: text('type', { enum: ['public', 'semi-private', 'private'] }).notNull(),
-		language: text('language').default('en-US'),
-		// Primary and alternate URLs as JSON arrays
-		urls: text('urls', { mode: 'json' }).$type<string[]>().notNull(),
-		legacyUrls: text('legacy_urls', { mode: 'json' }).$type<string[]>(),
-		// Settings schema for UI generation (JSON array of setting field definitions)
-		settingsSchema: text('settings_schema', { mode: 'json' }).$type<
-			Array<{
-				name: string;
-				type: string;
-				label: string;
-				default?: string | boolean | number;
-				options?: Record<string, string>;
-			}>
-		>(),
-		// Capabilities JSON (search modes, categories, etc.)
-		capabilities: text('capabilities', { mode: 'json' })
-			.$type<{
-				search?: { available: boolean; supportedParams: string[] };
-				tvSearch?: { available: boolean; supportedParams: string[] };
-				movieSearch?: { available: boolean; supportedParams: string[] };
-				musicSearch?: { available: boolean; supportedParams: string[] };
-				bookSearch?: { available: boolean; supportedParams: string[] };
-				categories: Record<string, string>;
-			}>()
-			.notNull(),
-		// Source file info for change detection
-		filePath: text('file_path'),
-		fileHash: text('file_hash'),
-		// Timestamps
-		loadedAt: text('loaded_at').notNull(),
-		updatedAt: text('updated_at').notNull()
-	},
-	(table) => [
-		index('idx_indexer_definitions_protocol').on(table.protocol),
-		index('idx_indexer_definitions_type').on(table.type)
-	]
-);
-
-export type IndexerDefinitionRecord = typeof indexerDefinitions.$inferSelect;
-export type NewIndexerDefinitionRecord = typeof indexerDefinitions.$inferInsert;
-
-// ============================================================================
 // Indexers - User-configured indexer instances
 // ============================================================================
 
@@ -240,6 +179,12 @@ export const indexers = sqliteTable(
 		// (Prowlarr or Jackett). Soft-marks rather than hard-deletes so the user sees a
 		// "Deleted" badge and can manually remove or re-enable after testing.
 		orphaned: integer('orphaned', { mode: 'boolean' }).default(false),
+		// True for indexers owned by a built-in subsystem (e.g. the CinephageAPI
+		// library-streaming module owns the 'cinephage-stream' row). These rows
+		// are non-deletable via the indexers page; their config is managed by
+		// the owning subsystem. Matches the isBuiltIn convention on
+		// scoringProfiles (schema.ts:401) and namingPresets (schema.ts:1195).
+		isBuiltIn: integer('is_built_in', { mode: 'boolean' }).notNull().default(false),
 		// Selected base URL (from definition's urls array)
 		baseUrl: text('base_url').notNull(),
 		// Alternate URLs for failover (JSON array)
@@ -338,12 +283,8 @@ export const indexerStatusRelations = relations(indexerStatus, ({ one }) => ({
 	})
 }));
 
-// Relations for indexers to definitions
+// Relations for indexers to status
 export const indexersRelations = relations(indexers, ({ one }) => ({
-	definition: one(indexerDefinitions, {
-		fields: [indexers.definitionId],
-		references: [indexerDefinitions.id]
-	}),
 	status: one(indexerStatus, {
 		fields: [indexers.id],
 		references: [indexerStatus.indexerId]
@@ -1877,6 +1818,61 @@ export const taskSettings = sqliteTable(
 
 export type TaskSettingsRecord = typeof taskSettings.$inferSelect;
 export type NewTaskSettingsRecord = typeof taskSettings.$inferInsert;
+
+// ============================================================================
+// Cinephage API Subsystem
+// ============================================================================
+// First-class integration with api.cinephage.net. The subsystem owns the
+// connection (HTTP client, version/commit identity, enable state) and houses
+// feature modules (library-streaming, remote-streaming, etc.). Per-module
+// config and enable state live here, not on the indexer row.
+//
+// See src/lib/server/cinephage/ for the runtime implementation.
+
+/**
+ * Cinephage API Config - Singleton row (id is always 1).
+ * Holds subsystem-level config: master enable toggle, base URL override, and
+ * version/commit overrides for cases where auto-detection from APP_VERSION /
+ * APP_COMMIT fails (custom builds, dev checkouts without git, etc.).
+ */
+export const cinephageApiConfig = sqliteTable('cinephage_api_config', {
+	id: integer('id').primaryKey(),
+	enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
+	baseUrl: text('base_url').notNull().default('https://api.cinephage.net'),
+	// Optional manual overrides. When null, the subsystem auto-detects from
+	// APP_VERSION / APP_COMMIT env vars (baked into the Docker image at build).
+	versionOverride: text('version_override'),
+	commitOverride: text('commit_override'),
+	updatedAt: text('updated_at').$defaultFn(() => new Date().toISOString())
+});
+
+export type CinephageApiConfigRecord = typeof cinephageApiConfig.$inferSelect;
+export type NewCinephageApiConfigRecord = typeof cinephageApiConfig.$inferInsert;
+
+/**
+ * Cinephage API Modules - Per-module state.
+ * One row per registered feature module (e.g. 'library-streaming').
+ * The module's settingsSchema (Zod) validates writes; settings is a JSON bag
+ * whose shape is module-specific.
+ */
+export const cinephageApiModules = sqliteTable(
+	'cinephage_api_modules',
+	{
+		moduleId: text('module_id').primaryKey(),
+		enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
+		settings: text('settings', { mode: 'json' })
+			.$type<Record<string, unknown>>()
+			.notNull()
+			.default({}),
+		// Populated when test() fails; cleared on success. Surfaced in the UI.
+		lastError: text('last_error'),
+		updatedAt: text('updated_at').$defaultFn(() => new Date().toISOString())
+	},
+	(table) => [index('idx_cinephage_api_modules_enabled').on(table.enabled)]
+);
+
+export type CinephageApiModuleRecord = typeof cinephageApiModules.$inferSelect;
+export type NewCinephageApiModuleRecord = typeof cinephageApiModules.$inferInsert;
 
 // ============================================================================
 // RELATIONS

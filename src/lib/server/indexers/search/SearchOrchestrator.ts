@@ -824,8 +824,12 @@ export class SearchOrchestrator {
 			}
 
 			// Check protocol filter (from scoring profile's allowedProtocols)
+			// In interactive search, always allow streaming-protocol indexers so their
+			// releases appear as rejected fallback options under "Show Rejected"
 			if (options.protocolFilter && options.protocolFilter.length > 0) {
-				if (!options.protocolFilter.includes(indexer.protocol)) {
+				const isStreamingInInteractive =
+					options.searchSource === 'interactive' && indexer.protocol === 'streaming';
+				if (!isStreamingInInteractive && !options.protocolFilter.includes(indexer.protocol)) {
 					rejected.push({
 						indexerId: indexer.id,
 						indexerName: indexer.name,

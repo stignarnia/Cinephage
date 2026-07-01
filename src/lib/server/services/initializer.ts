@@ -28,6 +28,7 @@ import { initializeProviderFactory } from '$lib/server/subtitles/providers/Subti
 import { ensureStreamingApiKeyRateLimit } from '$lib/server/auth/index.js';
 import { logCaptureStore } from '$lib/server/logging/log-capture-store.js';
 import { logHistoryService } from '$lib/server/logging/log-history.js';
+import { getCinephageApiService } from '$lib/server/cinephage/CinephageApiService.js';
 
 let initializationPromise: Promise<void> | null = null;
 let initializationStarted = false;
@@ -158,6 +159,12 @@ async function initializeServices(): Promise<void> {
 
 			const jackettSyncScheduler = getJackettSyncScheduler();
 			serviceManager.register(jackettSyncScheduler);
+
+			// CinephageAPI subsystem — owns api.cinephage.net connection and
+			// feature modules (library-streaming, remote-streaming). Phase 1
+			// ships with zero modules registered — no behavior change yet.
+			const cinephageApiService = getCinephageApiService();
+			serviceManager.register(cinephageApiService);
 
 			serviceManager.startAll();
 

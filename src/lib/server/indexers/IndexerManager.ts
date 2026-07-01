@@ -37,7 +37,8 @@ import { getPersistentStatusTracker } from './status';
 import { getRateLimitRegistry } from './ratelimit';
 import { cleanupIndexerCookies } from './http/IndexerHttp';
 import { CINEPHAGE_STREAM_DEFINITION_ID } from './types';
-import { sanitizeStreamingIndexerSettings } from '$lib/server/streaming/settings';
+import { getCinephageModuleRegistry } from '$lib/server/cinephage/registry/CinephageModuleRegistry.js';
+import type { CinephageModule } from '$lib/server/cinephage/modules/types.js';
 
 /** Manager options */
 export interface IndexerManagerOptions {
@@ -66,8 +67,10 @@ export class IndexerManager {
 		logger.info('Initializing IndexerManager');
 		await this.definitionLoader.loadAll();
 
-		// Seed built-in streaming indexer if not exists
-		await this.seedStreamingIndexer();
+		// Allow registered Cinephage subsystem modules to seed/sync any
+		// indexer rows they own (e.g. library-streaming owns cinephage-stream).
+		// This replaces the old hard-coded seedStreamingIndexer() method.
+		await this.syncBuiltinIndexers();
 
 		logger.info(
 			{
@@ -87,6 +90,91 @@ export class IndexerManager {
 				'Definition load error'
 			);
 		}
+	}
+
+	/**
+	 * Consult the Cinephage module registry for modules that publish virtual
+	 * indexer rows (capability: providesIndexer). Each such module owns its
+	 * row's lifecycle — we ask it to sync, and it handles idempotent seeding.
+	 */
+	private async syncBuiltinIndexers(): Promise<void> {
+		const registry = getCinephageModuleRegistry();
+		const indexerProviders = registry.getByCapability('providesIndexer');
+		if (indexerProviders.length === 0) {
+			// No modules registered yet (e.g. during the Phase 1 foundation
+			// window or in tests that don't load the cinephage subsystem).
+			// Fall back to the legacy seedStreamingIndexer flow so we don't
+			// lose the row on existing installs.
+			await this.seedStreamingIndexerLegacy();
+			return;
+		}
+
+		// Modules exposing the legacy syncIndexerRow() method (LibraryStreamingModule
+		// implements it directly). Future indexer-providing modules do the same.
+		for (const mod of indexerProviders) {
+			const candidate = mod as CinephageModule & {
+				syncIndexerRow?: () => Promise<void>;
+			};
+			if (typeof candidate.syncIndexerRow === 'function') {
+				try {
+					await candidate.syncIndexerRow();
+				} catch (error) {
+					logger.error(
+						{ err: error, moduleId: mod.id },
+						'Failed to sync indexer row for cinephage module'
+					);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Legacy fallback: seeds the cinephage-stream row directly. Used when the
+	 * Cinephage subsystem hasn't registered any modules yet (Phase 1 boot or
+	 * test environments without the subsystem loaded). The migration path
+	 * guarantees any existing row is already marked isBuiltIn, so this mainly
+	 * creates the row for first-time installs that bypass the subsystem.
+	 */
+	private async seedStreamingIndexerLegacy(): Promise<void> {
+		const existing = await db
+			.select()
+			.from(indexersTable)
+			.where(eq(indexersTable.definitionId, CINEPHAGE_STREAM_DEFINITION_ID));
+
+		if (existing.length > 0) {
+			const current = existing[0];
+			if (!current.isBuiltIn) {
+				await db
+					.update(indexersTable)
+					.set({ isBuiltIn: true, updatedAt: new Date().toISOString() })
+					.where(eq(indexersTable.id, current.id));
+			}
+			return;
+		}
+
+		const def = this.definitionLoader.get(CINEPHAGE_STREAM_DEFINITION_ID);
+		if (!def) {
+			logger.warn({ id: CINEPHAGE_STREAM_DEFINITION_ID }, 'Streaming indexer definition not found');
+			return;
+		}
+
+		const now = new Date().toISOString();
+		await db.insert(indexersTable).values({
+			name: def.name,
+			definitionId: CINEPHAGE_STREAM_DEFINITION_ID,
+			enabled: true,
+			isBuiltIn: true,
+			baseUrl: def.links[0] || 'http://localhost',
+			priority: 50,
+			enableAutomaticSearch: true,
+			enableInteractiveSearch: true,
+			createdAt: now,
+			updatedAt: now
+		});
+		logger.info(
+			{ definitionId: CINEPHAGE_STREAM_DEFINITION_ID, name: def.name },
+			'Seeded built-in streaming indexer to database (legacy path)'
+		);
 	}
 
 	/** Get all available YAML definitions */
@@ -133,66 +221,6 @@ export class IndexerManager {
 
 		// Clear cached indexer instances so they get recreated
 		this.indexerInstances.clear();
-	}
-
-	/**
-	 * Seed the built-in streaming indexer if it doesn't exist in the database.
-	 * This ensures users can use the streaming indexer without manual setup.
-	 */
-	private async seedStreamingIndexer(): Promise<void> {
-		// Check if streaming indexer already exists
-		const existing = await db
-			.select()
-			.from(indexersTable)
-			.where(eq(indexersTable.definitionId, CINEPHAGE_STREAM_DEFINITION_ID));
-
-		if (existing.length > 0) {
-			const current = existing[0];
-			const sanitizedSettings = sanitizeStreamingIndexerSettings(
-				current.settings as Record<string, unknown> | null | undefined
-			);
-			const currentSettings =
-				(current.settings as Record<string, unknown> | null | undefined) ?? {};
-
-			if (JSON.stringify(currentSettings) !== JSON.stringify(sanitizedSettings)) {
-				await db
-					.update(indexersTable)
-					.set({
-						settings: sanitizedSettings,
-						updatedAt: new Date().toISOString()
-					})
-					.where(eq(indexersTable.id, current.id));
-			}
-
-			logger.debug('Streaming indexer already exists in database');
-			return;
-		}
-
-		// Get definition info from YAML loader
-		const def = this.definitionLoader.get(CINEPHAGE_STREAM_DEFINITION_ID);
-		if (!def) {
-			logger.warn({ id: CINEPHAGE_STREAM_DEFINITION_ID }, 'Streaming indexer definition not found');
-			return;
-		}
-
-		// Create the streaming indexer (ID auto-generated by $defaultFn)
-		await db.insert(indexersTable).values({
-			name: def.name,
-			definitionId: CINEPHAGE_STREAM_DEFINITION_ID,
-			enabled: true, // Enabled by default
-			baseUrl: def.links[0] || 'http://localhost',
-			priority: 50, // Lower priority than torrent indexers (higher number = lower priority)
-			enableAutomaticSearch: true, // Include in automatic searches
-			enableInteractiveSearch: true // Include in manual searches
-		});
-
-		logger.info(
-			{
-				definitionId: CINEPHAGE_STREAM_DEFINITION_ID,
-				name: def.name
-			},
-			'Seeded built-in streaming indexer to database'
-		);
 	}
 
 	/** Get all configured indexers from database */
@@ -301,6 +329,27 @@ export class IndexerManager {
 			throw new Error(`Indexer not found: ${id}`);
 		}
 
+		// Built-in indexers (e.g. cinephage-stream owned by the CinephageAPI
+		// subsystem's library-streaming module) reject edits to fields the
+		// owning subsystem manages. User can still toggle enable state,
+		// search-mode toggles, and priority — those reflect search behavior
+		// and don't conflict with subsystem-owned config.
+		if (existing.isBuiltIn) {
+			const restricted: Array<keyof typeof updates> = [
+				'name',
+				'baseUrl',
+				'alternateUrls',
+				'settings',
+				'additionalCategories'
+			];
+			const attempted = restricted.filter((field) => updates[field] !== undefined);
+			if (attempted.length > 0) {
+				throw new Error(
+					`Cannot edit restricted field(s) ${attempted.join(', ')} on built-in indexer '${existing.definitionId}'. Manage it via the Cinephage settings panel.`
+				);
+			}
+		}
+
 		const updateData: Record<string, unknown> = {};
 		if (updates.name !== undefined) updateData.name = updates.name;
 		if (updates.enabled !== undefined) updateData.enabled = updates.enabled ? 1 : 0;
@@ -392,6 +441,16 @@ export class IndexerManager {
 
 	/** Delete an indexer */
 	async deleteIndexer(id: string): Promise<void> {
+		// Built-in indexers cannot be deleted — they are owned by a subsystem
+		// (e.g. CinephageAPI library-streaming owns cinephage-stream). The
+		// subsystem would re-seed the row on the next init anyway.
+		const existing = await this.getIndexer(id);
+		if (existing?.isBuiltIn) {
+			throw new Error(
+				`Cannot delete built-in indexer '${existing.definitionId}'. Disable it instead, or manage via the Cinephage settings panel.`
+			);
+		}
+
 		await db.delete(indexersTable).where(eq(indexersTable.id, id));
 
 		// Clean up all resources
@@ -619,16 +678,15 @@ export class IndexerManager {
 			enabled: !!row.enabled,
 			upstreamEnabled: row.upstreamEnabled ?? null,
 			orphaned: !!row.orphaned,
+			isBuiltIn: !!row.isBuiltIn,
 			baseUrl: row.baseUrl,
 			alternateUrls: row.alternateUrls ?? [],
 			priority: row.priority ?? 25,
 			protocol,
-			settings:
-				row.definitionId === CINEPHAGE_STREAM_DEFINITION_ID
-					? sanitizeStreamingIndexerSettings(
-							row.settings as Record<string, unknown> | null | undefined
-						)
-					: ((row.settings as Record<string, string>) ?? {}),
+			// Note: cinephage-stream's settings JSON is no longer used as a
+			// source of truth after migration 103 — its config lives in the
+			// CinephageAPI subsystem tables. The row's settings are null/empty.
+			settings: (row.settings as Record<string, string>) ?? {},
 
 			// Search capability toggles
 			enableAutomaticSearch: row.enableAutomaticSearch ?? true,

@@ -120,8 +120,12 @@ import {
  * Version 88: Add root folder scan filters
  * Version 89: Add blocked keywords table
  * Version 90: Add durable library job tables
+ * Version 101: Add Cinephage API subsystem tables (cinephage_api_config, cinephage_api_modules)
+ * Version 102: Add indexers.is_built_in column for system-owned indexer rows
+ * Version 103: Migrate streaming settings JSON to cinephage_api_* tables
+ * Version 104: Drop vestigial indexer_definitions table
  */
-export const CURRENT_SCHEMA_VERSION = 100;
+export const CURRENT_SCHEMA_VERSION = 104;
 
 export const SYSTEM_LIBRARY_SEEDS = [
 	{
@@ -178,23 +182,6 @@ const TABLE_DEFINITIONS: string[] = [
 		"applied_at" text NOT NULL,
 		"execution_time_ms" integer,
 		"success" integer DEFAULT 1
-	)`,
-
-	`CREATE TABLE IF NOT EXISTS "indexer_definitions" (
-		"id" text PRIMARY KEY NOT NULL,
-		"name" text NOT NULL,
-		"description" text,
-		"protocol" text NOT NULL CHECK ("protocol" IN ('torrent', 'usenet', 'streaming')),
-		"type" text NOT NULL CHECK ("type" IN ('public', 'semi-private', 'private')),
-		"language" text DEFAULT 'en-US',
-		"urls" text NOT NULL,
-		"legacy_urls" text,
-		"settings_schema" text,
-		"capabilities" text NOT NULL,
-		"file_path" text,
-		"file_hash" text,
-		"loaded_at" text NOT NULL,
-		"updated_at" text NOT NULL
 	)`,
 
 	`CREATE TABLE IF NOT EXISTS "scoring_profiles" (
@@ -433,12 +420,32 @@ const TABLE_DEFINITIONS: string[] = [
 		"updated_at" text
 	)`,
 
+	// Cinephage API subsystem - singleton config row (id is always 1)
+	`CREATE TABLE IF NOT EXISTS "cinephage_api_config" (
+		"id" integer PRIMARY KEY NOT NULL DEFAULT 1 CHECK ("id" = 1),
+		"enabled" integer DEFAULT 1 NOT NULL,
+		"base_url" text NOT NULL DEFAULT 'https://api.cinephage.net',
+		"version_override" text,
+		"commit_override" text,
+		"updated_at" text
+	)`,
+
+	// Cinephage API subsystem - per-module state (one row per feature module)
+	`CREATE TABLE IF NOT EXISTS "cinephage_api_modules" (
+		"module_id" text PRIMARY KEY NOT NULL,
+		"enabled" integer DEFAULT 1 NOT NULL,
+		"settings" text NOT NULL DEFAULT '{}',
+		"last_error" text,
+		"updated_at" text
+	)`,
+
 	// Tables with foreign keys to root_folders, scoring_profiles, quality_presets
 	`CREATE TABLE IF NOT EXISTS "indexers" (
 		"id" text PRIMARY KEY NOT NULL,
 		"name" text NOT NULL,
 		"definition_id" text NOT NULL,
 		"enabled" integer DEFAULT true,
+		"is_built_in" integer DEFAULT 0 NOT NULL,
 		"base_url" text NOT NULL,
 		"alternate_urls" text,
 		"priority" integer DEFAULT 25,
@@ -1289,8 +1296,6 @@ const TABLE_DEFINITIONS: string[] = [
  * Index definitions for performance
  */
 const INDEX_DEFINITIONS: string[] = [
-	`CREATE INDEX IF NOT EXISTS "idx_indexer_definitions_protocol" ON "indexer_definitions" ("protocol")`,
-	`CREATE INDEX IF NOT EXISTS "idx_indexer_definitions_type" ON "indexer_definitions" ("type")`,
 	`CREATE INDEX IF NOT EXISTS "idx_indexers_definition" ON "indexers" ("definition_id")`,
 	`CREATE INDEX IF NOT EXISTS "idx_indexers_enabled" ON "indexers" ("enabled")`,
 	`CREATE INDEX IF NOT EXISTS "idx_indexer_status_health" ON "indexer_status" ("health", "is_disabled")`,
@@ -1333,6 +1338,7 @@ const INDEX_DEFINITIONS: string[] = [
 	`CREATE INDEX IF NOT EXISTS "idx_blocklist_movie" ON "blocklist" ("movie_id")`,
 	`CREATE INDEX IF NOT EXISTS "idx_blocklist_series" ON "blocklist" ("series_id")`,
 	`CREATE INDEX IF NOT EXISTS "idx_blocklist_infohash" ON "blocklist" ("info_hash")`,
+	`CREATE INDEX IF NOT EXISTS "idx_cinephage_api_modules_enabled" ON "cinephage_api_modules" ("enabled")`,
 	`CREATE UNIQUE INDEX IF NOT EXISTS "idx_blocked_media_unique" ON "blocked_media" ("tmdb_id", "media_type")`,
 	`CREATE INDEX IF NOT EXISTS "idx_monitoring_history_task_history" ON "monitoring_history" ("task_history_id")`,
 	`CREATE INDEX IF NOT EXISTS "idx_monitoring_history_movie" ON "monitoring_history" ("movie_id")`,
