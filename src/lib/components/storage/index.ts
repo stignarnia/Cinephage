@@ -5,4 +5,5 @@ export { default as InsightCard } from './InsightCard.svelte';
 export { default as LibraryOverview } from './LibraryOverview.svelte';
 export { default as RootFolderOverview } from './RootFolderOverview.svelte';
 export { default as MediaBreakdown } from './MediaBreakdown.svelte';
+export { default as StorageTile } from './StorageTile.svelte';
 export * from './utils.js';
