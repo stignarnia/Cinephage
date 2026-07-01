@@ -488,6 +488,9 @@ export function getAppliedMigrations(
 /**
  * Backfill migration records for existing databases that were using the legacy schema_version system.
  * This ensures backward compatibility when upgrading from the old single-version tracking.
+ *
+ * Parameterized (instead of importing MIGRATIONS directly) to avoid a static import cycle:
+ * migration-helpers -> migrations/index -> migration 064 -> admin-bootstrap -> db/index -> schema-sync -> migration-helpers.
  */
 export function backfillMigrationRecords(
 	sqlite: Database.Database,

@@ -124,7 +124,7 @@ import {
  * Version 102: Add indexers.is_built_in column for system-owned indexer rows
  * Version 103: Migrate streaming settings JSON to cinephage_api_* tables
  * Version 104: Drop vestigial indexer_definitions table
- * Version 105: Added storage_items, storage_item_server_links, storage_insights tables for unified storage tracking
+ * Version 105: Add storage_items, storage_item_server_links, storage_insights tables for unified storage tracking
  */
 export const CURRENT_SCHEMA_VERSION = 105;
 
