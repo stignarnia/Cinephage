@@ -3,11 +3,13 @@ import { MissingFromMediaServerRule } from './MissingFromMediaServerRule.js';
 import { UntrackedByCinephageRule } from './UntrackedByCinephageRule.js';
 import { UnplayedRule } from './UnplayedRule.js';
 import { DuplicateItemsRule } from './DuplicateItemsRule.js';
+import { OrphanedFilesRule } from './OrphanedFilesRule.js';
 
 // Rules are added in Tasks 5-12. Each new rule is appended to this array.
 export const ALL_RULES: StorageInsightRule[] = [
 	new MissingFromMediaServerRule(),
 	new UntrackedByCinephageRule(),
 	new UnplayedRule(),
-	new DuplicateItemsRule()
+	new DuplicateItemsRule(),
+	new OrphanedFilesRule()
 ];
