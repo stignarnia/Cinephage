@@ -17,6 +17,7 @@ import { getNntpManager } from '$lib/server/streaming/usenet/NntpManager';
 import { getExtractionCacheManager } from '$lib/server/streaming/nzb/extraction/ExtractionCacheManager';
 import { getMediaBrowserNotifier } from '$lib/server/notifications/mediabrowser';
 import { getMediaServerStatsSyncService } from '$lib/server/mediaServerStats/MediaServerStatsSyncService.js';
+import { getReconciliationService } from '$lib/server/storage/reconciliation/ReconciliationService.js';
 import { getEpgScheduler } from '$lib/server/livetv/epg';
 import { getLiveTvAccountManager } from '$lib/server/livetv/LiveTvAccountManager';
 import { getProwlarrSyncScheduler } from '$lib/server/indexers/prowlarr/ProwlarrSyncScheduler.js';
@@ -138,6 +139,9 @@ async function initializeServices(): Promise<void> {
 
 			const mediaServerStatsSync = getMediaServerStatsSyncService();
 			serviceManager.register(mediaServerStatsSync);
+
+			const reconciliationService = getReconciliationService();
+			serviceManager.register(reconciliationService);
 
 			const liveTvAccountManager = getLiveTvAccountManager();
 			serviceManager.register(liveTvAccountManager);
