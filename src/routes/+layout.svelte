@@ -24,15 +24,11 @@
 		Compass,
 		Library,
 		User,
-		Filter,
-		ListTodo,
-		FileSignature,
 		List,
 		Radio,
 		Calendar,
 		Activity,
 		FileQuestion,
-		ScrollText,
 		LogOut,
 		Server,
 		Download,
@@ -41,7 +37,6 @@
 		Loader2,
 		Puzzle,
 		FolderCog,
-		Shield,
 		Ban,
 		Globe,
 		Palette
@@ -263,10 +258,16 @@
 				icon: Settings,
 				children: [
 					{
-						href: '/settings/general/libraries',
+						href: '/settings/library/libraries',
 						label: m.nav_libraryStorage,
 						icon: FolderCog,
-						match: (url: URL) => url.pathname.startsWith('/settings/general')
+						match: (url: URL) => url.pathname.startsWith('/settings/library')
+					},
+					{
+						href: '/settings/integrations/indexers',
+						label: m.nav_integrations,
+						icon: Puzzle,
+						match: (url: URL) => url.pathname.startsWith('/settings/integrations')
 					},
 					{
 						href: '/settings/system/general',
@@ -274,24 +275,18 @@
 						icon: Server,
 						match: (url: URL) => url.pathname.startsWith('/settings/system')
 					},
-					{ href: '/settings/logs', label: m.nav_logs, icon: ScrollText },
-					{ href: '/settings/naming', label: m.nav_naming, icon: FileSignature },
-					{ href: '/settings/quality', label: m.nav_qualitySettings, icon: Shield },
-					{
-						href: '/settings/integrations/indexers',
-						label: m.nav_integrations,
-						icon: Puzzle,
-						match: (url: URL) => url.pathname.startsWith('/settings/integrations')
-					},
-					{ href: '/settings/tasks', label: m.nav_tasks, icon: ListTodo },
 					{
 						href: '/settings/blocklist/releases',
 						label: m.nav_blocklist,
 						icon: Ban,
-						match: (url) => url.pathname.startsWith('/settings/blocklist')
+						match: (url: URL) => url.pathname.startsWith('/settings/blocklist')
 					},
-					{ href: '/settings/filters', label: m.nav_globalFilters, icon: Filter },
-					{ href: '/profile', label: m.nav_profile, icon: User }
+					{
+						href: '/settings/monitoring/status',
+						label: m.nav_monitoring,
+						icon: Activity,
+						match: (url: URL) => url.pathname.startsWith('/settings/monitoring')
+					}
 				]
 			}
 		];
