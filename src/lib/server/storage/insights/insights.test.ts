@@ -5,7 +5,7 @@ import {
 	clearTestDb,
 	type TestDatabase
 } from '../../../../test/db-helper.js';
-import { storageInsights } from '$lib/server/db/schema';
+import { libraries, storageInsights } from '$lib/server/db/schema';
 
 const testDb: TestDatabase = createTestDb();
 
@@ -42,6 +42,10 @@ describe('InsightsService', () => {
 
 	beforeEach(async () => {
 		__resetInsightsServiceForTests();
+		// clearTestDb does not wipe libraries/rootFolders; migrations seed system
+		// libraries (with no root folder) which HealthIssuesRule would flag. Clear
+		// them so the DB is genuinely empty for a zero-findings baseline.
+		testDb.db.delete(libraries).run();
 		await clearTestDb(testDb);
 	});
 
@@ -62,7 +66,7 @@ describe('InsightsService', () => {
 		expect(second.skipped).toBe(true);
 	});
 
-	it('produces zero findings when no rules are registered', async () => {
+	it('produces zero findings on an empty library', async () => {
 		const service = getInsightsService();
 		const result = await service.runAllRules();
 		expect(result.skipped).toBe(false);
