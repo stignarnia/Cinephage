@@ -5,3 +5,4 @@ export { default as RootFolderDesktopRow } from './RootFolderDesktopRow.svelte';
 export { default as RootFolderMobileCard } from './RootFolderMobileCard.svelte';
 export { default as LibraryBreakdownTable } from './LibraryBreakdownTable.svelte';
 export { default as LibraryBreakdownMobileList } from './LibraryBreakdownMobileList.svelte';
+export { default as LibraryEditModal } from './LibraryEditModal.svelte';
