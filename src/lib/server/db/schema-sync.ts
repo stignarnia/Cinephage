@@ -124,8 +124,9 @@ import {
  * Version 102: Add indexers.is_built_in column for system-owned indexer rows
  * Version 103: Migrate streaming settings JSON to cinephage_api_* tables
  * Version 104: Drop vestigial indexer_definitions table
+ * Version 105: Added storage_items, storage_item_server_links, storage_insights tables for unified storage tracking
  */
-export const CURRENT_SCHEMA_VERSION = 104;
+export const CURRENT_SCHEMA_VERSION = 105;
 
 export const SYSTEM_LIBRARY_SEEDS = [
 	{
@@ -287,6 +288,7 @@ const TABLE_DEFINITIONS: string[] = [
 		"preserve_symlinks" integer DEFAULT false,
 		"default_monitored" integer DEFAULT true,
 		"free_space_bytes" integer,
+		"total_space_bytes" integer,
 		"last_checked_at" text,
 		"created_at" text
 	)`,
@@ -1289,6 +1291,55 @@ const TABLE_DEFINITIONS: string[] = [
 		"keyword_id" integer NOT NULL UNIQUE,
 		"name" text NOT NULL,
 		"created_at" text NOT NULL
+	)`,
+
+	// Storage Items - unified directory of media items across libraries and root folders
+	`CREATE TABLE IF NOT EXISTS "storage_items" (
+		"id" text PRIMARY KEY NOT NULL,
+		"item_type" text NOT NULL,
+		"tmdb_id" integer,
+		"tvdb_id" integer,
+		"imdb_id" text,
+		"title" text NOT NULL,
+		"year" integer,
+		"series_name" text,
+		"season_number" integer,
+		"episode_number" integer,
+		"movie_file_id" text,
+		"episode_file_id" text,
+		"root_folder_id" text,
+		"library_id" text,
+		"source_system" text NOT NULL,
+		"match_confidence" text NOT NULL,
+		"first_seen_at" text NOT NULL,
+		"last_reconciled_at" text
+	)`,
+
+	// Storage Item Server Links - sidecar for multi-server fan-out
+	`CREATE TABLE IF NOT EXISTS "storage_item_server_links" (
+		"storage_item_id" text NOT NULL,
+		"server_id" text NOT NULL,
+		"synced_item_id" text NOT NULL,
+		"last_seen_at" text NOT NULL,
+		PRIMARY KEY ("storage_item_id", "server_id")
+	)`,
+
+	// Storage Insights - cached dismissible findings (orphaned media, dupes, etc.)
+	`CREATE TABLE IF NOT EXISTS "storage_insights" (
+		"id" text PRIMARY KEY NOT NULL,
+		"insight_type" text NOT NULL,
+		"severity" text NOT NULL,
+		"scope" text NOT NULL,
+		"scope_id" text,
+		"title" text NOT NULL,
+		"summary" text,
+		"details_json" text,
+		"reclaimable_bytes" integer,
+		"item_count" integer NOT NULL DEFAULT 0,
+		"first_detected_at" text NOT NULL,
+		"last_detected_at" text NOT NULL,
+		"dismissed_at" text,
+		"dismissed_by" text
 	)`
 ];
 

@@ -68,9 +68,9 @@ describe('migration 105: add-storage-items-tables', () => {
 
 	it('adds total_space_bytes column to root_folders', () => {
 		migration.apply(sqlite);
-		const cols = sqlite
-			.prepare(`PRAGMA table_info("root_folders")`)
-			.all() as Array<{ name: string }>;
+		const cols = sqlite.prepare(`PRAGMA table_info("root_folders")`).all() as Array<{
+			name: string;
+		}>;
 		const colNames = cols.map((c) => c.name);
 		expect(colNames).toContain('total_space_bytes');
 	});
