@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Component } from 'svelte';
+	import type { ComponentType } from 'svelte';
 
 	interface MiniSegment {
 		value: number;
@@ -7,7 +7,7 @@
 	}
 
 	interface Props {
-		icon: Component<{ class?: string }>;
+		icon: ComponentType;
 		iconClass?: string;
 		label: string;
 		value: string;
@@ -45,7 +45,7 @@
 
 <div class="card relative bg-base-200 transition-colors hover:bg-base-300/70">
 	{#if href}
-		<a href={href} class="absolute inset-0 z-0" aria-label={label}></a>
+		<a {href} class="absolute inset-0 z-0" aria-label={label}></a>
 	{/if}
 	<div class="card-body gap-1.5 p-3 sm:p-4">
 		<div class="flex items-center justify-between">
@@ -53,14 +53,11 @@
 				<div class={`rounded-lg p-1.5 ${iconClass}`}>
 					<Icon class="h-4 w-4" />
 				</div>
-				<span class="text-xs font-medium uppercase tracking-wide text-base-content/50"
-					>{label}</span
+				<span class="text-xs font-medium uppercase tracking-wide text-base-content/50">{label}</span
 				>
 			</div>
 			{#if statusDot}
-				<span
-					class={`inline-block h-2.5 w-2.5 rounded-full ${dotColor}`}
-					aria-label={statusDot}
+				<span class={`inline-block h-2.5 w-2.5 rounded-full ${dotColor}`} aria-label={statusDot}
 				></span>
 			{/if}
 		</div>
