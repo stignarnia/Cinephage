@@ -40,7 +40,7 @@ export function insightTypeLabel(type: string): string {
 		'orphaned-files': 'Orphaned Files',
 		'missing-from-media-server': 'Sync Gap',
 		'untracked-by-cinephage': 'Untracked',
-		'unplayed': 'Unplayed',
+		unplayed: 'Unplayed',
 		'duplicate-items': 'Duplicates',
 		'quality-below-cutoff': 'Quality',
 		'broken-paths': 'Broken Paths',

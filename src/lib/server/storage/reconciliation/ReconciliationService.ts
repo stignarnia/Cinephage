@@ -350,11 +350,11 @@ class ReconciliationService extends EventEmitter implements BackgroundService {
 				};
 			});
 
-		logger.info(
-			`[ReconciliationService] reconcile complete: ${result.itemsInserted} new, ${result.itemsUpdated} updated, ${result.itemsDeleted} removed, ${result.linksUpserted} links, ${result.errorCount} errors in ${result.durationMs}ms`
-		);
-		this.emit('reconcileComplete', result);
-		return result;
+			logger.info(
+				`[ReconciliationService] reconcile complete: ${result.itemsInserted} new, ${result.itemsUpdated} updated, ${result.itemsDeleted} removed, ${result.linksUpserted} links, ${result.errorCount} errors in ${result.durationMs}ms`
+			);
+			this.emit('reconcileComplete', result);
+			return result;
 		} catch (e) {
 			this._error = e instanceof Error ? e : new Error(String(e));
 			logger.error('[ReconciliationService] reconcile threw', this._error);
