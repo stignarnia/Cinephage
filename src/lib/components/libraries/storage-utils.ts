@@ -195,11 +195,11 @@ export function getRootFolderScanLabel(item: RootFolderBreakdownItem): string {
 }
 
 export function getRootFolderScanBadgeClass(item: RootFolderBreakdownItem): string {
-	if (item.lastScanStatus === 'completed') return 'bg-success/15 text-success';
-	if (item.lastScanStatus === 'failed') return 'bg-error/15 text-error';
-	if (item.lastScanStatus === 'running') return 'bg-warning/20 text-warning-content';
-	if (item.needsScan) return 'bg-warning/20 text-warning-content';
-	return 'bg-base-200 text-base-content/70';
+	if (item.lastScanStatus === 'completed') return 'border-success/30 bg-success/10 text-success';
+	if (item.lastScanStatus === 'failed') return 'border-error/30 bg-error/10 text-error';
+	if (item.lastScanStatus === 'running') return 'border-warning/30 bg-warning/10 text-warning';
+	if (item.needsScan) return 'border-warning/30 bg-warning/10 text-warning';
+	return 'border-base-300 bg-base-200 text-base-content/70';
 }
 
 export function getScanTone(status: string | null | undefined): string {

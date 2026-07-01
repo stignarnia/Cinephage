@@ -118,24 +118,24 @@
 				{#if item.href}
 					<a
 						href={item.href}
-						class={`badge gap-2 border-none badge-lg ${
+						class={`badge gap-2 badge-lg font-medium ${
 							item.tone === 'error'
-								? 'bg-error/15 text-error'
+								? 'border-error/30 bg-error/10 text-error'
 								: item.tone === 'warning'
-									? 'bg-warning/20 text-warning-content'
-									: 'bg-info/15 text-info'
+									? 'border-warning/30 bg-warning/10 text-warning'
+									: 'border-info/30 bg-info/10 text-info'
 						}`}
 					>
 						{item.label}
 					</a>
 				{:else}
 					<span
-						class={`badge gap-2 border-none badge-lg ${
+						class={`badge gap-2 badge-lg font-medium ${
 							item.tone === 'error'
-								? 'bg-error/15 text-error'
+								? 'border-error/30 bg-error/10 text-error'
 								: item.tone === 'warning'
-									? 'bg-warning/20 text-warning-content'
-									: 'bg-info/15 text-info'
+									? 'border-warning/30 bg-warning/10 text-warning'
+									: 'border-info/30 bg-info/10 text-info'
 						}`}
 					>
 						{item.label}
