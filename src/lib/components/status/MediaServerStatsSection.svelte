@@ -127,22 +127,6 @@
 		return { visible: sorted.slice(0, largestLimit), total: sorted.length };
 	});
 
-	const resolutionItems = $derived(
-		stats.resolutionBreakdown.map(({ label, count }) => ({ label, value: count }))
-	);
-	const codecItems = $derived(
-		stats.codecBreakdown.map(({ label, count }) => ({ label, value: count }))
-	);
-	const hdrItems = $derived(
-		stats.hdrBreakdown.map(({ label, count }) => ({ label, value: count }))
-	);
-	const audioCodecItems = $derived(
-		stats.audioCodecBreakdown.map(({ label, count }) => ({ label, value: count }))
-	);
-	const containerItems = $derived(
-		stats.containerBreakdown.map(({ label, count }) => ({ label, value: count }))
-	);
-
 	function formatResolution(height: number | null): string {
 		if (!height) return '—';
 		if (height >= 2160) return '4K';
@@ -211,25 +195,49 @@
 
 	<div class="mt-4 grid gap-4 md:grid-cols-3">
 		<SettingsSection title="Resolution" variant="card">
-			<BreakdownBar items={resolutionItems} />
+			<BreakdownBar
+				segments={stats.resolutionBreakdown.map((item) => ({
+					label: item.label,
+					value: item.count
+				}))}
+				totalLabel="{stats.resolutionBreakdown.reduce((s, i) => s + i.count, 0)} items"
+			/>
 		</SettingsSection>
 
 		<SettingsSection title="Video Codec" variant="card">
-			<BreakdownBar items={codecItems} />
+			<BreakdownBar
+				segments={stats.codecBreakdown.map((item) => ({ label: item.label, value: item.count }))}
+				totalLabel="{stats.codecBreakdown.reduce((s, i) => s + i.count, 0)} items"
+			/>
 		</SettingsSection>
 
 		<SettingsSection title="HDR / SDR" variant="card">
-			<BreakdownBar items={hdrItems} />
+			<BreakdownBar
+				segments={stats.hdrBreakdown.map((item) => ({ label: item.label, value: item.count }))}
+				totalLabel="{stats.hdrBreakdown.reduce((s, i) => s + i.count, 0)} items"
+			/>
 		</SettingsSection>
 	</div>
 
 	<div class="mt-4 grid gap-4 md:grid-cols-2">
 		<SettingsSection title="Audio Codec" variant="card">
-			<BreakdownBar items={audioCodecItems} />
+			<BreakdownBar
+				segments={stats.audioCodecBreakdown.map((item) => ({
+					label: item.label,
+					value: item.count
+				}))}
+				totalLabel="{stats.audioCodecBreakdown.reduce((s, i) => s + i.count, 0)} items"
+			/>
 		</SettingsSection>
 
 		<SettingsSection title="Container Format" variant="card">
-			<BreakdownBar items={containerItems} />
+			<BreakdownBar
+				segments={stats.containerBreakdown.map((item) => ({
+					label: item.label,
+					value: item.count
+				}))}
+				totalLabel="{stats.containerBreakdown.reduce((s, i) => s + i.count, 0)} items"
+			/>
 		</SettingsSection>
 	</div>
 
