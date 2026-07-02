@@ -82,7 +82,7 @@ describe('MissingFromMediaServerRule', () => {
 		expect(findings[0].itemCount).toBe(1);
 		expect(findings[0].severity).toBe('info');
 		expect(findings[0].scope).toBe('global');
-		expect(findings[0].title).toContain('1');
+		expect(findings[0].title).toContain('missing from');
 	});
 
 	it('returns zero findings when all items are on servers', async () => {

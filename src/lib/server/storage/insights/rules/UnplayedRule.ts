@@ -64,7 +64,7 @@ export class UnplayedRule implements StorageInsightRule {
 				type: this.type,
 				severity: 'warning',
 				scope: 'global',
-				title: `${unplayedItems.length} unplayed item${unplayedItems.length === 1 ? '' : 's'}`,
+				title: `Unplayed items`,
 				summary: `${unplayedItems.length} item${unplayedItems.length === 1 ? ' has' : 's have'} been in your library for over ${UNPLAYED_THRESHOLD_DAYS} days without being played on any media server.`,
 				details: {
 					itemIds: unplayedItems.map((i) => i.id),

@@ -33,7 +33,7 @@ export class DuplicateItemsRule implements StorageInsightRule {
 				type: this.type,
 				severity: 'warning',
 				scope: 'global',
-				title: `${totalDupes} duplicate item${totalDupes === 1 ? '' : 's'}`,
+				title: `Duplicate items`,
 				summary: `${totalDupes} movie${totalDupes === 1 ? ' has' : 's have'} multiple files. You may want to remove duplicates to reclaim space.`,
 				details: {
 					items: duplicates.map((d) => ({

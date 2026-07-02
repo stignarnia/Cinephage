@@ -25,7 +25,7 @@ export class UntrackedByCinephageRule implements StorageInsightRule {
 				type: this.type,
 				severity: 'info',
 				scope: 'global',
-				title: `${serverOnlyCount} item${serverOnlyCount === 1 ? '' : 's'} on your media server${serverOnlyCount === 1 ? '' : 's'} not tracked by Cinephage`,
+				title: `Items on media server not tracked by Cinephage`,
 				summary: `${serverOnlyCount} item${serverOnlyCount === 1 ? ' is' : 's are'} on your media server${serverOnlyCount === 1 ? '' : 's'} but Cinephage has no local file for ${serverOnlyCount === 1 ? 'it' : 'them'}.`,
 				itemCount: serverOnlyCount
 			}

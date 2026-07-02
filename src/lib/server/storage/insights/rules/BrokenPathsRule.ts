@@ -86,7 +86,7 @@ export class BrokenPathsRule implements StorageInsightRule {
 				type: this.type,
 				severity: 'critical',
 				scope: 'global',
-				title: `${broken.length} broken file path${broken.length === 1 ? '' : 's'}`,
+				title: `Broken file paths`,
 				summary: `${broken.length} item${broken.length === 1 ? "'s" : 's'} file${broken.length === 1 ? '' : 's'} no longer exist${broken.length === 1 ? 's' : ''} on disk. The DB record is stale — run a scan to clean up.`,
 				details: {
 					items: broken.map((b) => ({ storageId: b.storageId, title: b.title, tmdbId: b.tmdbId }))

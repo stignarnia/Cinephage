@@ -26,7 +26,7 @@ export class OrphanedFilesRule implements StorageInsightRule {
 				type: this.type,
 				severity: 'warning',
 				scope: 'global',
-				title: `${orphanedCount} unmatched file${orphanedCount === 1 ? '' : 's'} on disk`,
+				title: `Unmatched files on disk`,
 				summary: `${orphanedCount} file${orphanedCount === 1 ? '' : 's'} found during scans couldn't be matched to a movie or episode. Review and match them manually.`,
 				details: { link: '/library/unmatched' },
 				reclaimableBytes: totalSize,

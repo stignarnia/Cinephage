@@ -24,7 +24,7 @@ export class HealthIssuesRule implements StorageInsightRule {
 				type: this.type,
 				severity: 'critical',
 				scope: 'global',
-				title: `${inaccessibleFolders.length} inaccessible root folder${inaccessibleFolders.length === 1 ? '' : 's'}`,
+				title: `Inaccessible root folders`,
 				summary: `${inaccessibleFolders.length} root folder${inaccessibleFolders.length === 1 ? '' : 's'} could not be reached on disk. Imports and scans for ${inaccessibleFolders.length === 1 ? 'this folder' : 'these folders'} will fail.`,
 				details: {
 					folderIds: inaccessibleFolders.map((f) => f.id),
@@ -41,7 +41,7 @@ export class HealthIssuesRule implements StorageInsightRule {
 				type: this.type,
 				severity: 'info',
 				scope: 'global',
-				title: `${readOnlyFolders.length} read-only root folder${readOnlyFolders.length === 1 ? '' : 's'}`,
+				title: `Read-only root folders`,
 				summary: `${readOnlyFolders.length} root folder${readOnlyFolders.length === 1 ? ' is' : 's are'} configured as read-only. Imports are disabled for ${readOnlyFolders.length === 1 ? 'it' : 'them'}.`,
 				details: { folderIds: readOnlyFolders.map((f) => f.id) },
 				itemCount: readOnlyFolders.length
@@ -73,7 +73,7 @@ export class HealthIssuesRule implements StorageInsightRule {
 				type: this.type,
 				severity: 'warning',
 				scope: 'global',
-				title: `${needsScanFolders.length} root folder${needsScanFolders.length === 1 ? '' : 's'} need${needsScanFolders.length === 1 ? 's' : ''} a scan`,
+				title: `Root folders needing a scan`,
 				summary: `${needsScanFolders.length} root folder${needsScanFolders.length === 1 ? '' : 's'} ${needsScanFolders.length === 1 ? 'has' : 'have'} never been scanned or the last scan didn't complete.`,
 				details: { folderIds: needsScanFolders.map((f) => f.id) },
 				itemCount: needsScanFolders.length
@@ -85,7 +85,7 @@ export class HealthIssuesRule implements StorageInsightRule {
 			ctx.db
 				.select({ count: count() })
 				.from(libraries)
-				.where(sql`${libraries.defaultRootFolderId} IS NULL`)
+				.where(sql`${libraries.defaultRootFolderId} IS NULL AND ${libraries.isSystem} = 0`)
 				.get()?.count ?? 0;
 
 		if (libCount > 0) {
@@ -93,7 +93,7 @@ export class HealthIssuesRule implements StorageInsightRule {
 				type: this.type,
 				severity: 'warning',
 				scope: 'global',
-				title: `${libCount} librar${libCount === 1 ? 'y has' : 'ies have'} no root folder`,
+				title: `Libraries without a root folder`,
 				summary: `${libCount} librar${libCount === 1 ? 'y' : 'ies'} ${libCount === 1 ? 'has' : 'have'} no default root folder configured. New additions won't know where to go.`,
 				itemCount: libCount
 			});

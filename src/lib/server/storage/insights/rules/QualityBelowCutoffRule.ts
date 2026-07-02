@@ -59,7 +59,7 @@ export class QualityBelowCutoffRule implements StorageInsightRule {
 				type: this.type,
 				severity: 'info',
 				scope: 'global',
-				title: `${belowCutoff.length} item${belowCutoff.length === 1 ? '' : 's'} below quality cutoff`,
+				title: `Items below quality cutoff`,
 				summary: `${belowCutoff.length} movie${belowCutoff.length === 1 ? '' : 's'} have a resolution below their profile's minimum. These are candidates for upgrade searches.`,
 				details: {
 					items: belowCutoff.map((r) => ({

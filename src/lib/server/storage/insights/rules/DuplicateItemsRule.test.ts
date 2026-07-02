@@ -72,7 +72,7 @@ describe('DuplicateItemsRule', () => {
 		expect(findings).toHaveLength(1);
 		expect(findings[0].itemCount).toBe(1);
 		expect(findings[0].severity).toBe('warning');
-		expect(findings[0].title).toContain('duplicate');
+		expect(findings[0].title).toContain('Duplicate');
 	});
 
 	it('returns zero findings when no duplicates exist', async () => {

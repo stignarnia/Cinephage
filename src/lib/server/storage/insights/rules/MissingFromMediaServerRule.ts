@@ -34,7 +34,7 @@ export class MissingFromMediaServerRule implements StorageInsightRule {
 				type: this.type,
 				severity: 'info',
 				scope: 'global',
-				title: `${localOnlyCount} item${localOnlyCount === 1 ? '' : 's'} missing from your media server${serverCount === 1 ? '' : 's'}`,
+				title: `Items missing from your media server`,
 				summary: `${localOnlyCount} item${localOnlyCount === 1 ? ' is' : 's are'} in your Cinephage library but not tracked by any media server. Sync your media server library to fix.`,
 				itemCount: localOnlyCount
 			}
