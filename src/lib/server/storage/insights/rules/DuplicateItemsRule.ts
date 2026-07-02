@@ -1,18 +1,18 @@
 import { count, sql } from 'drizzle-orm';
-import { movieFiles, movies } from '$lib/server/db/schema';
+import { episodeFiles, movieFiles, movies, series } from '$lib/server/db/schema';
 import type { StorageInsightRule, RuleContext, InsightFinding } from '../types.js';
 
 /**
- * Detects movies with multiple movie_files rows pointing to the same tmdbId.
- * These are likely duplicate downloads or different cuts/editions the user
- * may want to clean up. Queries movie_files directly since storage_items
- * collapses to one row per logical item.
+ * Detects items with multiple file rows — movies with multiple movie_files,
+ * or series with unusually many episode_files in a season. These are likely
+ * duplicate downloads or different cuts/editions the user may want to clean up.
  */
 export class DuplicateItemsRule implements StorageInsightRule {
 	readonly type = 'duplicate-items' as const;
 
 	async evaluate(ctx: RuleContext): Promise<InsightFinding[]> {
-		const duplicates = ctx.db
+		// Movie duplicates: same movie with multiple movie_files rows
+		const movieDupes = ctx.db
 			.select({
 				tmdbId: movies.tmdbId,
 				title: movies.title,
@@ -25,23 +25,55 @@ export class DuplicateItemsRule implements StorageInsightRule {
 			.having(sql`count(*) > 1`)
 			.all();
 
-		if (duplicates.length === 0) return [];
+		// Episode duplicates: series+season with unusually many episode_files
+		// (most seasons are 10-13 episodes; 20+ in a season suggests duplicates)
+		const episodeDupes = ctx.db
+			.select({
+				tmdbId: series.tmdbId,
+				title: series.title,
+				seasonNumber: episodeFiles.seasonNumber,
+				fileCount: count()
+			})
+			.from(series)
+			.innerJoin(episodeFiles, sql`${episodeFiles.seriesId} = ${series.id}`)
+			.where(sql`${series.tmdbId} IS NOT NULL`)
+			.groupBy(series.id, episodeFiles.seasonNumber)
+			.having(sql`count(*) > 20`)
+			.all();
 
-		const totalDupes = duplicates.length;
+		const totalDupes = movieDupes.length + episodeDupes.length;
+		if (totalDupes === 0) return [];
+
+		const allDetails: Array<{
+			type: string;
+			tmdbId: string;
+			title: string;
+			seasonNumber?: number;
+			fileCount: number;
+		}> = [
+			...movieDupes.map((d) => ({
+				type: 'movie' as const,
+				tmdbId: String(d.tmdbId),
+				title: d.title,
+				fileCount: d.fileCount
+			})),
+			...episodeDupes.map((d) => ({
+				type: 'tv' as const,
+				tmdbId: String(d.tmdbId),
+				title: d.title,
+				seasonNumber: d.seasonNumber,
+				fileCount: d.fileCount
+			}))
+		];
+
 		return [
 			{
 				type: this.type,
 				severity: 'warning',
 				scope: 'global',
 				title: `Duplicate items`,
-				summary: `${totalDupes} movie${totalDupes === 1 ? ' has' : 's have'} multiple files. You may want to remove duplicates to reclaim space.`,
-				details: {
-					items: duplicates.map((d) => ({
-						tmdbId: d.tmdbId,
-						title: d.title,
-						fileCount: d.fileCount
-					}))
-				},
+				summary: `${totalDupes} item${totalDupes === 1 ? '' : 's'} ${totalDupes === 1 ? 'has' : 'have'} multiple files. You may want to remove duplicates to reclaim space.`,
+				details: { items: allDetails },
 				itemCount: totalDupes
 			}
 		];

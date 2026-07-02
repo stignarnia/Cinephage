@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { movieFiles, movies, scoringProfiles } from '$lib/server/db/schema';
+import { episodeFiles, movieFiles, movies, scoringProfiles, series } from '$lib/server/db/schema';
 import type { StorageInsightRule, RuleContext, InsightFinding } from '../types.js';
 
 /**
@@ -16,8 +16,9 @@ const RESOLUTION_ORDER: Record<string, number> = {
 };
 
 /**
- * Finds movies whose stored quality.resolution is below their scoring profile's
- * minResolution. These are candidates for upgrade searches.
+ * Finds media whose stored quality.resolution is below their scoring profile's
+ * minResolution. Covers both movies and episodes. These are candidates for
+ * upgrade searches.
  *
  * NOTE: The monitoring system's CutoffUnmetSpecification was softened to always
  * accept (hard cutoffs removed). This rule is the NEW logic that surfaces
@@ -28,10 +29,9 @@ export class QualityBelowCutoffRule implements StorageInsightRule {
 	readonly type = 'quality-below-cutoff' as const;
 
 	async evaluate(ctx: RuleContext): Promise<InsightFinding[]> {
-		// Load movies with their files and profiles
-		const rows = ctx.db
+		// Movies: join movies → movie_files → scoring_profiles
+		const movieRows = ctx.db
 			.select({
-				movieId: movies.id,
 				title: movies.title,
 				tmdbId: movies.tmdbId,
 				quality: movieFiles.quality,
@@ -44,7 +44,24 @@ export class QualityBelowCutoffRule implements StorageInsightRule {
 			.where(sql`${movies.tmdbId} IS NOT NULL`)
 			.all();
 
-		const belowCutoff = rows.filter((row) => {
+		// Episodes: join series → episode_files → scoring_profiles
+		const episodeRows = ctx.db
+			.select({
+				title: series.title,
+				tmdbId: series.tmdbId,
+				quality: episodeFiles.quality,
+				minResolution: scoringProfiles.minResolution,
+				profileName: scoringProfiles.name
+			})
+			.from(series)
+			.innerJoin(episodeFiles, sql`${episodeFiles.seriesId} = ${series.id}`)
+			.leftJoin(scoringProfiles, sql`${scoringProfiles.id} = ${series.scoringProfileId}`)
+			.where(sql`${series.tmdbId} IS NOT NULL`)
+			.all();
+
+		const allRows = [...movieRows, ...episodeRows];
+
+		const belowCutoff = allRows.filter((row) => {
 			if (!row.minResolution) return false;
 			const fileRes = (row.quality as { resolution?: string } | null)?.resolution ?? 'unknown';
 			const fileOrdinal = RESOLUTION_ORDER[fileRes] ?? 0;
@@ -60,7 +77,7 @@ export class QualityBelowCutoffRule implements StorageInsightRule {
 				severity: 'info',
 				scope: 'global',
 				title: `Items below quality cutoff`,
-				summary: `${belowCutoff.length} movie${belowCutoff.length === 1 ? '' : 's'} have a resolution below their profile's minimum. These are candidates for upgrade searches.`,
+				summary: `${belowCutoff.length} item${belowCutoff.length === 1 ? '' : 's'} ${belowCutoff.length === 1 ? 'has' : 'have'} a resolution below ${belowCutoff.length === 1 ? 'its' : 'their'} profile's minimum. These are candidates for upgrade searches.`,
 				details: {
 					items: belowCutoff.map((r) => ({
 						tmdbId: r.tmdbId,
