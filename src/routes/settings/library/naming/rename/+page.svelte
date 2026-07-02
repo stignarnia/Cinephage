@@ -2,7 +2,7 @@
 	import { page } from '$app/state';
 	import { SvelteSet } from 'svelte/reactivity';
 	import * as m from '$lib/paraglide/messages.js';
-	import { getRenamePreview, executeRename } from '$lib/api/settings.js';
+	import { getRenamePreview, executeRename, reorganizeFolder } from '$lib/api/settings.js';
 	import {
 		RefreshCw,
 		CheckCircle,
@@ -17,7 +17,8 @@
 		X,
 		Files,
 		RotateCcw,
-		FileEdit
+		FileEdit,
+		FolderSync
 	} from 'lucide-svelte';
 	import type {
 		RenamePreviewResult,
@@ -27,6 +28,7 @@
 	// State
 	let loading = $state(true);
 	let executing = $state(false);
+	let reorganizing = $state(false);
 	let error = $state<string | null>(null);
 	let success = $state<string | null>(null);
 	let preview = $state<RenamePreviewResult | null>(null);
@@ -124,6 +126,50 @@
 		} finally {
 			executing = false;
 		}
+	}
+
+	async function reorganizeFolders() {
+		if (!preview) return;
+
+		reorganizing = true;
+		error = null;
+
+		// Collect unique (mediaId, mediaType) from files that were successfully renamed
+		const mediaItems = new Map<string, 'movie' | 'series'>();
+		for (const item of preview.willChange) {
+			if (!selectedIds.has(item.fileId)) continue;
+			const key = `${item.mediaType}:${item.mediaId}`;
+			if (!mediaItems.has(key)) {
+				mediaItems.set(key, item.mediaType === 'movie' ? 'movie' : 'series');
+			}
+		}
+
+		let organized = 0;
+		let failed = 0;
+
+		for (const [key, mediaType] of mediaItems) {
+			const mediaId = key.split(':')[1];
+			try {
+				const result = await reorganizeFolder(mediaId, mediaType);
+				if (result.success) {
+					organized++;
+				} else {
+					failed++;
+				}
+			} catch {
+				failed++;
+			}
+		}
+
+		if (organized > 0) {
+			success = m.settings_naming_rename_successCount({ count: organized });
+		}
+		if (failed > 0) {
+			error = `Folder reorganization: ${organized} succeeded, ${failed} failed`;
+		}
+
+		await loadPreview();
+		reorganizing = false;
 	}
 
 	function toggleSelect(fileId: string) {
@@ -379,6 +425,19 @@
 				<span class="badge badge-sm {counts.errors > 0 ? 'badge-error' : 'badge-ghost'}"
 					>{counts.errors}</span
 				>
+			</button>
+			<button
+				class="btn gap-2 btn-sm btn-ghost"
+				onclick={reorganizeFolders}
+				disabled={reorganizing || selectedIds.size === 0 || !preview}
+			>
+				{#if reorganizing}
+					<RefreshCw class="h-4 w-4 animate-spin" />
+					Reorganizing...
+				{:else}
+					<FolderSync class="h-4 w-4" />
+					Reorganize Folders
+				{/if}
 			</button>
 		</div>
 

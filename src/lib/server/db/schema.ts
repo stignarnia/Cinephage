@@ -3695,3 +3695,24 @@ export const userApiKeySecretsRelations = relations(userApiKeySecrets, ({ one })
 		references: [user.id]
 	})
 }));
+
+// ============================================================================
+// Rename History Table
+// ============================================================================
+// Permanent audit trail for every file rename attempt.
+// Survives log rotation; enables undo/recovery if things go wrong.
+
+export const renameHistory = sqliteTable('rename_history', {
+	id: text('id').primaryKey(),
+	fileId: text('file_id').notNull(),
+	mediaType: text('media_type').notNull(),
+	oldPath: text('old_path').notNull(),
+	newPath: text('new_path').notNull(),
+	success: integer('success').notNull().default(0),
+	error: text('error'),
+	operation: text('operation').notNull().default('rename'),
+	createdAt: text('created_at').notNull()
+});
+
+export type RenameHistoryRecord = typeof renameHistory.$inferSelect;
+export type NewRenameHistoryRecord = typeof renameHistory.$inferInsert;

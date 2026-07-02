@@ -133,6 +133,10 @@ export async function executeRename(fileIds: string[], mediaType?: string) {
 	return apiPost('/api/rename/execute', { fileIds, mediaType });
 }
 
+export async function reorganizeFolder(mediaId: string, mediaType: 'movie' | 'series') {
+	return apiPost('/api/rename/reorganize', { mediaId, mediaType });
+}
+
 export async function getScoringProfiles() {
 	return apiGet('/api/scoring-profiles');
 }

@@ -125,8 +125,9 @@ import {
  * Version 103: Migrate streaming settings JSON to cinephage_api_* tables
  * Version 104: Drop vestigial indexer_definitions table
  * Version 105: Add storage_items, storage_item_server_links, storage_insights tables for unified storage tracking
+ * Version 106: Add rename_history table for permanent file rename audit trail
  */
-export const CURRENT_SCHEMA_VERSION = 105;
+export const CURRENT_SCHEMA_VERSION = 106;
 
 export const SYSTEM_LIBRARY_SEEDS = [
 	{
@@ -1340,6 +1341,18 @@ const TABLE_DEFINITIONS: string[] = [
 		"last_detected_at" text NOT NULL,
 		"dismissed_at" text,
 		"dismissed_by" text
+	)`,
+
+	`CREATE TABLE IF NOT EXISTS "rename_history" (
+		"id" text PRIMARY KEY NOT NULL,
+		"file_id" text NOT NULL,
+		"media_type" text NOT NULL,
+		"old_path" text NOT NULL,
+		"new_path" text NOT NULL,
+		"success" integer NOT NULL DEFAULT 0,
+		"error" text,
+		"operation" text NOT NULL DEFAULT 'rename',
+		"created_at" text NOT NULL
 	)`
 ];
 
@@ -1475,7 +1488,10 @@ const INDEX_DEFINITIONS: string[] = [
 	`CREATE UNIQUE INDEX IF NOT EXISTS "idx_synced_items_unique" ON "media_server_synced_items" ("server_id", "server_item_id")`,
 	`CREATE INDEX IF NOT EXISTS "idx_synced_items_tmdb_id" ON "media_server_synced_items" ("tmdb_id")`,
 	`CREATE INDEX IF NOT EXISTS "idx_synced_items_tvdb_id" ON "media_server_synced_items" ("tvdb_id")`,
-	`CREATE INDEX IF NOT EXISTS "idx_synced_items_item_type" ON "media_server_synced_items" ("item_type")`
+	`CREATE INDEX IF NOT EXISTS "idx_synced_items_item_type" ON "media_server_synced_items" ("item_type")`,
+	// Rename history audit indexes
+	`CREATE INDEX IF NOT EXISTS "idx_rename_history_file" ON "rename_history" ("file_id")`,
+	`CREATE INDEX IF NOT EXISTS "idx_rename_history_created" ON "rename_history" ("created_at")`
 ];
 
 /**

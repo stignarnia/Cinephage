@@ -28,7 +28,7 @@ import {
 	open,
 	chmod
 } from 'fs/promises';
-import { join, dirname, basename, extname } from 'path';
+import { join, dirname, basename, extname, resolve } from 'path';
 import { createChildLogger } from '$lib/logging';
 import {
 	VIDEO_EXTENSIONS,
@@ -291,19 +291,80 @@ export async function transferFile(
 }
 
 /**
- * Move a file (rename if same filesystem, copy+delete if different)
+ * Move a file (rename if same filesystem, copy+delete if different).
+ *
+ * Safety guarantees:
+ * - Returns success immediately (no-op) when source and destination resolve
+ *   to the same absolute path.
+ * - Refuses to move a file when the destination is a child of the source
+ *   (prevents recursive/degenerate moves that lose data).
+ * - Verifies the source file exists BEFORE touching the destination, so a
+ *   missing source fails cleanly without collateral damage.
+ * - Only unlinks the destination when it is definitely a different file.
  */
 export async function moveFile(source: string, dest: string): Promise<TransferResult> {
 	try {
+		const resolvedSource = resolve(source);
+		const resolvedDest = resolve(dest);
+
+		// No-op: source and destination are the same file.
+		if (resolvedSource === resolvedDest) {
+			let sizeBytes: number | undefined;
+			try {
+				sizeBytes = await getFileSize(resolvedSource);
+			} catch {
+				return {
+					success: false,
+					sourcePath: source,
+					destPath: dest,
+					mode: 'move',
+					error: `Source and destination are the same path, but the file does not exist: ${resolvedSource}`
+				};
+			}
+			return {
+				success: true,
+				sourcePath: source,
+				destPath: dest,
+				mode: 'move',
+				sizeBytes
+			};
+		}
+
+		// Parent-path collision: refuse to move a file into one of its own
+		// descendant directories.  Pattern: Radarr's DiskTransferService.
+		const sourceDir = resolvedSource.endsWith('/') ? resolvedSource.slice(0, -1) : resolvedSource;
+		if (resolvedDest.startsWith(sourceDir + '/') || resolvedDest.startsWith(sourceDir + '\\')) {
+			return {
+				success: false,
+				sourcePath: source,
+				destPath: dest,
+				mode: 'move',
+				error: `Destination is a child of the source path: ${resolvedDest}`
+			};
+		}
+
+		// Verify source exists BEFORE touching destination.
+		let sizeBytes: number | undefined;
+		try {
+			sizeBytes = await getFileSize(resolvedSource);
+		} catch (error) {
+			return {
+				success: false,
+				sourcePath: source,
+				destPath: dest,
+				mode: 'move',
+				error: `Source file not found: ${(error as Error).message}`
+			};
+		}
+
 		await ensureDirectory(dirname(dest));
 
+		// Remove pre-existing destination (safe — we already confirmed source !== dest).
 		if (await fileExists(dest)) {
 			await unlink(dest);
 		}
 
-		const sizeBytes = await getFileSize(source);
-
-		// Try rename first (fast if same filesystem)
+		// Try rename first (fast if same filesystem).
 		try {
 			await rename(source, dest);
 			return {
@@ -314,7 +375,7 @@ export async function moveFile(source: string, dest: string): Promise<TransferRe
 				sizeBytes
 			};
 		} catch {
-			// Cross-device move, need to copy then delete
+			// Cross-device move — copy then delete source.
 			await copyFile(source, dest);
 			await unlink(source);
 
