@@ -147,6 +147,36 @@ export const load: LayoutServerLoad = async ({ parent }) => {
 		)
 		.all();
 
+	const topItems = db
+		.select({
+			title: mediaServerSyncedItems.title,
+			seriesName: mediaServerSyncedItems.seriesName,
+			playCount: mediaServerSyncedItems.playCount,
+			height: mediaServerSyncedItems.height,
+			fileSize: mediaServerSyncedItems.fileSize,
+			itemType: mediaServerSyncedItems.itemType
+		})
+		.from(mediaServerSyncedItems)
+		.where(sql`${mediaServerSyncedItems.playCount} > 0`)
+		.orderBy(desc(mediaServerSyncedItems.playCount))
+		.limit(5)
+		.all();
+
+	const largestItems = db
+		.select({
+			title: mediaServerSyncedItems.title,
+			seriesName: mediaServerSyncedItems.seriesName,
+			fileSize: mediaServerSyncedItems.fileSize,
+			height: mediaServerSyncedItems.height,
+			videoCodec: mediaServerSyncedItems.videoCodec,
+			itemType: mediaServerSyncedItems.itemType
+		})
+		.from(mediaServerSyncedItems)
+		.where(sql`${mediaServerSyncedItems.fileSize} IS NOT NULL`)
+		.orderBy(desc(mediaServerSyncedItems.fileSize))
+		.limit(5)
+		.all();
+
 	return {
 		mediaServerStats: {
 			totalPlays,
@@ -170,6 +200,8 @@ export const load: LayoutServerLoad = async ({ parent }) => {
 		},
 		serverStatuses,
 		servers,
-		insights
+		insights,
+		topItems,
+		largestItems
 	};
 };

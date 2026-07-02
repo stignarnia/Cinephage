@@ -149,6 +149,8 @@
 		rootFolderBreakdown={data.storage.rootFolderBreakdown}
 		insights={data.insights}
 		mediaServerStats={data.mediaServerStats}
+		topItems={data.topItems}
+		largestItems={data.largestItems}
 		{scanning}
 		{scanProgress}
 		{scanError}
