@@ -17,6 +17,7 @@
 		showLegend?: boolean; // default true
 		variant?: 'thin' | 'default'; // thin = h-2, default = h-3
 		onSegmentClick?: (segment: { label: string; value: number }) => void;
+		valueFormatter?: (value: number) => string; // defaults to String(value); pass formatBytes for storage charts
 	}
 
 	let {
@@ -24,7 +25,8 @@
 		totalLabel,
 		showLegend = true,
 		variant = 'default',
-		onSegmentClick
+		onSegmentClick,
+		valueFormatter = (v: number) => String(v)
 	}: Props = $props();
 
 	const DEFAULT_COLORS = [
@@ -70,10 +72,10 @@
 					<div
 						class="{segment.colorClass} h-full cursor-pointer transition-all hover:opacity-80"
 						style="width: {segment.widthPercent}%"
-						title="{segment.label}: {segment.value}"
+						title="{segment.label}: {valueFormatter(segment.value)}"
 						role="button"
 						tabindex={0}
-						aria-label="{segment.label}: {segment.value} of {total}"
+						aria-label="{segment.label}: {valueFormatter(segment.value)} of {valueFormatter(total)}"
 						onclick={() => onSegmentClick({ label: segment.label, value: segment.value })}
 						onkeydown={(e) => segmentKeydown(e, segment)}
 					></div>
@@ -81,9 +83,9 @@
 					<div
 						class="{segment.colorClass} h-full transition-all"
 						style="width: {segment.widthPercent}%"
-						title="{segment.label}: {segment.value}"
+						title="{segment.label}: {valueFormatter(segment.value)}"
 						role="img"
-						aria-label="{segment.label}: {segment.value} of {total}"
+						aria-label="{segment.label}: {valueFormatter(segment.value)} of {valueFormatter(total)}"
 					></div>
 				{/if}
 			{/each}
@@ -101,13 +103,13 @@
 						>
 							<span class="inline-block h-2.5 w-2.5 rounded-full {segment.colorClass}"></span>
 							{segment.label}
-							<span class="text-base-content/50">({segment.value})</span>
+							<span class="text-base-content/50">({valueFormatter(segment.value)})</span>
 						</span>
 					{:else}
 						<span class="inline-flex items-center gap-1.5">
 							<span class="inline-block h-2.5 w-2.5 rounded-full {segment.colorClass}"></span>
 							{segment.label}
-							<span class="text-base-content/50">({segment.value})</span>
+							<span class="text-base-content/50">({valueFormatter(segment.value)})</span>
 						</span>
 					{/if}
 				{/each}

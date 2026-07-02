@@ -169,28 +169,38 @@
 			{
 				title: 'Storage by Type',
 				segments: storageTypeSegments,
-				totalLabel: formatBytes(storage.totalUsedBytes)
+				totalLabel: formatBytes(storage.totalUsedBytes),
+				formatValues: true
 			},
 			{
 				title: 'Storage by Library',
 				segments: libraryStorageSegments,
-				totalLabel: `${libraryCount} libraries`
+				totalLabel: `${formatBytes(storage.totalUsedBytes)} \u00B7 ${libraryCount} libraries`,
+				formatValues: true
 			},
 			{
 				title: 'Resolution',
 				segments: resolutionSegments,
-				totalLabel: `${mediaServerStats.uniqueItems} items`
+				totalLabel: `${mediaServerStats.uniqueItems} items`,
+				formatValues: false
 			},
 			{
 				title: 'Video Codec',
 				segments: codecSegments,
-				totalLabel: `${codecSegments.length} codecs`
+				totalLabel: `${codecSegments.length} codecs`,
+				formatValues: false
 			},
-			{ title: 'HDR / SDR', segments: hdrSegments, totalLabel: `${hdrSegments.length} formats` },
+			{
+				title: 'HDR / SDR',
+				segments: hdrSegments,
+				totalLabel: `${hdrSegments.length} formats`,
+				formatValues: false
+			},
 			{
 				title: 'Audio Codec',
 				segments: audioSegments,
-				totalLabel: `${audioSegments.length} codecs`
+				totalLabel: `${audioSegments.length} codecs`,
+				formatValues: false
 			}
 		].filter((c) => c.segments.length > 0)
 	);
@@ -341,7 +351,12 @@
 					</h3>
 					<span class="text-xs text-base-content/40">{section.totalLabel}</span>
 				</div>
-				<BreakdownBar segments={section.segments} variant="thin" showLegend={true} />
+				<BreakdownBar
+					segments={section.segments}
+					variant="thin"
+					showLegend={true}
+					valueFormatter={section.formatValues ? formatBytes : undefined}
+				/>
 			</div>
 		{/each}
 	</div>
