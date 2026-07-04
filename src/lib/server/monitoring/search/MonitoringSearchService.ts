@@ -76,6 +76,7 @@ export interface ItemSearchResult {
 	grabbedRelease?: string;
 	queueItemId?: string;
 	error?: string;
+	rejectionType?: string;
 	skipped?: boolean;
 	skipReason?: string;
 }
@@ -91,6 +92,7 @@ export interface SearchResults {
 		grabbed: number;
 		skipped: number;
 		errors: number;
+		rejectionBreakdown?: Record<string, number>;
 	};
 	/** Detailed upgrade decisions (only populated in dry-run mode) */
 	upgradeDetails?: UpgradeDecisionDetail[];
@@ -1149,7 +1151,8 @@ export class MonitoringSearchService {
 				grabbed: grabResult?.success ?? false,
 				grabbedRelease: grabResult?.releaseName,
 				queueItemId: grabResult?.queueItemId,
-				error: grabResult?.error
+				error: grabResult?.error,
+				rejectionType: grabResult?.rejectionType
 			};
 		} catch (error) {
 			const message = error instanceof Error ? error.message : 'Unknown error';
@@ -1866,7 +1869,8 @@ export class MonitoringSearchService {
 							grabbed: grabResult.success,
 							grabbedRelease: grabResult.releaseName,
 							queueItemId: grabResult.queueItemId,
-							error: grabResult.error
+							error: grabResult.error,
+							rejectionType: grabResult.rejectionType
 						}
 					};
 				}
@@ -2209,7 +2213,8 @@ export class MonitoringSearchService {
 							grabbed: grabResult.success,
 							grabbedRelease: grabResult.releaseName,
 							queueItemId: grabResult.queueItemId,
-							error: grabResult.error
+							error: grabResult.error,
+							rejectionType: grabResult.rejectionType
 						}
 					};
 				}
@@ -2542,7 +2547,8 @@ export class MonitoringSearchService {
 				grabbed: (grabResult?.success ?? false) && grabResult?.addedToQueue !== false,
 				grabbedRelease: grabResult?.releaseName,
 				queueItemId: grabResult?.queueItemId,
-				error: grabResult?.error
+				error: grabResult?.error,
+				rejectionType: grabResult?.rejectionType
 			};
 		} catch (error) {
 			const message = error instanceof Error ? error.message : 'Unknown error';
@@ -2729,7 +2735,8 @@ export class MonitoringSearchService {
 				grabbed: (grabResult?.success ?? false) && grabResult?.addedToQueue !== false,
 				grabbedRelease: grabResult?.releaseName,
 				queueItemId: grabResult?.queueItemId,
-				error: grabResult?.error
+				error: grabResult?.error,
+				rejectionType: grabResult?.rejectionType
 			};
 		} catch (error) {
 			const message = error instanceof Error ? error.message : 'Unknown error';
@@ -2833,6 +2840,7 @@ export class MonitoringSearchService {
 		success: boolean;
 		releaseName?: string;
 		error?: string;
+		rejectionType?: string;
 		queueItemId?: string;
 		addedToQueue?: boolean;
 	}> {
@@ -2887,6 +2895,7 @@ export class MonitoringSearchService {
 			success: result.success,
 			releaseName: result.success ? release.title : undefined,
 			error: result.error ?? (result.success ? undefined : result.decision?.reason),
+			rejectionType: result.success ? undefined : result.decision?.rejectionType,
 			queueItemId: result.download?.queueId,
 			addedToQueue: result.download?.addedToQueue
 		};
@@ -2896,12 +2905,21 @@ export class MonitoringSearchService {
 	 * Aggregate search results into summary
 	 */
 	private aggregateResults(items: ItemSearchResult[]): SearchResults {
+		const rejectionBreakdown: Record<string, number> = {};
+		for (const item of items) {
+			if (item.rejectionType) {
+				rejectionBreakdown[item.rejectionType] = (rejectionBreakdown[item.rejectionType] ?? 0) + 1;
+			}
+		}
+
 		const summary = {
 			searched: items.filter((i) => i.searched).length,
 			found: items.filter((i) => i.releasesFound > 0).length,
 			grabbed: items.filter((i) => i.grabbed).length,
 			skipped: items.filter((i) => i.skipped).length,
-			errors: items.filter((i) => i.error).length
+			errors: items.filter((i) => i.error).length,
+			rejectionBreakdown:
+				Object.keys(rejectionBreakdown).length > 0 ? rejectionBreakdown : undefined
 		};
 
 		return { items, summary };

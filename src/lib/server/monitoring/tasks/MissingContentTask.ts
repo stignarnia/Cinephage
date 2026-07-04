@@ -60,7 +60,8 @@ export async function executeMissingContentTask(
 			{
 				searched: movieResults.summary.searched,
 				grabbed: movieResults.summary.grabbed,
-				errors: movieResults.summary.errors
+				errors: movieResults.summary.errors,
+				rejectionBreakdown: movieResults.summary.rejectionBreakdown
 			},
 			'[MissingContentTask] Missing movies search completed'
 		);
@@ -133,7 +134,8 @@ export async function executeMissingContentTask(
 			{
 				searched: episodeResults.summary.searched,
 				grabbed: episodeResults.summary.grabbed,
-				errors: episodeResults.summary.errors
+				errors: episodeResults.summary.errors,
+				rejectionBreakdown: episodeResults.summary.rejectionBreakdown
 			},
 			'[MissingContentTask] Missing episodes search completed'
 		);

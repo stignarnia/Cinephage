@@ -32,6 +32,7 @@ export const POST: RequestHandler = async (event) => {
 			const actualContentType = getCategoryContentType(data.categories[0]);
 			logger.error(
 				{
+					logDomain: 'downloads',
 					title: data.title,
 					expectedType: data.mediaType,
 					actualContentType,
@@ -68,6 +69,7 @@ export const POST: RequestHandler = async (event) => {
 			if (!titlesMatch && parsedTitle.length > 0) {
 				logger.error(
 					{
+						logDomain: 'downloads',
 						releaseTitle: data.title,
 						parsedTitle: parsed.cleanTitle,
 						normalizedParsed: parsedTitle,
@@ -89,6 +91,19 @@ export const POST: RequestHandler = async (event) => {
 	}
 
 	if (!data.protocol) {
+		logger.warn(
+			{
+				logDomain: 'downloads',
+				title: data.title,
+				mediaType: data.mediaType,
+				indexerId: data.indexerId,
+				indexerName: data.indexerName,
+				hasDownloadUrl: !!data.downloadUrl,
+				hasMagnetUrl: !!data.magnetUrl,
+				hasInfoHash: !!data.infoHash
+			},
+			'[Grab] BLOCKED: Missing protocol field in request'
+		);
 		return json({ success: false, error: 'protocol is required' } satisfies GrabResponse, {
 			status: 422
 		});
@@ -136,16 +151,15 @@ export const POST: RequestHandler = async (event) => {
 		result = await grabService.grab(serviceRequest);
 	} catch (error) {
 		const message = error instanceof Error ? error.message : 'Unknown error';
-		logger.error({ error: message, title: data.title }, 'Failed to grab release');
+		logger.error(
+			{ logDomain: 'downloads', error: message, title: data.title },
+			'Failed to grab release'
+		);
 		return json({ success: false, error: message } satisfies GrabResponse, { status: 500 });
 	}
 
 	if (!result.success) {
 		if (result.error) {
-			logger.error(
-				{ title: data.title, error: result.error, decision: result.decision },
-				'[Grab] Handler returned failure'
-			);
 			return json(
 				{
 					success: false,

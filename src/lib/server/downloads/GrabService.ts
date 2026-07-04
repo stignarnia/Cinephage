@@ -11,8 +11,9 @@ import { UsenetHandler } from './handlers/UsenetHandler.js';
 import { StreamingHandler } from './handlers/StreamingHandler.js';
 import { NzbStreamingHandler } from './handlers/NzbStreamingHandler.js';
 import { createChildLogger } from '$lib/logging/index.js';
+import { grabRejectionLogLevel } from './grab-rejection-log-level.js';
 
-const logger = createChildLogger({ module: 'GrabService' });
+const logger = createChildLogger({ module: 'GrabService', logDomain: 'downloads' });
 
 class GrabServiceImpl {
 	private static instance: GrabServiceImpl;
@@ -46,12 +47,40 @@ class GrabServiceImpl {
 		const decision = await grabDecisionPipeline.evaluate(ctx);
 
 		if (!decision.accepted) {
+			const rejectionCtx = {
+				title: release.title,
+				rejectionType: decision.rejectionType,
+				reason: decision.reason,
+				indexerId: release.indexerId,
+				indexerName: release.indexerName,
+				protocol: release.protocol,
+				mediaType: resolved.mediaType,
+				candidateScore: decision.scores.candidate,
+				existingScore: decision.scores.existing,
+				isAutomatic: options.isAutomatic
+			};
+			const level = grabRejectionLogLevel(options.isAutomatic);
+			if (level === 'warn') {
+				logger.warn(rejectionCtx, '[Grab] Release rejected');
+			} else {
+				logger.debug(rejectionCtx, '[Grab] Release rejected (automated search)');
+			}
 			return { success: false, decision };
 		}
 
 		const handlerResult = await this.routeByProtocol(request, resolved);
 
 		if (!handlerResult.success) {
+			logger.error(
+				{
+					title: release.title,
+					error: handlerResult.error,
+					protocol: release.protocol,
+					indexerId: release.indexerId,
+					isAutomatic: options.isAutomatic
+				},
+				'[Grab] Handler failed to add release to download client'
+			);
 			return { success: false, decision, error: handlerResult.error };
 		}
 
