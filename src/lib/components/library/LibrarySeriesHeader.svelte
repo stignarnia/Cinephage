@@ -490,7 +490,7 @@
 							{/if}
 							{#if series.tvdbId}
 								<a
-									href="https://thetvdb.com/series/{series.tvdbId}"
+									href="https://thetvdb.com/dereferrer/series/{series.tvdbId}"
 									target="_blank"
 									rel="noopener noreferrer"
 									class="btn shrink-0 gap-1 btn-ghost btn-xs"
