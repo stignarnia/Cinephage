@@ -1,6 +1,7 @@
 import type { InsightType } from '../types.js';
 import type { InsightItemResolver } from './types.js';
 import { duplicateItemsResolver } from './duplicate-items.js';
+import { qualityBelowCutoffResolver } from './quality-below-cutoff.js';
 
 /**
  * Registry of per-type item resolvers.
@@ -24,3 +25,4 @@ export function getInsightItemResolver(type: InsightType): InsightItemResolver {
 }
 
 registerInsightItemResolver('duplicate-items', duplicateItemsResolver);
+registerInsightItemResolver('quality-below-cutoff', qualityBelowCutoffResolver);
