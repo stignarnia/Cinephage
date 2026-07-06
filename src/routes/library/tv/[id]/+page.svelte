@@ -1705,6 +1705,10 @@
 				indexerName: release.indexerName,
 				protocol: release.protocol,
 				size: release.size,
+				publishDate:
+					release.publishDate instanceof Date
+						? release.publishDate.toISOString()
+						: release.publishDate,
 				seriesId: series.id,
 				mediaType: 'tv',
 				seasonNumber,
@@ -1884,6 +1888,7 @@
 	open={isEditModalOpen}
 	{series}
 	qualityProfiles={data.qualityProfiles}
+	delayProfiles={data.delayProfiles}
 	rootFolders={data.rootFolders}
 	saving={isSaving}
 	onClose={handleEditClose}

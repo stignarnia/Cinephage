@@ -4,8 +4,8 @@ import { createChildLogger } from '$lib/logging';
 
 const logger = createChildLogger({ logDomain: 'system' as const });
 
-export const migration_v105: MigrationDefinition = {
-	version: 105,
+export const migration_v110: MigrationDefinition = {
+	version: 110,
 	name: 'add_storage_items_tables',
 	apply: (sqlite) => {
 		// 1. storage_items - unified directory of media items
@@ -146,6 +146,6 @@ export const migration_v105: MigrationDefinition = {
 			sqlite.prepare(`ALTER TABLE "root_folders" ADD COLUMN "total_space_bytes" integer`).run();
 		}
 
-		logger.info('[SchemaSync] Added storage_items_tables (v105)');
+		logger.info('[SchemaSync] Added storage_items_tables (v110)');
 	}
 };

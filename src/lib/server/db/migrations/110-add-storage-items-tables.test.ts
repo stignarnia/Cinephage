@@ -3,7 +3,7 @@ import Database from 'better-sqlite3';
 import type { MigrationDefinition } from '../migration-helpers.js';
 
 // We build a minimal pre-migration DB manually rather than via createTestDb()
-// because createTestDb() runs syncSchema() which already creates the v105 tables
+// because createTestDb() runs syncSchema() which already creates the v110 tables
 // on fresh DBs. We want to validate the migration's apply() in isolation.
 
 function createPreMigrationDb(): Database.Database {
@@ -22,18 +22,18 @@ function createPreMigrationDb(): Database.Database {
 	return sqlite;
 }
 
-describe('migration 105: add-storage-items-tables', () => {
+describe('migration 110: add-storage-items-tables', () => {
 	let sqlite: Database.Database;
 	let migration: MigrationDefinition;
 
 	beforeEach(async () => {
 		sqlite = createPreMigrationDb();
-		const mod = await import('./105-add-storage-items-tables.js');
-		migration = mod.migration_v105;
+		const mod = await import('./110-add-storage-items-tables.js');
+		migration = mod.migration_v110;
 	});
 
-	it('has version 105', () => {
-		expect(migration.version).toBe(105);
+	it('has version 110', () => {
+		expect(migration.version).toBe(110);
 	});
 
 	it('has a descriptive name', () => {

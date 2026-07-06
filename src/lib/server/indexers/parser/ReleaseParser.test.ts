@@ -207,6 +207,35 @@ describe('ReleaseParser', () => {
 			expect(result.episode?.episodes).toContain(2);
 		});
 
+		it('should parse episode version suffix without separator (s01e01v2)', () => {
+			const result = parseRelease('[HorribleSubs] Honzuki no Gekokujou - s01e01v2 [1080p].mkv');
+
+			expect(result.episode?.season).toBe(1);
+			expect(result.episode?.episodes).toEqual([1]);
+		});
+
+		it('should parse episode version suffixes with dot and hyphen separators', () => {
+			const dotResult = parseRelease('[HorribleSubs] Honzuki no Gekokujou - s01e01.v2 [1080p].mkv');
+			const hyphenResult = parseRelease(
+				'[HorribleSubs] Honzuki no Gekokujou - s01e01-v2 [1080p].mkv'
+			);
+
+			expect(dotResult.episode?.season).toBe(1);
+			expect(dotResult.episode?.episodes).toEqual([1]);
+			expect(hyphenResult.episode?.season).toBe(1);
+			expect(hyphenResult.episode?.episodes).toEqual([1]);
+		});
+
+		it('should parse higher episode version numbers (v3, v4, v10)', () => {
+			const v3 = parseRelease('[SubsPlease] Show Title - S01E05v3 [720p].mkv');
+			const v4 = parseRelease('[SubsPlease] Show Title - S01E05v4 [720p].mkv');
+			const v10 = parseRelease('[SubsPlease] Show Title - S01E05v10 [720p].mkv');
+
+			expect(v3.episode?.episodes).toEqual([5]);
+			expect(v4.episode?.episodes).toEqual([5]);
+			expect(v10.episode?.episodes).toEqual([5]);
+		});
+
 		it('should parse season packs', () => {
 			const result = parseRelease('The.Office.US.S01.1080p.BluRay.x264-DEMAND');
 
@@ -516,6 +545,28 @@ describe('ReleaseParser', () => {
 			// 1080p should NOT be detected as a group
 			const result = extractReleaseGroup('Movie.2023.1080p');
 			expect(result?.group).not.toBe('1080p');
+		});
+
+		it('should extract fansub group from leading brackets', () => {
+			const result = extractReleaseGroup('[HorribleSubs] Honzuki no Gekokujou - 01 [1080p].mkv');
+			expect(result?.group).toBe('HorribleSubs');
+		});
+
+		it('should extract hyphenated fansub group from leading brackets', () => {
+			const result = extractReleaseGroup('[Erai-raws] Fullmetal Alchemist - 01 [1080p].mkv');
+			expect(result?.group).toBe('Erai-raws');
+		});
+
+		it('should extract fansub group when episode has version suffix', () => {
+			const result = extractReleaseGroup(
+				'[SubsPlease] Honzuki no Gekokujou - s01e01v2 [1080p].mkv'
+			);
+			expect(result?.group).toBe('SubsPlease');
+		});
+
+		it('should not treat Chinese site prefix as a fansub group', () => {
+			const result = extractReleaseGroup('[www.mkvhome.com] Movie.Title.2023.1080p.mkv');
+			expect(result?.group).not.toBe('wwwmkvhomecom');
 		});
 	});
 

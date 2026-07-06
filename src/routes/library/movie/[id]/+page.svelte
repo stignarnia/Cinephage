@@ -449,6 +449,10 @@
 				indexerName: release.indexerName,
 				protocol: release.protocol,
 				size: release.size,
+				publishDate:
+					release.publishDate instanceof Date
+						? release.publishDate.toISOString()
+						: release.publishDate,
 				movieId: movie.id,
 				mediaType: 'movie',
 				streamUsenet: streaming && release.protocol === 'usenet',
@@ -1036,6 +1040,7 @@
 	open={isEditModalOpen}
 	{movie}
 	qualityProfiles={data.qualityProfiles}
+	delayProfiles={data.delayProfiles}
 	rootFolders={data.rootFolders}
 	saving={isSaving}
 	onClose={handleEditClose}

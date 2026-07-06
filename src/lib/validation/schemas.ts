@@ -1480,6 +1480,7 @@ export const movieUpdateSchema = z.object({
 	moveFilesOnRootChange: z.boolean().optional(),
 	wantsSubtitles: z.boolean().optional(),
 	languageProfileId: z.string().nullable().optional(),
+	delayProfileId: z.string().nullable().optional(),
 	/** Relative folder name within the root folder (e.g. "Brokenwood Mysteries"). Used to
 	 *  correct a drifted DB path without touching files on disk. */
 	folderPath: z
@@ -1503,6 +1504,7 @@ export const seriesUpdateSchema = z.object({
 	rootFolderId: z.string().optional(),
 	wantsSubtitles: z.boolean().optional(),
 	languageProfileId: z.string().nullable().optional(),
+	delayProfileId: z.string().nullable().optional(),
 	/** Relative folder name within the root folder. Used to correct a drifted DB path. */
 	folderPath: z
 		.string()
@@ -1724,6 +1726,7 @@ export const grabRequestSchema = z
 		protocol: z.enum(['torrent', 'usenet', 'streaming']).optional(),
 		categories: z.array(z.number()).optional(),
 		size: z.number().optional(),
+		publishDate: z.string().datetime().optional(),
 		commentsUrl: z.string().optional(),
 		movieId: z.string().optional(),
 		seriesId: z.string().optional(),
@@ -1969,6 +1972,7 @@ export const scoringProfileCreateSchema = z.object({
 	upgradeUntilScore: z.number().int().optional(),
 	minScoreIncrement: z.number().int().optional(),
 	formatScores: z.record(z.string(), z.number().int()).optional(),
+	requiredFormats: z.array(z.object({ id: z.string(), op: z.enum(['AND', 'OR']) })).optional(),
 	movieMinSizeGb: z.number().nullable().optional(),
 	movieMaxSizeGb: z.number().nullable().optional(),
 	episodeMinSizeMb: z.number().nullable().optional(),
@@ -2132,7 +2136,8 @@ export const monitoringSettingsUpdateSchema = z.object({
 	autoReplaceEnabled: z.boolean().optional(),
 	searchOnMonitorEnabled: z.boolean().optional(),
 	stalledDownloadTimeoutMinutes: z.number().min(0).optional(),
-	stalledDownloadProgressThreshold: z.number().min(0).max(100).optional()
+	stalledDownloadProgressThreshold: z.number().min(0).max(100).optional(),
+	stalledDownloadBlocklistHours: z.number().min(0).optional()
 });
 
 // ============================================================================

@@ -51,13 +51,16 @@ class GrabServiceImpl {
 				title: release.title,
 				rejectionType: decision.rejectionType,
 				reason: decision.reason,
+				stage: decision.audit.stages.find((s) => !s.skipped && s.result && !s.result.accepted)
+					?.name,
 				indexerId: release.indexerId,
 				indexerName: release.indexerName,
 				protocol: release.protocol,
 				mediaType: resolved.mediaType,
 				candidateScore: decision.scores.candidate,
 				existingScore: decision.scores.existing,
-				isAutomatic: options.isAutomatic
+				isAutomatic: options.isAutomatic,
+				target
 			};
 			const level = grabRejectionLogLevel(options.isAutomatic);
 			if (level === 'warn') {

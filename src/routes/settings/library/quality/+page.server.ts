@@ -4,6 +4,7 @@ import { db } from '$lib/server/db';
 import { scoringProfiles, customFormats } from '$lib/server/db/schema';
 import { DEFAULT_PROFILES, DEFAULT_RESOLUTION_ORDER, ALL_FORMATS } from '$lib/server/scoring';
 import { toNullableNumber } from '$lib/utils/number.js';
+import { delayProfileService } from '$lib/server/monitoring/specifications/DelaySpecification.js';
 
 // Built-in profile IDs - derived from DEFAULT_PROFILES for single source of truth
 const BUILT_IN_PROFILE_IDS = DEFAULT_PROFILES.map((p) => p.id);
@@ -40,6 +41,7 @@ export const load: PageServerLoad = async ({ url }) => {
 		minScoreIncrement: p.minScoreIncrement ?? 0,
 		resolutionOrder: (p.resolutionOrder as Resolution[] | null) ?? DEFAULT_RESOLUTION_ORDER,
 		formatScores: p.formatScores ?? {},
+		requiredFormats: p.requiredFormats ?? [],
 		movieMinSizeGb: toNullableNumber(p.movieMinSizeGb),
 		movieMaxSizeGb: toNullableNumber(p.movieMaxSizeGb),
 		episodeMinSizeMb: toNullableNumber(p.episodeMinSizeMb),
@@ -55,6 +57,8 @@ export const load: PageServerLoad = async ({ url }) => {
 		return {
 			...p,
 			preventDowngrades: dbProfile?.preventDowngrades ?? p.preventDowngrades,
+			formatScores: dbProfile?.formatScores ?? p.formatScores ?? {},
+			requiredFormats: dbProfile?.requiredFormats ?? [],
 			movieMinSizeGb: toNullableNumber(dbProfile?.movieMinSizeGb),
 			movieMaxSizeGb: toNullableNumber(dbProfile?.movieMaxSizeGb),
 			episodeMinSizeMb: toNullableNumber(dbProfile?.episodeMinSizeMb),
@@ -106,6 +110,8 @@ export const load: PageServerLoad = async ({ url }) => {
 	// Combine formats
 	const allFormats = [...builtInFormats, ...customFormatsList];
 
+	const delayProfiles = await delayProfileService.getProfiles();
+
 	return {
 		activeTab,
 		// Profiles data
@@ -117,6 +123,8 @@ export const load: PageServerLoad = async ({ url }) => {
 			total: allFormats.length,
 			builtIn: builtInFormats.length,
 			custom: customFormatsList.length
-		}
+		},
+		// Delay profiles
+		delayProfiles
 	};
 };

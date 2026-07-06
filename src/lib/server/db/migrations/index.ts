@@ -101,8 +101,13 @@ import { migration_v101 } from './101-add-cinephage-api-tables.js';
 import { migration_v102 } from './102-add-indexers-is-built-in.js';
 import { migration_v103 } from './103-migrate-streaming-settings.js';
 import { migration_v104 } from './104-drop-indexer-definitions-table.js';
-import { migration_v105 } from './105-add-storage-items-tables.js';
-import { migration_v106 } from './106-add-rename-history.js';
+import { migration_v105 } from './105-add-delay-profile-assignment.js';
+import { migration_v106 } from './106-add-required-formats-to-scoring-profiles.js';
+import { migration_v107 } from './107-migrate-required-formats-to-entries.js';
+import { migration_v108 } from './108-add-download-queue-stalled-since.js';
+import { migration_v109 } from './109-add-stalled-orphan-tracking-table.js';
+import { migration_v110 } from './110-add-storage-items-tables.js';
+import { migration_v111 } from './111-add-rename-history.js';
 
 export const MIGRATIONS: MigrationDefinition[] = [
 	migration_v002,
@@ -208,5 +213,10 @@ export const MIGRATIONS: MigrationDefinition[] = [
 	migration_v103,
 	migration_v104,
 	migration_v105,
-	migration_v106
+	migration_v106,
+	migration_v107,
+	migration_v108,
+	migration_v109,
+	migration_v110,
+	migration_v111
 ];

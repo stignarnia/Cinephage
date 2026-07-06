@@ -4,8 +4,8 @@ import { createChildLogger } from '$lib/logging';
 
 const logger = createChildLogger({ logDomain: 'system' as const });
 
-export const migration_v106: MigrationDefinition = {
-	version: 106,
+export const migration_v111: MigrationDefinition = {
+	version: 111,
 	name: 'add_rename_history',
 	apply: (sqlite) => {
 		if (!tableExists(sqlite, 'rename_history')) {
@@ -38,6 +38,6 @@ export const migration_v106: MigrationDefinition = {
 				.run();
 		}
 
-		logger.info('[SchemaSync] Added rename_history table (v106)');
+		logger.info('[SchemaSync] Added rename_history table (v111)');
 	}
 };

@@ -124,10 +124,15 @@ import {
  * Version 102: Add indexers.is_built_in column for system-owned indexer rows
  * Version 103: Migrate streaming settings JSON to cinephage_api_* tables
  * Version 104: Drop vestigial indexer_definitions table
- * Version 105: Add storage_items, storage_item_server_links, storage_insights tables for unified storage tracking
- * Version 106: Add rename_history table for permanent file rename audit trail
+ * Version 105: Add delay_profile_assignment table for per-media delay profile selection
+ * Version 106: Add required_formats to scoring profiles
+ * Version 107: Migrate required formats to entries
+ * Version 108: Add download_queue stalled_since column for stalled torrent tracking
+ * Version 109: Add stalled_orphan tracking table
+ * Version 110: Add storage_items, storage_item_server_links, storage_insights tables for unified storage tracking
+ * Version 111: Add rename_history table for permanent file rename audit trail
  */
-export const CURRENT_SCHEMA_VERSION = 106;
+export const CURRENT_SCHEMA_VERSION = 111;
 
 export const SYSTEM_LIBRARY_SEEDS = [
 	{

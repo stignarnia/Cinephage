@@ -93,6 +93,7 @@
 	let deleteSelectedLoading = $state(false);
 	let historyConfirmOpen = $state(false);
 	let historyConfirmAction = $state<HistoryConfirmAction | null>(null);
+	let historyConfirmRemoveFromClient = $state(false);
 	let activeConfirmOpen = $state(false);
 	let activeConfirmAction = $state<ActiveBulkAction | null>(null);
 	let activeBulkLoading = $state(false);
@@ -116,6 +117,7 @@
 	let refreshInFlight = $state(false);
 	let lastActivityRefreshAt = 0;
 	let activityRequestToken = 0;
+	let refreshDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
 	let queueStats = $state<QueueCardStats>(createDefaultQueueCardStats());
 
@@ -302,6 +304,7 @@
 			total?: number;
 			hasMore?: boolean;
 			summary?: Partial<ActivitySummary> | null;
+			failedCount?: number;
 		},
 		options: { append?: boolean } = {}
 	): void {
@@ -313,35 +316,57 @@
 		total = typeof payload.total === 'number' ? payload.total : total;
 		hasMore = typeof payload.hasMore === 'boolean' ? payload.hasMore : false;
 		if (!append) {
-			queueStats = parseQueueStats((payload.summary ?? null) as Partial<ActivitySummary> | null);
+			if (payload.summary != null) {
+				queueStats = parseQueueStats(payload.summary as Partial<ActivitySummary>);
+			} else if (typeof payload.failedCount === 'number') {
+				// History tab: summary is null, but failedCount is always returned.
+				// Update only failedCount so the "Clear All Failed" button stays accurate.
+				queueStats = { ...queueStats, failedCount: payload.failedCount };
+			}
 		}
 	}
 
 	async function fetchActivityData(
 		nextFilters: FiltersType,
 		tab: ActivityTab,
-		options: { offset?: number; append?: boolean; updateUrl?: boolean; force?: boolean } = {}
+		options: {
+			offset?: number;
+			append?: boolean;
+			updateUrl?: boolean;
+			force?: boolean;
+			silent?: boolean;
+			limit?: number;
+		} = {}
 	): Promise<void> {
-		const { offset = 0, append = false, updateUrl = false, force = false } = options;
+		const {
+			offset = 0,
+			append = false,
+			updateUrl = false,
+			force = false,
+			silent = false,
+			limit = 50
+		} = options;
 		const normalizedFilters = normalizeFiltersForTab(nextFilters, tab);
 		const requestToken = ++activityRequestToken;
 		const previousActivities = append ? activities : [...activities];
 		const previousHasMore = hasMore;
 
 		if (!append) {
-			activities = [];
-			hasMore = false;
+			if (!silent) {
+				activities = [];
+				hasMore = false;
+			}
 		}
 
 		if (append) {
 			isLoadingMore = true;
-		} else {
+		} else if (!silent) {
 			isLoading = true;
 		}
 
 		try {
 			const queryString = buildActivityApiQueryString(normalizedFilters, tab, {
-				limit: 50,
+				limit,
 				offset
 			});
 			const params = Object.fromEntries(new URLSearchParams(queryString));
@@ -595,7 +620,13 @@
 			activeSelectionMode = false;
 			selectedActiveIds.clear();
 		}
-		if (activityTab !== 'active' && activeConfirmOpen && !activeBulkLoading) {
+		if (
+			activityTab !== 'active' &&
+			activeConfirmOpen &&
+			!activeBulkLoading &&
+			activeConfirmAction !== 'retry_failed' &&
+			activeConfirmAction !== 'remove_failed'
+		) {
 			activeConfirmOpen = false;
 			activeConfirmAction = null;
 		}
@@ -683,7 +714,11 @@
 				}
 			},
 			'activity:refresh': () => {
-				void refreshActivityData({ force: true });
+				if (refreshDebounceTimer !== null) clearTimeout(refreshDebounceTimer);
+				refreshDebounceTimer = setTimeout(() => {
+					refreshDebounceTimer = null;
+					void refreshActivityData({ force: true, silent: true });
+				}, 800);
 			}
 		},
 		{
@@ -698,8 +733,10 @@
 		};
 	});
 
-	async function refreshActivityData(options: { force?: boolean } = {}): Promise<void> {
-		const { force = false } = options;
+	async function refreshActivityData(
+		options: { force?: boolean; silent?: boolean } = {}
+	): Promise<void> {
+		const { force = false, silent = false } = options;
 		if (refreshInFlight) return;
 		const now = Date.now();
 		if (!force && now - lastActivityRefreshAt < ACTIVITY_REFRESH_MIN_INTERVAL_MS) {
@@ -708,7 +745,11 @@
 
 		refreshInFlight = true;
 		try {
-			await fetchActivityData(filters, activityTab, { force });
+			// For silent background refreshes, fetch enough items to cover what's
+			// already loaded so we never return fewer items than the user has,
+			// which would otherwise trigger repeated load-more fetches.
+			const silentLimit = silent ? Math.min(Math.max(50, loadedOffset), 500) : undefined;
+			await fetchActivityData(filters, activityTab, { force, silent, limit: silentLimit });
 		} finally {
 			refreshInFlight = false;
 			lastActivityRefreshAt = Date.now();
@@ -813,6 +854,10 @@
 			if (progressFlushFrame !== null) {
 				cancelAnimationFrame(progressFlushFrame);
 				progressFlushFrame = null;
+			}
+			if (refreshDebounceTimer !== null) {
+				clearTimeout(refreshDebounceTimer);
+				refreshDebounceTimer = null;
 			}
 			window.removeEventListener('focus', handleFocus);
 			document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -984,6 +1029,16 @@
 		}
 	});
 
+	const historyConfirmHasFailedItems = $derived.by((): boolean => {
+		if (historyConfirmAction === 'delete_selected') return selectedHistoryFailedQueueIds.length > 0;
+		return queueStats.failedCount > 0;
+	});
+
+	const historyConfirmFailedClientCount = $derived.by((): number => {
+		if (historyConfirmAction === 'delete_selected') return selectedHistoryFailedQueueIds.length;
+		return queueStats.failedCount;
+	});
+
 	function openHistoryConfirm(action: HistoryConfirmAction): void {
 		if (!canManageHistory) return;
 		if (action === 'purge_all' && (settingsLoading || purgeAllLoading)) return;
@@ -991,6 +1046,7 @@
 		if (action === 'delete_selected' && (deleteSelectedLoading || selectedHistoryIds.size === 0))
 			return;
 
+		historyConfirmRemoveFromClient = false;
 		historyConfirmAction = action;
 		historyConfirmOpen = true;
 	}
@@ -999,24 +1055,31 @@
 		if (historyConfirmLoading) return;
 		historyConfirmOpen = false;
 		historyConfirmAction = null;
+		historyConfirmRemoveFromClient = false;
 	}
 
 	async function handleHistoryConfirm(): Promise<void> {
 		if (!historyConfirmAction || historyConfirmLoading) return;
 
+		const removeFromClient = historyConfirmRemoveFromClient;
+
 		if (historyConfirmAction === 'purge_all') {
-			await purgeHistory('all');
+			await purgeHistory('all', { removeFromClient });
 		} else if (historyConfirmAction === 'purge_older_than_retention') {
-			await purgeHistory('older_than_retention');
+			await purgeHistory('older_than_retention', { removeFromClient });
 		} else {
-			await deleteSelectedHistory();
+			await deleteSelectedHistory({ removeFromClient });
 		}
 
 		historyConfirmOpen = false;
 		historyConfirmAction = null;
+		historyConfirmRemoveFromClient = false;
 	}
 
-	async function purgeHistory(action: 'older_than_retention' | 'all'): Promise<void> {
+	async function purgeHistory(
+		action: 'older_than_retention' | 'all',
+		options: { removeFromClient?: boolean } = {}
+	): Promise<void> {
 		if (!canManageHistory) return;
 		if (action === 'older_than_retention' && purgeOlderLoading) return;
 		if (action === 'all' && purgeAllLoading) return;
@@ -1030,7 +1093,7 @@
 		try {
 			let payload;
 			try {
-				payload = await purgeHistoryApi(action);
+				payload = await purgeHistoryApi(action, { removeFromClient: options.removeFromClient });
 			} catch (error) {
 				if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
 					canManageHistory = false;
@@ -1068,10 +1131,24 @@
 		}
 	}
 
-	async function deleteSelectedHistory(): Promise<void> {
+	async function deleteSelectedHistory(
+		options: { removeFromClient?: boolean } = {}
+	): Promise<void> {
 		if (!canManageHistory || deleteSelectedLoading || selectedHistoryIds.size === 0) return;
 
 		deleteSelectedLoading = true;
+
+		// Remove from download client first so the queue records exist when we call the endpoint
+		if (options.removeFromClient && selectedHistoryFailedQueueIds.length > 0) {
+			for (const queueId of selectedHistoryFailedQueueIds) {
+				try {
+					await removeQueueItemApi(queueId, { removeFromClient: true });
+				} catch (_err) {
+					// Best-effort; proceed with history deletion regardless
+				}
+			}
+		}
+
 		try {
 			let payload;
 			try {
@@ -1176,7 +1253,7 @@
 								removeQueueItem(queueId, {
 									refresh: false,
 									closeDetailModal: false,
-									removeFromClient: false
+									removeFromClient: true
 								});
 
 		for (const queueId of queueIds) {
@@ -1690,7 +1767,26 @@
 	loading={historyConfirmLoading}
 	onConfirm={handleHistoryConfirm}
 	onCancel={closeHistoryConfirm}
-/>
+>
+	{#if historyConfirmHasFailedItems}
+		<label class="mt-2 flex cursor-pointer items-start gap-2 text-sm">
+			<input
+				type="checkbox"
+				class="checkbox checkbox-sm mt-0.5"
+				bind:checked={historyConfirmRemoveFromClient}
+				disabled={historyConfirmLoading}
+			/>
+			<span>
+				{m.activity_history_alsoRemoveFromClient()}
+				<span class="text-base-content/60">
+					({m.activity_history_alsoRemoveFromClientHint({
+						count: historyConfirmFailedClientCount
+					})})
+				</span>
+			</span>
+		</label>
+	{/if}
+</ConfirmationModal>
 
 <ConfirmationModal
 	open={activeConfirmOpen}

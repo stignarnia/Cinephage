@@ -345,6 +345,9 @@ export const scoringProfiles = sqliteTable('scoring_profiles', {
 	maxResolution: text('max_resolution'),
 	allowedSources: text('allowed_sources', { mode: 'json' }).$type<string[] | null>(),
 	excludedSources: text('excluded_sources', { mode: 'json' }).$type<string[] | null>(),
+	requiredFormats: text('required_formats', { mode: 'json' }).$type<
+		{ id: string; op: 'AND' | 'OR' }[]
+	>(),
 	createdAt: text('created_at').$defaultFn(() => new Date().toISOString()),
 	updatedAt: text('updated_at').$defaultFn(() => new Date().toISOString())
 });
@@ -669,7 +672,9 @@ export const movies = sqliteTable(
 		availabilityDelay: integer('availability_delay').notNull().default(0),
 		adult: integer('adult', { mode: 'boolean' }).default(false),
 		adultSource: text('adult_source'),
-		adultConfidence: text('adult_confidence')
+		adultConfidence: text('adult_confidence'),
+		// Delay profile for holding releases before grabbing
+		delayProfileId: text('delay_profile_id')
 	},
 	(table) => [
 		index('idx_movies_monitored_hasfile').on(table.monitored, table.hasFile),
@@ -786,7 +791,9 @@ export const series = sqliteTable(
 		adult: integer('adult', { mode: 'boolean' }).default(false),
 		adultSource: text('adult_source'),
 		adultConfidence: text('adult_confidence'),
-		episodeGroupId: text('episode_group_id')
+		episodeGroupId: text('episode_group_id'),
+		// Delay profile for holding releases before grabbing
+		delayProfileId: text('delay_profile_id')
 	},
 	(table) => [
 		index('idx_series_monitored').on(table.monitored),
@@ -1225,6 +1232,10 @@ export const downloadQueue = sqliteTable(
 		addedAt: text('added_at').$defaultFn(() => new Date().toISOString()),
 		// When download started (first saw progress > 0)
 		startedAt: text('started_at'),
+		// When the download first entered the stalled state (drives stalled-timeout
+		// cleanup). Persisted so the timer survives restarts and isn't reset by brief
+		// metaDL ↔ downloading flaps. Cleared only when the download actually progresses.
+		stalledSince: text('stalled_since'),
 		// When download reached 100%
 		completedAt: text('completed_at'),
 		// When import finished
@@ -1278,6 +1289,26 @@ export const downloadQueueTombstones = sqliteTable(
 			table.remoteId
 		)
 	]
+);
+
+/**
+ * Stalled Orphan Tracking - Records when a torrent in one of our categories that
+ * is NOT actively tracked in the queue was first seen stalled, so the periodic
+ * orphan sweep can apply the stalled timeout to it (and retry deletes that didn't
+ * take, since the row survives until the torrent actually disappears).
+ */
+export const stalledOrphanTracking = sqliteTable(
+	'stalled_orphan_tracking',
+	{
+		downloadClientId: text('download_client_id')
+			.notNull()
+			.references(() => downloadClients.id, { onDelete: 'cascade' }),
+		infoHash: text('info_hash').notNull(),
+		firstStalledAt: text('first_stalled_at')
+			.notNull()
+			.$defaultFn(() => new Date().toISOString())
+	},
+	(table) => [primaryKey({ columns: [table.downloadClientId, table.infoHash] })]
 );
 
 /**
@@ -1521,6 +1552,8 @@ export const pendingReleases = sqliteTable('pending_releases', {
 	delayProfileId: text('delay_profile_id').references(() => delayProfiles.id, {
 		onDelete: 'set null'
 	}),
+	// When the release was originally published on the indexer
+	publishDate: text('publish_date'),
 	addedAt: text('added_at').$defaultFn(() => new Date().toISOString()),
 	processAt: text('process_at').notNull(), // When to process this release
 	// Status
