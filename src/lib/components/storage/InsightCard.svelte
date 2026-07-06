@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { X, ExternalLink } from 'lucide-svelte';
+	import { X, ChevronRight } from 'lucide-svelte';
 	import { severityBadgeClass, insightTypeLabel, dismissInsight, formatBytes } from './utils.js';
 
 	interface Insight {
@@ -9,23 +9,20 @@
 		title: string;
 		summary: string | null;
 		reclaimableBytes: number | null;
-		detailsJson: string | null;
 	}
 
 	interface Props {
 		insight: Insight;
+		onOpen: () => void;
 		onDismissed?: () => void;
 	}
 
-	let { insight, onDismissed }: Props = $props();
+	let { insight, onOpen, onDismissed }: Props = $props();
 
 	let dismissing = $state(false);
 
-	const details = $derived(
-		insight.detailsJson ? (JSON.parse(insight.detailsJson) as { link?: string }) : null
-	);
-
-	async function handleDismiss() {
+	async function handleDismiss(e: Event) {
+		e.stopPropagation();
 		dismissing = true;
 		const success = await dismissInsight(insight.id);
 		dismissing = false;
@@ -35,7 +32,11 @@
 	}
 </script>
 
-<div class={`rounded-lg border p-4 ${severityBadgeClass(insight.severity)}`}>
+<button
+	type="button"
+	onclick={onOpen}
+	class={`w-full text-left rounded-lg border p-4 ${severityBadgeClass(insight.severity)} transition-colors hover:bg-base-300/30`}
+>
 	<div class="flex items-start justify-between gap-3">
 		<div class="min-w-0 flex-1">
 			<div class="flex items-center gap-2">
@@ -52,21 +53,22 @@
 			{#if insight.summary}
 				<p class="mt-1 text-sm text-base-content/70">{insight.summary}</p>
 			{/if}
-			{#if details?.link}
-				<a href={details.link} class="mt-2 inline-flex items-center gap-1 text-sm link link-hover">
-					View details
-					<ExternalLink class="h-3 w-3" />
-				</a>
-			{/if}
 		</div>
-		<button
-			type="button"
-			class="btn btn-ghost btn-xs"
-			onclick={handleDismiss}
-			disabled={dismissing}
-			title="Dismiss"
-		>
-			<X class="h-4 w-4" />
-		</button>
+		<div class="flex items-center gap-2">
+			<button
+				type="button"
+				class="btn btn-ghost btn-xs"
+				onclick={handleDismiss}
+				disabled={dismissing}
+				title="Dismiss"
+			>
+				{#if dismissing}
+					<span class="loading loading-sm loading-spinner"></span>
+				{:else}
+					<X class="h-4 w-4" />
+				{/if}
+			</button>
+			<ChevronRight class="h-4 w-4 shrink-0 text-base-content/30" />
+		</div>
 	</div>
-</div>
+</button>

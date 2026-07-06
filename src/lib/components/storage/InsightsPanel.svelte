@@ -3,6 +3,7 @@
 	import { ShieldCheck, AlertTriangle } from 'lucide-svelte';
 	import { SettingsSection } from '$lib/components/ui/settings';
 	import InsightCard from './InsightCard.svelte';
+	import InsightDetailModal from './InsightDetailModal.svelte';
 
 	type Insight = {
 		id: string;
@@ -20,13 +21,17 @@
 
 	let { insights }: Props = $props();
 
-	// Track locally-dismissed insight IDs for optimistic UI.
-	// SvelteSet (not a plain Set in $state) so .add()/.has() are reactive.
 	let dismissedIds = new SvelteSet<string>();
+	let selectedInsight = $state<Insight | null>(null);
 
 	const visibleInsights = $derived(insights.filter((i) => !dismissedIds.has(i.id)));
 
 	const criticalCount = $derived(visibleInsights.filter((i) => i.severity === 'critical').length);
+
+	function handleInsightDismissed(id: string) {
+		dismissedIds.add(id);
+		selectedInsight = null;
+	}
 </script>
 
 <SettingsSection title="Insights" variant="card">
@@ -44,8 +49,19 @@
 		{/if}
 		<div class="space-y-2">
 			{#each visibleInsights as insight (insight.id)}
-				<InsightCard {insight} onDismissed={() => dismissedIds.add(insight.id)} />
+				<InsightCard
+					{insight}
+					onOpen={() => (selectedInsight = insight)}
+					onDismissed={() => dismissedIds.add(insight.id)}
+				/>
 			{/each}
 		</div>
 	{/if}
 </SettingsSection>
+
+<InsightDetailModal
+	open={selectedInsight !== null}
+	insight={selectedInsight}
+	onClose={() => (selectedInsight = null)}
+	onDismissed={handleInsightDismissed}
+/>
