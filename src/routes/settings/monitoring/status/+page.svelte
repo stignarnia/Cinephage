@@ -66,6 +66,22 @@
 		}
 	});
 
+	const insightSse = createSSE<{
+		'storage:insight-dismissed': { insightId: string; dismissedAt: string };
+		'storage:insight-undismissed': { insightId: string };
+		'storage:insights-updated': { triggeredBy: string; timestamp: string };
+	}>('/api/storage/insights/stream', {
+		'storage:insight-dismissed': () => {
+			// Local state already handles dismiss — no server reload needed
+		},
+		'storage:insight-undismissed': () => {
+			// Local state already handles undismiss — no server reload needed
+		},
+		'storage:insights-updated': () => {
+			void invalidateAll();
+		}
+	});
+
 	$effect(() => {
 		layoutState.setMobileSseStatus(deriveMobileSseStatus(sse));
 		return () => layoutState.clearMobileSseStatus();
@@ -102,6 +118,7 @@
 
 	$effect(() => {
 		void sse.status;
+		void insightSse.status;
 	});
 </script>
 

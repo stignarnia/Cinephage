@@ -1,6 +1,7 @@
 import type { ServiceStatus, BackgroundService } from '$lib/server/services/background-service.js';
 import { createChildLogger } from '$lib/logging';
 import { upsertInsights } from './upsert.js';
+import { storageEvents } from '../StorageEvents.js';
 import type { StorageInsightRule, RuleContext, InsightFinding } from './types.js';
 import { ALL_RULES } from './rules/index.js';
 
@@ -108,6 +109,11 @@ class InsightsService implements BackgroundService {
 			}
 
 			upsertInsights(allFindings, now);
+
+			storageEvents.emitInsightsUpdated({
+				triggeredBy: 'reconciliation',
+				timestamp: now
+			});
 
 			logger.info(
 				`[InsightsService] ran ${this.rules.length} rules -> ${allFindings.length} findings`
