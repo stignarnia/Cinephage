@@ -3,6 +3,7 @@ import type { InsightItemResolver } from './types.js';
 import { brokenPathsResolver } from './broken-paths.js';
 import { duplicateItemsResolver } from './duplicate-items.js';
 import { qualityBelowCutoffResolver } from './quality-below-cutoff.js';
+import { unplayedResolver } from './unplayed.js';
 
 /**
  * Registry of per-type item resolvers.
@@ -28,3 +29,4 @@ export function getInsightItemResolver(type: InsightType): InsightItemResolver {
 registerInsightItemResolver('broken-paths', brokenPathsResolver);
 registerInsightItemResolver('duplicate-items', duplicateItemsResolver);
 registerInsightItemResolver('quality-below-cutoff', qualityBelowCutoffResolver);
+registerInsightItemResolver('unplayed', unplayedResolver);
