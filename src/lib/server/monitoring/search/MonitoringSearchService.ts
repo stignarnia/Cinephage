@@ -1170,6 +1170,7 @@ export class MonitoringSearchService {
 				queueItemId?: string;
 				addedToQueue?: boolean;
 				error?: string;
+				rejectionType?: string;
 			} | null = null;
 
 			// Load scoring profile for explicit validation
@@ -2572,6 +2573,7 @@ export class MonitoringSearchService {
 				queueItemId?: string;
 				addedToQueue?: boolean;
 				error?: string;
+				rejectionType?: string;
 			} | null = null;
 
 			// Load scoring profile for explicit validation
@@ -2747,6 +2749,7 @@ export class MonitoringSearchService {
 				queueItemId?: string;
 				addedToQueue?: boolean;
 				error?: string;
+				rejectionType?: string;
 			} | null = null;
 
 			// Load scoring profile for explicit validation
