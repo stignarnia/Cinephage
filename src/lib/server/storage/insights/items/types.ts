@@ -1,6 +1,5 @@
 import type { db } from '$lib/server/db/index.js';
 import type { StorageInsightRecord } from '$lib/server/db/schema';
-import type { InsightType } from '../types.js';
 
 export type InsightItemKind = 'movie' | 'series' | 'episode' | 'file' | 'folder';
 
