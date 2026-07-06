@@ -32,10 +32,12 @@
 	}
 </script>
 
-<button
-	type="button"
+<div
+	role="button"
+	tabindex="0"
 	onclick={onOpen}
-	class={`w-full text-left rounded-lg border p-4 ${severityBadgeClass(insight.severity)} transition-colors hover:bg-base-300/30`}
+	onkeydown={(e) => { if (e.key === 'Enter') onOpen(); }}
+	class={`w-full text-left rounded-lg border p-4 ${severityBadgeClass(insight.severity)} transition-colors hover:bg-base-300/30 cursor-pointer`}
 >
 	<div class="flex items-start justify-between gap-3">
 		<div class="min-w-0 flex-1">
@@ -71,4 +73,4 @@
 			<ChevronRight class="h-4 w-4 shrink-0 text-base-content/30" />
 		</div>
 	</div>
-</button>
+</div>

@@ -79,21 +79,6 @@
 		}
 	}
 
-	function kindIcon(kind: string) {
-		switch (kind) {
-			case 'movie':
-				return Film;
-			case 'series':
-				return Tv;
-			case 'episode':
-				return Monitor;
-			case 'folder':
-				return Folder;
-			default:
-				return File;
-		}
-	}
-
 	function badgeToneColor(tone: string): string {
 		switch (tone) {
 			case 'critical':
@@ -171,10 +156,17 @@
 						<div
 							class="flex items-center gap-3 rounded-lg border border-base-300 bg-base-200/50 px-3 py-2.5"
 						>
-							<svelte:component
-								this={kindIcon(item.kind)}
-								class="h-4 w-4 shrink-0 text-base-content/40"
-							/>
+							{#if item.kind === 'movie'}
+								<Film class="h-4 w-4 shrink-0 text-base-content/40" />
+							{:else if item.kind === 'series'}
+								<Tv class="h-4 w-4 shrink-0 text-base-content/40" />
+							{:else if item.kind === 'episode'}
+								<Monitor class="h-4 w-4 shrink-0 text-base-content/40" />
+							{:else if item.kind === 'folder'}
+								<Folder class="h-4 w-4 shrink-0 text-base-content/40" />
+							{:else}
+								<File class="h-4 w-4 shrink-0 text-base-content/40" />
+							{/if}
 							<div class="min-w-0 flex-1">
 								<div class="truncate text-sm font-medium text-base-content">{item.title}</div>
 								{#if item.subtitle}
