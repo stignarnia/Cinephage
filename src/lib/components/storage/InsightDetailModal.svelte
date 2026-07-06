@@ -167,7 +167,7 @@
 				</div>
 			{:else}
 				<div class="space-y-1">
-					{#each items as item}
+					{#each items as item (item.id)}
 						<div
 							class="flex items-center gap-3 rounded-lg border border-base-300 bg-base-200/50 px-3 py-2.5"
 						>
@@ -183,7 +183,7 @@
 							</div>
 							<div class="flex items-center gap-2">
 								{#if item.badges}
-									{#each item.badges as badge}
+									{#each item.badges as badge (badge.label + badge.tone)}
 										<span class={`badge badge-sm border ${badgeToneColor(badge.tone)}`}>
 											{badge.label}
 										</span>
@@ -219,7 +219,7 @@
 							>
 								Prev
 							</button>
-							{#each pageButtons as btn}
+							{#each pageButtons as btn, idx (idx)}
 								{@const isActive = btn === page}
 								{@const isEllipsis = btn === '...'}
 								{#if isEllipsis}

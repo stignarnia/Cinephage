@@ -26,7 +26,7 @@ export const healthIssuesResolver: InsightItemResolver = async ({ db, insight, p
 	}
 
 	return {
-		items: slicedIds.map((id, idx) => {
+		items: slicedIds.map((id) => {
 			const row = rowsById.get(id);
 			return {
 				id: `hi-${id}`,
