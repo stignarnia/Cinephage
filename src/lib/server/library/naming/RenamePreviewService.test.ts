@@ -1634,5 +1634,4 @@ describe('RenamePreviewService', () => {
 			expect(movieAfter?.path).toBe('Folder Test (2024) {tmdb-999999}');
 		});
 	});
-
 });

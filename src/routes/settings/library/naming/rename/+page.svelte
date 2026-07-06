@@ -135,6 +135,7 @@
 		error = null;
 
 		// Collect unique (mediaId, mediaType) from files that were successfully renamed
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- non-reactive local dedup
 		const mediaItems = new Map<string, 'movie' | 'series'>();
 		for (const item of preview.willChange) {
 			if (!selectedIds.has(item.fileId)) continue;
