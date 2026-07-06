@@ -1,5 +1,6 @@
 import type { InsightType } from '../types.js';
 import type { InsightItemResolver } from './types.js';
+import { duplicateItemsResolver } from './duplicate-items.js';
 
 /**
  * Registry of per-type item resolvers.
@@ -21,3 +22,5 @@ export function getInsightItemResolver(type: InsightType): InsightItemResolver {
 	}
 	return resolver;
 }
+
+registerInsightItemResolver('duplicate-items', duplicateItemsResolver);
