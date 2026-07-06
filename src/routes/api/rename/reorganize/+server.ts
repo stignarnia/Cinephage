@@ -51,7 +51,7 @@ export const POST: RequestHandler = async (event) => {
 			return json({ success: false, error: result.error }, { status: 400 });
 		}
 
-		return json({ success: true, ...result });
+		return json({ ...result, success: true });
 	} catch (error) {
 		logger.error(
 			{

@@ -1590,7 +1590,7 @@ describe('RenamePreviewService', () => {
 					name: 'Movies',
 					path: '/media/Movies',
 					mediaType: 'movie',
-					readOnly: 0
+					readOnly: false
 				})
 				.run();
 
@@ -1603,7 +1603,7 @@ describe('RenamePreviewService', () => {
 					year: 2024,
 					path: 'Folder Test (2024) {tmdb-999999}',
 					rootFolderId: rootId,
-					hasFile: 1
+					hasFile: true
 				})
 				.run();
 
@@ -1614,7 +1614,7 @@ describe('RenamePreviewService', () => {
 					id: fileId,
 					movieId: movieId,
 					relativePath: 'bad-name.avi',
-					quality: JSON.stringify({ resolution: '1080p', source: 'WEBRip', codec: 'x265' }),
+					quality: { resolution: '1080p', source: 'WEBRip', codec: 'x265' },
 					releaseGroup: 'RARBG'
 				})
 				.run();
