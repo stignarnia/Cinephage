@@ -6,4 +6,5 @@ export { default as LibraryOverview } from './LibraryOverview.svelte';
 export { default as RootFolderOverview } from './RootFolderOverview.svelte';
 export { default as MediaBreakdown } from './MediaBreakdown.svelte';
 export { default as StorageTile } from './StorageTile.svelte';
+export { default as InsightDetailModal } from './InsightDetailModal.svelte';
 export * from './utils.js';
