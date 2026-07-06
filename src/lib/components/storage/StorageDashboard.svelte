@@ -21,6 +21,7 @@
 		getSyncStatusColor
 	} from './utils.js';
 	import StorageTile from './StorageTile.svelte';
+	import InsightDetailModal from './InsightDetailModal.svelte';
 	import { BreakdownBar } from '$lib/components/ui';
 
 	type BreakdownItem = { label: string; count: number };
@@ -144,6 +145,17 @@
 
 	// --- Priority insights ---
 	const topInsights = $derived(insights.slice(0, 5));
+
+	let selectedInsight = $state<typeof topInsights[number] | null>(null);
+
+	function openInsight(insight: typeof topInsights[number]) {
+		selectedInsight = insight;
+	}
+
+	function handleInsightDismissed(id: string) {
+		insights = insights.filter((i) => i.id !== id);
+		selectedInsight = null;
+	}
 
 	function severityDot(sev: string): string {
 		return sev === 'critical' ? 'bg-error' : sev === 'warning' ? 'bg-warning' : 'bg-info';
@@ -449,23 +461,24 @@
 					<span>Everything looks healthy</span>
 				</div>
 			{:else}
-				{#each topInsights as insight (insight.id)}
-					<a
-						href={`${baseUrl}/insights`}
-						class="flex items-center gap-2.5 rounded-lg border border-base-300 bg-base-200/50 p-2.5 transition-colors hover:bg-base-300/50"
-					>
-						<span
-							class={`inline-block h-2 w-2 shrink-0 rounded-full ${severityDot(insight.severity)}`}
-						></span>
-						<span class="min-w-0 flex-1 truncate text-sm text-base-content">{insight.title}</span>
-						{#if insight.itemCount > 1}
-							<span class="shrink-0 text-xs font-medium text-base-content/50"
-								>{insight.itemCount}</span
-							>
-						{/if}
-						<ChevronRight class="h-3.5 w-3.5 shrink-0 text-base-content/30" />
-					</a>
-				{/each}
+			{#each topInsights as insight (insight.id)}
+				<button
+					type="button"
+					onclick={() => openInsight(insight)}
+					class="flex w-full items-center gap-2.5 rounded-lg border border-base-300 bg-base-200/50 p-2.5 text-left transition-colors hover:bg-base-300/50"
+				>
+					<span
+						class={`inline-block h-2 w-2 shrink-0 rounded-full ${severityDot(insight.severity)}`}
+					></span>
+					<span class="min-w-0 flex-1 truncate text-sm text-base-content">{insight.title}</span>
+					{#if insight.itemCount > 1}
+						<span class="shrink-0 text-xs font-medium text-base-content/50"
+							>{insight.itemCount}</span
+						>
+					{/if}
+					<ChevronRight class="h-3.5 w-3.5 shrink-0 text-base-content/30" />
+				</button>
+			{/each}
 			{/if}
 		</div>
 
@@ -556,3 +569,10 @@
 		</div>
 	{/if}
 </div>
+
+<InsightDetailModal
+	open={selectedInsight !== null}
+	insight={selectedInsight}
+	onClose={() => (selectedInsight = null)}
+	onDismissed={handleInsightDismissed}
+/>
