@@ -213,6 +213,7 @@ const TABLE_DEFINITIONS: string[] = [
 		"max_resolution" text,
 		"allowed_sources" text,
 		"excluded_sources" text,
+		"required_formats" text,
 		"prevent_downgrades" integer DEFAULT 0,
 		"created_at" text,
 		"updated_at" text
