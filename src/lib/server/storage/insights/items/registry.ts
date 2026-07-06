@@ -7,6 +7,7 @@ import { unplayedResolver } from './unplayed.js';
 import { healthIssuesResolver } from './health-issues.js';
 import { orphanedFilesResolver } from './orphaned-files.js';
 import { untrackedByCinephageResolver } from './untracked-by-cinephage.js';
+import { missingFromMediaServerResolver } from './missing-from-media-server.js';
 
 /**
  * Registry of per-type item resolvers.
@@ -36,3 +37,4 @@ registerInsightItemResolver('unplayed', unplayedResolver);
 registerInsightItemResolver('health-issues', healthIssuesResolver);
 registerInsightItemResolver('orphaned-files', orphanedFilesResolver);
 registerInsightItemResolver('untracked-by-cinephage', untrackedByCinephageResolver);
+registerInsightItemResolver('missing-from-media-server', missingFromMediaServerResolver);
