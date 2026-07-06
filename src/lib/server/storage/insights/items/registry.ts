@@ -4,6 +4,7 @@ import { brokenPathsResolver } from './broken-paths.js';
 import { duplicateItemsResolver } from './duplicate-items.js';
 import { qualityBelowCutoffResolver } from './quality-below-cutoff.js';
 import { unplayedResolver } from './unplayed.js';
+import { healthIssuesResolver } from './health-issues.js';
 
 /**
  * Registry of per-type item resolvers.
@@ -30,3 +31,4 @@ registerInsightItemResolver('broken-paths', brokenPathsResolver);
 registerInsightItemResolver('duplicate-items', duplicateItemsResolver);
 registerInsightItemResolver('quality-below-cutoff', qualityBelowCutoffResolver);
 registerInsightItemResolver('unplayed', unplayedResolver);
+registerInsightItemResolver('health-issues', healthIssuesResolver);

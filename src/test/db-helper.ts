@@ -41,7 +41,8 @@ const CORE_TABLES = [
 	'seasons',
 	'episodes',
 	'episodeFiles',
-	'downloadQueue'
+	'downloadQueue',
+	'rootFolders'
 ] as const;
 
 export function clearTestDb(testDb: TestDatabase) {
