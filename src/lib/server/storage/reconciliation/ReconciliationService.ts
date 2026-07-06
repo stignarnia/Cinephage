@@ -236,8 +236,17 @@ class ReconciliationService extends EventEmitter implements BackgroundService {
 						const tmdbId = localRow?.tmdbId ?? serverItems[0]?.tmdbId ?? null;
 						const tvdbId = serverItems[0]?.tvdbId ?? null;
 						const imdbId = serverItems[0]?.imdbId ?? null;
-						const seasonNumber = localRow?.seasonNumber ?? serverItems[0]?.seasonNumber ?? null;
-						const episodeNumber = localRow?.episodeNumber ?? serverItems[0]?.episodeNumber ?? null;
+						// Movies must never carry season/episode values: the unique index and
+						// logicalKey match movies on tmdbId alone, and stray server-side
+						// metadata (e.g. Jellyfin reporting IndexNumber=1 on a movie) would
+						// otherwise create a second storage_items row for the same film.
+						const isMovie = itemType === 'movie';
+						const seasonNumber = isMovie
+							? null
+							: (localRow?.seasonNumber ?? serverItems[0]?.seasonNumber ?? null);
+						const episodeNumber = isMovie
+							? null
+							: (localRow?.episodeNumber ?? serverItems[0]?.episodeNumber ?? null);
 
 						let itemId: string;
 						if (existing) {
@@ -453,6 +462,16 @@ class ReconciliationService extends EventEmitter implements BackgroundService {
 				// No episode linkage resolved (empty/null episodeIds, or IDs missing
 				// from the episodes table): fall back to file-granularity, preserving
 				// backwards compatibility.
+				if (ids.length > 0) {
+					// episodeIds reference UUIDs that no longer exist in the episodes
+					// table (e.g. after a re-scan regenerated episode IDs). This is a
+					// data-integrity problem worth surfacing: the file collapses onto a
+					// null-episode row and won't match numbered server episodes.
+					logger.warn(
+						`[ReconciliationService] episode file ${r.episodeFileId} for "${r.title}" S${r.seasonNumber} has ${ids.length} episode_ids but none resolve to the episodes table; falling back to file-granularity`,
+						{ episodeFileId: r.episodeFileId, seriesId: r.seriesId, unresolvedIds: ids }
+					);
+				}
 				epRows.push({
 					itemType: 'episode' as const,
 					tmdbId: r.tmdbId,

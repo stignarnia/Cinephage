@@ -5,7 +5,8 @@ import {
 	extractVideoCodec,
 	extractHdrFormat,
 	extractAudioCodec,
-	extractContainer
+	extractContainer,
+	logicalKey
 } from './matchers.js';
 
 describe('heightToResolution', () => {
@@ -84,5 +85,26 @@ describe('extractContainer', () => {
 	});
 	it('returns null when missing', () => {
 		expect(extractContainer(null)).toBeNull();
+	});
+});
+
+describe('logicalKey', () => {
+	it('builds a key from itemType, tmdbId, season, episode for episodes', () => {
+		expect(logicalKey('episode', 1429, 1, 1)).toBe('episode:1429:1:1');
+	});
+	it('coalesces null season/episode to -1', () => {
+		expect(logicalKey('episode', 1429, null, null)).toBe('episode:1429:-1:-1');
+	});
+	it('coalesces null tmdbId to "none"', () => {
+		expect(logicalKey('movie', null, null, null)).toBe('movie:none:-1:-1');
+	});
+	it('matches a movie on tmdbId alone regardless of stray season/episode metadata', () => {
+		// A movie with junk IndexNumber/ParentIndexNumber (e.g. Jellyfin reporting
+		// season=1/episode=1 on a movie) must produce the same key as the canonical
+		// movie row whose season/episode are null, so they reconcile into one item.
+		const canonical = logicalKey('movie', 869, null, null);
+		const withJunk = logicalKey('movie', 869, 1, 1);
+		expect(withJunk).toBe(canonical);
+		expect(withJunk).toBe('movie:869:-1:-1');
 	});
 });

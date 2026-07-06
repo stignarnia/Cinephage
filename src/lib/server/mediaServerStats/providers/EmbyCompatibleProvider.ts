@@ -149,6 +149,11 @@ export abstract class EmbyCompatibleProvider implements MediaServerStatsProvider
 
 		const { isHDR, hdrFormat } = this.resolveHDR(videoStream);
 
+		// Movies identify by tmdbId alone; season/episode numbering is meaningless
+		// for them. Some Jellyfin libraries populate IndexNumber/ParentIndexNumber
+		// on movies, which would otherwise corrupt movie matching downstream.
+		const useSeasonEpisode = itemType === 'episode';
+
 		return {
 			serverItemId: String(raw.Id),
 			tmdbId: this.parseIntOrNull(providerIds.Tmdb),
@@ -158,8 +163,8 @@ export abstract class EmbyCompatibleProvider implements MediaServerStatsProvider
 			year: raw.ProductionYear ?? null,
 			itemType,
 			seriesName: raw.SeriesName ?? null,
-			seasonNumber: raw.ParentIndexNumber ?? null,
-			episodeNumber: raw.IndexNumber ?? null,
+			seasonNumber: useSeasonEpisode ? (raw.ParentIndexNumber ?? null) : null,
+			episodeNumber: useSeasonEpisode ? (raw.IndexNumber ?? null) : null,
 			playCount: raw.UserData?.PlayCount ?? 0,
 			lastPlayedDate: raw.UserData?.LastPlayedDate ?? null,
 			playedPercentage: raw.UserData?.PlayedPercentage ?? null,

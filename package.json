@@ -24,6 +24,7 @@
 		"migrate:remove-enabled": "tsx scripts/remove-monitoring-enabled.ts",
 		"auth:reset-admin-password": "node scripts/reset-admin-password.js",
 		"fix:tv-subtitles": "node scripts/fix-tv-subtitle-paths.js",
+		"fix:episode-file-links": "node scripts/repair-episode-file-links.js",
 		"library:backfill-release-metadata": "npx tsx scripts/backfill-release-metadata.ts",
 		"library:export-release-metadata-audit": "npx tsx scripts/export-release-metadata-audit.ts",
 		"db:reset": "rm -f data/cinephage.db && echo 'Database deleted. Will be recreated on next startup.'",

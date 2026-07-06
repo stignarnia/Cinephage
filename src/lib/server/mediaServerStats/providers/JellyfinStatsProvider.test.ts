@@ -172,6 +172,30 @@ describe('JellyfinStatsProvider', () => {
 		expect(item.subtitleLanguages).toEqual(['eng', 'spa']);
 	});
 
+	it('should drop stray season/episode numbers on movies (covers shared EmbyCompatible base)', async () => {
+		// Some Jellyfin libraries populate IndexNumber/ParentIndexNumber on movies.
+		// Movies identify by tmdbId alone; keeping junk season/episode would split
+		// one film into multiple storage_items rows during reconciliation. This also
+		// covers Emby, which shares the EmbyCompatibleProvider.normalizeItem base.
+		const movieWithJunk = makeJellyfinItem({
+			IndexNumber: 1,
+			ParentIndexNumber: 1
+		});
+
+		mockFetch.mockResolvedValueOnce(mockAdminResponse());
+		mockFetch.mockResolvedValueOnce(
+			mockFetchResponse({ TotalRecordCount: 1, Items: [movieWithJunk] })
+		);
+
+		const provider = new JellyfinStatsProvider(mockConfig);
+		const result = await provider.fetchAllItems();
+
+		const item = result.items[0];
+		expect(item.itemType).toBe('movie');
+		expect(item.seasonNumber).toBeNull();
+		expect(item.episodeNumber).toBeNull();
+	});
+
 	it('should handle missing media info gracefully', async () => {
 		const bareItem = {
 			Id: 'bare-item',

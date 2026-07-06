@@ -55,6 +55,11 @@ export function extractContainer(mediaInfo: MediaInfoBlob): string | null {
 /**
  * Build the logical key used to dedupe storage_items rows.
  * Movies have null season/episode; the unique index uses COALESCE(-1) to handle NULLs.
+ *
+ * Movies match on tmdbId alone: stray season/episode metadata (e.g. a Jellyfin
+ * movie carrying IndexNumber=1/ParentIndexNumber=1) is ignored so a single movie
+ * can't split into multiple storage_items rows. Top-level containers (series/season)
+ * are treated the same way.
  */
 export function logicalKey(
 	itemType: 'movie' | 'episode' | 'series' | 'season',
@@ -62,5 +67,8 @@ export function logicalKey(
 	seasonNumber: number | null,
 	episodeNumber: number | null
 ): string {
+	if (itemType === 'movie' || itemType === 'series' || itemType === 'season') {
+		return `${itemType}:${tmdbId ?? 'none'}:-1:-1`;
+	}
 	return `${itemType}:${tmdbId ?? 'none'}:${seasonNumber ?? -1}:${episodeNumber ?? -1}`;
 }
