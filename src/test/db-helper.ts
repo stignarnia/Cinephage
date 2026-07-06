@@ -42,7 +42,8 @@ const CORE_TABLES = [
 	'episodes',
 	'episodeFiles',
 	'downloadQueue',
-	'rootFolders'
+	'rootFolders',
+	'unmatchedFiles'
 ] as const;
 
 export function clearTestDb(testDb: TestDatabase) {
