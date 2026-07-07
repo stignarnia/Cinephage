@@ -1,17 +1,30 @@
 import { describe, it, expect, afterAll, beforeEach, vi } from 'vitest';
-import { createTestDb, destroyTestDb, clearTestDb, type TestDatabase } from '../../../../../test/db-helper.js';
+import {
+	createTestDb,
+	destroyTestDb,
+	clearTestDb,
+	type TestDatabase
+} from '../../../../../test/db-helper.js';
 import { unmatchedFiles } from '$lib/server/db/schema';
 
 const testDb: TestDatabase = createTestDb();
 
 vi.mock('$lib/server/db', () => ({
-	get db() { return testDb.db; },
-	get sqlite() { return testDb.sqlite; },
+	get db() {
+		return testDb.db;
+	},
+	get sqlite() {
+		return testDb.sqlite;
+	},
 	initializeDatabase: vi.fn().mockResolvedValue(undefined)
 }));
 vi.mock('$lib/server/db/index.js', () => ({
-	get db() { return testDb.db; },
-	get sqlite() { return testDb.sqlite; },
+	get db() {
+		return testDb.db;
+	},
+	get sqlite() {
+		return testDb.sqlite;
+	},
 	initializeDatabase: vi.fn().mockResolvedValue(undefined)
 }));
 

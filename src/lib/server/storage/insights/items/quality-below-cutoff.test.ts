@@ -11,14 +11,22 @@ import { createMovie, createSeries } from '../../../../../test/fixtures/index.js
 const testDb: TestDatabase = createTestDb();
 
 vi.mock('$lib/server/db', () => ({
-	get db() { return testDb.db; },
-	get sqlite() { return testDb.sqlite; },
+	get db() {
+		return testDb.db;
+	},
+	get sqlite() {
+		return testDb.sqlite;
+	},
 	initializeDatabase: vi.fn().mockResolvedValue(undefined)
 }));
 
 vi.mock('$lib/server/db/index.js', () => ({
-	get db() { return testDb.db; },
-	get sqlite() { return testDb.sqlite; },
+	get db() {
+		return testDb.db;
+	},
+	get sqlite() {
+		return testDb.sqlite;
+	},
 	initializeDatabase: vi.fn().mockResolvedValue(undefined)
 }));
 
@@ -29,12 +37,12 @@ describe('qualityBelowCutoffResolver', () => {
 	beforeEach(() => clearTestDb(testDb));
 
 	it('returns items from detailsJson payload with badges', async () => {
-		await testDb.db.insert(movies).values(
-			createMovie({ id: 'q-movie-a', tmdbId: 100, title: 'Movie A' })
-		);
-		await testDb.db.insert(series).values(
-			createSeries({ id: 'q-series-b', tmdbId: 200, title: 'Series B' })
-		);
+		await testDb.db
+			.insert(movies)
+			.values(createMovie({ id: 'q-movie-a', tmdbId: 100, title: 'Movie A' }));
+		await testDb.db
+			.insert(series)
+			.values(createSeries({ id: 'q-series-b', tmdbId: 200, title: 'Series B' }));
 
 		const result = await qualityBelowCutoffResolver({
 			db: testDb.db as any,
@@ -74,13 +82,23 @@ describe('qualityBelowCutoffResolver', () => {
 	it('handles empty items', async () => {
 		const result = await qualityBelowCutoffResolver({
 			db: testDb.db as any,
-			page: 1, limit: 50,
+			page: 1,
+			limit: 50,
 			insight: {
-				id: 'test', insightType: 'quality-below-cutoff', severity: 'info',
-				scope: 'global', scopeId: null, title: 'Test', summary: null,
+				id: 'test',
+				insightType: 'quality-below-cutoff',
+				severity: 'info',
+				scope: 'global',
+				scopeId: null,
+				title: 'Test',
+				summary: null,
 				detailsJson: JSON.stringify({ items: [] }),
-				reclaimableBytes: null, itemCount: 0,
-				firstDetectedAt: '', lastDetectedAt: '', dismissedAt: null, dismissedBy: null
+				reclaimableBytes: null,
+				itemCount: 0,
+				firstDetectedAt: '',
+				lastDetectedAt: '',
+				dismissedAt: null,
+				dismissedBy: null
 			}
 		});
 		expect(result.items).toHaveLength(0);
@@ -89,28 +107,55 @@ describe('qualityBelowCutoffResolver', () => {
 
 	it('paginates correctly', async () => {
 		const items = Array.from({ length: 5 }, (_, i) => ({
-			tmdbId: 100 + i, title: `Item ${i}`, currentResolution: '720p', minResolution: '1080p'
+			tmdbId: 100 + i,
+			title: `Item ${i}`,
+			currentResolution: '720p',
+			minResolution: '1080p'
 		}));
 
 		const page1 = await qualityBelowCutoffResolver({
-			db: testDb.db as any, page: 1, limit: 2,
+			db: testDb.db as any,
+			page: 1,
+			limit: 2,
 			insight: {
-				id: 'test', insightType: 'quality-below-cutoff', severity: 'info',
-				scope: 'global', scopeId: null, title: 'Test', summary: null,
-				detailsJson: JSON.stringify({ items }), reclaimableBytes: null,
-				itemCount: 5, firstDetectedAt: '', lastDetectedAt: '', dismissedAt: null, dismissedBy: null
+				id: 'test',
+				insightType: 'quality-below-cutoff',
+				severity: 'info',
+				scope: 'global',
+				scopeId: null,
+				title: 'Test',
+				summary: null,
+				detailsJson: JSON.stringify({ items }),
+				reclaimableBytes: null,
+				itemCount: 5,
+				firstDetectedAt: '',
+				lastDetectedAt: '',
+				dismissedAt: null,
+				dismissedBy: null
 			}
 		});
 		expect(page1.items).toHaveLength(2);
 		expect(page1.total).toBe(5);
 
 		const page3 = await qualityBelowCutoffResolver({
-			db: testDb.db as any, page: 3, limit: 2,
+			db: testDb.db as any,
+			page: 3,
+			limit: 2,
 			insight: {
-				id: 'test', insightType: 'quality-below-cutoff', severity: 'info',
-				scope: 'global', scopeId: null, title: 'Test', summary: null,
-				detailsJson: JSON.stringify({ items }), reclaimableBytes: null,
-				itemCount: 5, firstDetectedAt: '', lastDetectedAt: '', dismissedAt: null, dismissedBy: null
+				id: 'test',
+				insightType: 'quality-below-cutoff',
+				severity: 'info',
+				scope: 'global',
+				scopeId: null,
+				title: 'Test',
+				summary: null,
+				detailsJson: JSON.stringify({ items }),
+				reclaimableBytes: null,
+				itemCount: 5,
+				firstDetectedAt: '',
+				lastDetectedAt: '',
+				dismissedAt: null,
+				dismissedBy: null
 			}
 		});
 		expect(page3.items).toHaveLength(1);
@@ -118,12 +163,24 @@ describe('qualityBelowCutoffResolver', () => {
 
 	it('handles missing detailsJson', async () => {
 		const result = await qualityBelowCutoffResolver({
-			db: testDb.db as any, page: 1, limit: 50,
+			db: testDb.db as any,
+			page: 1,
+			limit: 50,
 			insight: {
-				id: 'test', insightType: 'quality-below-cutoff', severity: 'info',
-				scope: 'global', scopeId: null, title: 'Test', summary: null,
-				detailsJson: null, reclaimableBytes: null, itemCount: 0,
-				firstDetectedAt: '', lastDetectedAt: '', dismissedAt: null, dismissedBy: null
+				id: 'test',
+				insightType: 'quality-below-cutoff',
+				severity: 'info',
+				scope: 'global',
+				scopeId: null,
+				title: 'Test',
+				summary: null,
+				detailsJson: null,
+				reclaimableBytes: null,
+				itemCount: 0,
+				firstDetectedAt: '',
+				lastDetectedAt: '',
+				dismissedAt: null,
+				dismissedBy: null
 			}
 		});
 		expect(result.items).toHaveLength(0);

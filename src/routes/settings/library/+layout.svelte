@@ -1,16 +1,5 @@
 <script lang="ts">
-	import {
-		Library,
-		FolderOpen,
-		FileSignature,
-		Shield,
-		Filter,
-		FolderSync,
-		Eye,
-		Monitor,
-		Clock,
-		Copy
-	} from 'lucide-svelte';
+	import { Library, FolderOpen, FileSignature, Shield, Filter, FolderSync } from 'lucide-svelte';
 	import { SettingsTabNav } from '$lib/components/settings';
 	import * as m from '$lib/paraglide/messages.js';
 
@@ -46,26 +35,6 @@
 			href: '/settings/library/filters',
 			label: m.nav_globalFilters(),
 			icon: Filter
-		},
-		{
-			href: '/settings/library/pattern-recognition',
-			label: m.settings_patterns_title(),
-			icon: Eye
-		},
-		{
-			href: '/settings/library/resolution-categories',
-			label: m.settings_resolutions_title(),
-			icon: Monitor
-		},
-		{
-			href: '/settings/library/history-retention',
-			label: m.settings_history_title(),
-			icon: Clock
-		},
-		{
-			href: '/settings/library/duplicates',
-			label: m.settings_duplicates_title(),
-			icon: Copy
 		}
 	];
 </script>

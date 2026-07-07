@@ -95,6 +95,16 @@ class ReconciliationService extends EventEmitter implements BackgroundService {
 			.catch((e) => {
 				logger.error('[ReconciliationService] failed to subscribe to syncComplete', e);
 			});
+		// Subscribe to library data mutations (movie/series/episode/season CRUD,
+		// root-folder and library changes). The reconcileLock coalesces concurrent
+		// triggers, so a 50-item batch delete produces one reconcile run, not 50.
+		void import('$lib/server/library/LibraryMediaEvents.js')
+			.then(({ libraryMediaEvents }) => {
+				libraryMediaEvents.onLibraryDataChanged(this.handleTrigger);
+			})
+			.catch((e) => {
+				logger.error('[ReconciliationService] failed to subscribe to library:data-changed', e);
+			});
 	}
 
 	private detachListeners(): void {
@@ -113,6 +123,13 @@ class ReconciliationService extends EventEmitter implements BackgroundService {
 			})
 			.catch((e) => {
 				logger.error('[ReconciliationService] failed to unsubscribe from syncComplete', e);
+			});
+		void import('$lib/server/library/LibraryMediaEvents.js')
+			.then(({ libraryMediaEvents }) => {
+				libraryMediaEvents.offLibraryDataChanged(this.handleTrigger);
+			})
+			.catch((e) => {
+				logger.error('[ReconciliationService] failed to unsubscribe from library:data-changed', e);
 			});
 	}
 

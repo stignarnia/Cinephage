@@ -36,7 +36,9 @@
 	role="button"
 	tabindex="0"
 	onclick={onOpen}
-	onkeydown={(e) => { if (e.key === 'Enter') onOpen(); }}
+	onkeydown={(e) => {
+		if (e.key === 'Enter') onOpen();
+	}}
 	class={`w-full text-left rounded-lg border p-4 ${severityBadgeClass(insight.severity)} transition-colors hover:bg-base-300/30 cursor-pointer`}
 >
 	<div class="flex items-start justify-between gap-3">

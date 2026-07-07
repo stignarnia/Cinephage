@@ -11,7 +11,7 @@
 		TrendingUp,
 		Database
 	} from 'lucide-svelte';
-	import type { StorageSummary, ScanProgress, ScanSuccess, ServerStatus } from './utils.js';
+	import type { StorageSummary, ScanSuccess, ServerStatus } from './utils.js';
 	import type { LibraryBreakdownItem, RootFolderBreakdownItem } from './utils.js';
 	import {
 		formatBytes,
@@ -62,8 +62,6 @@
 		};
 		topItems: MediaListItem[];
 		largestItems: MediaListItem[];
-		scanning: boolean;
-		scanProgress: ScanProgress | null;
 		scanError: string | null;
 		scanSuccess: ScanSuccess | null;
 		serverStatuses: ServerStatus[];
@@ -77,8 +75,6 @@
 		mediaServerStats,
 		topItems,
 		largestItems,
-		scanning,
-		scanProgress,
 		scanError,
 		scanSuccess,
 		serverStatuses
@@ -146,9 +142,9 @@
 	// --- Priority insights ---
 	const topInsights = $derived(insights.slice(0, 5));
 
-	let selectedInsight = $state<typeof topInsights[number] | null>(null);
+	let selectedInsight = $state<(typeof topInsights)[number] | null>(null);
 
-	function openInsight(insight: typeof topInsights[number]) {
+	function openInsight(insight: (typeof topInsights)[number]) {
 		selectedInsight = insight;
 	}
 
@@ -218,7 +214,7 @@
 	);
 </script>
 
-<!-- Scan alerts (transient) -->
+<!-- Scan alerts (transient one-shot feedback) -->
 {#if scanError}
 	<div class="mb-4 alert alert-error">
 		<AlertTriangle class="h-5 w-5" />
@@ -230,22 +226,6 @@
 	<div class="mb-4 alert alert-success">
 		<CheckCircle class="h-5 w-5" />
 		<span>{scanSuccess.message}</span>
-	</div>
-{/if}
-
-{#if scanning && scanProgress}
-	<div class="card mb-4 bg-base-200 p-4">
-		<div class="mb-2 flex items-center justify-between text-sm">
-			<span class="truncate">{scanProgress.rootFolderPath ?? 'Scanning...'}</span>
-			<span class="text-base-content/60"
-				>{scanProgress.filesProcessed} / {scanProgress.filesFound}</span
-			>
-		</div>
-		<progress
-			class="progress progress-primary w-full"
-			value={scanProgress.filesProcessed}
-			max={scanProgress.filesFound || 1}
-		></progress>
 	</div>
 {/if}
 
@@ -461,24 +441,24 @@
 					<span>Everything looks healthy</span>
 				</div>
 			{:else}
-			{#each topInsights as insight (insight.id)}
-				<button
-					type="button"
-					onclick={() => openInsight(insight)}
-					class="flex w-full items-center gap-2.5 rounded-lg border border-base-300 bg-base-200/50 p-2.5 text-left transition-colors hover:bg-base-300/50"
-				>
-					<span
-						class={`inline-block h-2 w-2 shrink-0 rounded-full ${severityDot(insight.severity)}`}
-					></span>
-					<span class="min-w-0 flex-1 truncate text-sm text-base-content">{insight.title}</span>
-					{#if insight.itemCount > 1}
-						<span class="shrink-0 text-xs font-medium text-base-content/50"
-							>{insight.itemCount}</span
-						>
-					{/if}
-					<ChevronRight class="h-3.5 w-3.5 shrink-0 text-base-content/30" />
-				</button>
-			{/each}
+				{#each topInsights as insight (insight.id)}
+					<button
+						type="button"
+						onclick={() => openInsight(insight)}
+						class="flex w-full items-center gap-2.5 rounded-lg border border-base-300 bg-base-200/50 p-2.5 text-left transition-colors hover:bg-base-300/50"
+					>
+						<span
+							class={`inline-block h-2 w-2 shrink-0 rounded-full ${severityDot(insight.severity)}`}
+						></span>
+						<span class="min-w-0 flex-1 truncate text-sm text-base-content">{insight.title}</span>
+						{#if insight.itemCount > 1}
+							<span class="shrink-0 text-xs font-medium text-base-content/50"
+								>{insight.itemCount}</span
+							>
+						{/if}
+						<ChevronRight class="h-3.5 w-3.5 shrink-0 text-base-content/30" />
+					</button>
+				{/each}
 			{/if}
 		</div>
 

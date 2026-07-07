@@ -1,5 +1,10 @@
 import { describe, it, expect, afterAll, beforeEach, vi } from 'vitest';
-import { createTestDb, destroyTestDb, clearTestDb, type TestDatabase } from '../../../../../test/db-helper.js';
+import {
+	createTestDb,
+	destroyTestDb,
+	clearTestDb,
+	type TestDatabase
+} from '../../../../../test/db-helper.js';
 import { rootFolders } from '$lib/server/db/schema';
 
 const testDb: TestDatabase = createTestDb();
@@ -27,20 +32,18 @@ vi.mock('$lib/server/db/index.js', () => ({
 import { healthIssuesResolver } from './health-issues.js';
 
 async function insertFolder(id: string, name: string, path: string) {
-	await testDb.db
-		.insert(rootFolders)
-		.values({
-			id,
-			name,
-			path,
-			mediaType: 'movie',
-			mediaSubType: 'standard',
-			readOnly: 0,
-			isDefault: 0,
-			preserveSymlinks: 0,
-			defaultMonitored: 1,
-			createdAt: new Date().toISOString()
-		});
+	await testDb.db.insert(rootFolders).values({
+		id,
+		name,
+		path,
+		mediaType: 'movie',
+		mediaSubType: 'standard',
+		readOnly: 0,
+		isDefault: 0,
+		preserveSymlinks: 0,
+		defaultMonitored: 1,
+		createdAt: new Date().toISOString()
+	});
 }
 
 describe('healthIssuesResolver', () => {

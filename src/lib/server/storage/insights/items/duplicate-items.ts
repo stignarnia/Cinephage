@@ -33,9 +33,7 @@ export const duplicateItemsResolver: InsightItemResolver = async ({ db, insight,
 			title: item.title,
 			subtitle: `${item.fileCount} files`,
 			badges: [{ label: `${item.fileCount}x files`, tone: 'warn' as const }],
-			href: movieMap.has(item.tmdbId)
-				? `/library/movie/${movieMap.get(item.tmdbId)}`
-				: undefined
+			href: movieMap.has(item.tmdbId) ? `/library/movie/${movieMap.get(item.tmdbId)}` : undefined
 		})),
 		total
 	};

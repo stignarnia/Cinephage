@@ -4,7 +4,11 @@ import type { InsightItemResolver } from './types.js';
 
 export const unplayedResolver: InsightItemResolver = async ({ db, insight, page, limit }) => {
 	const rawDetails = insight.detailsJson ? JSON.parse(insight.detailsJson) : null;
-	if (!rawDetails?.itemIds || !Array.isArray(rawDetails.itemIds) || rawDetails.itemIds.length === 0) {
+	if (
+		!rawDetails?.itemIds ||
+		!Array.isArray(rawDetails.itemIds) ||
+		rawDetails.itemIds.length === 0
+	) {
 		return { items: [], total: 0 };
 	}
 
@@ -16,7 +20,12 @@ export const unplayedResolver: InsightItemResolver = async ({ db, insight, page,
 	if (slicedIds.length === 0) return { items: [], total: 0 };
 
 	const rows = db
-		.select({ id: storageItems.id, title: storageItems.title, tmdbId: storageItems.tmdbId, itemType: storageItems.itemType })
+		.select({
+			id: storageItems.id,
+			title: storageItems.title,
+			tmdbId: storageItems.tmdbId,
+			itemType: storageItems.itemType
+		})
 		.from(storageItems)
 		.where(inArray(storageItems.id, slicedIds))
 		.all();

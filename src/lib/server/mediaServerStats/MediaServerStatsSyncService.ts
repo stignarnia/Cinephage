@@ -17,6 +17,11 @@ class MediaServerStatsSyncService extends EventEmitter implements BackgroundServ
 	private _status: ServiceStatus = 'pending';
 	private _error?: Error;
 	private intervalTimer: NodeJS.Timeout | null = null;
+	// Tracks in-flight syncServer() invocations. When > 0, the dashboard's
+	// "Sync Servers" button should remain in its working state. SSE clients
+	// (/api/media-server-stats/sync/status) read this via currentlySyncing
+	// and subscribe to syncStart/syncStop transitions.
+	private activeSyncCount = 0;
 
 	get status(): ServiceStatus {
 		return this._status;
@@ -24,6 +29,10 @@ class MediaServerStatsSyncService extends EventEmitter implements BackgroundServ
 
 	get error(): Error | undefined {
 		return this._error;
+	}
+
+	get currentlySyncing(): boolean {
+		return this.activeSyncCount > 0;
 	}
 
 	start(): void {
@@ -68,20 +77,34 @@ class MediaServerStatsSyncService extends EventEmitter implements BackgroundServ
 	}
 
 	async syncServer(serverId?: string): Promise<void> {
-		const manager = getMediaBrowserManager();
-		let servers = await manager.getEnabledServers();
-
-		if (serverId) {
-			servers = servers.filter((s) => s.id === serverId);
+		// Track overall sync state and emit transitions for SSE clients.
+		const wasSyncing = this.currentlySyncing;
+		this.activeSyncCount++;
+		if (!wasSyncing) {
+			this.emit('syncStart', { timestamp: new Date().toISOString() });
 		}
 
-		if (servers.length === 0) {
-			logger.debug('[MediaServerStatsSync] No enabled servers to sync');
-			return;
-		}
+		try {
+			const manager = getMediaBrowserManager();
+			let servers = await manager.getEnabledServers();
 
-		for (const server of servers) {
-			await this.syncSingleServer(server);
+			if (serverId) {
+				servers = servers.filter((s) => s.id === serverId);
+			}
+
+			if (servers.length === 0) {
+				logger.debug('[MediaServerStatsSync] No enabled servers to sync');
+				return;
+			}
+
+			for (const server of servers) {
+				await this.syncSingleServer(server);
+			}
+		} finally {
+			this.activeSyncCount = Math.max(0, this.activeSyncCount - 1);
+			if (!this.currentlySyncing) {
+				this.emit('syncStop', { timestamp: new Date().toISOString() });
+			}
 		}
 	}
 

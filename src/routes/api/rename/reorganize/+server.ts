@@ -17,6 +17,7 @@ import { logger } from '$lib/logging';
 import { requireAdmin } from '$lib/server/auth/authorization.js';
 import { parseBody } from '$lib/server/api/validate.js';
 import { z } from 'zod';
+import { libraryMediaEvents } from '$lib/server/library/LibraryMediaEvents.js';
 
 const reorganizeSchema = z.object({
 	mediaId: z.string().min(1, 'mediaId is required'),
@@ -50,6 +51,12 @@ export const POST: RequestHandler = async (event) => {
 		if (!result.success) {
 			return json({ success: false, error: result.error }, { status: 400 });
 		}
+
+		libraryMediaEvents.emitLibraryDataChanged({
+			source: mediaType === 'series' ? 'series' : 'movie',
+			reason: 'folder-reorganized',
+			entityId: mediaId
+		});
 
 		return json({ ...result, success: true });
 	} catch (error) {

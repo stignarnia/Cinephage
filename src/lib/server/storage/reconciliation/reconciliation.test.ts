@@ -268,6 +268,42 @@ describe('ReconciliationService', () => {
 		expect(second.skipped).toBe(true);
 	});
 
+	it('runs reconcile when library:data-changed fires after start()', async () => {
+		// Use a unique tmdbId so we can verify the side effect of the triggered
+		// reconcile (rather than spying on private methods).
+		await testDb.db
+			.insert(movies)
+			.values(createMovie({ id: 'movie-trig', tmdbId: 424242, title: 'Triggered Movie' }));
+		await testDb.db
+			.insert(movieFiles)
+			.values(
+				createMovieFile({ id: 'mf-trig', movieId: 'movie-trig' }) as typeof movieFiles.$inferInsert
+			);
+
+		const service = getReconciliationService();
+		service.start();
+
+		// start() uses setImmediate for both itself and attachListeners(); let
+		// those run before emitting the event.
+		await new Promise((resolve) => setTimeout(resolve, 50));
+
+		const { libraryMediaEvents } = await import('$lib/server/library/LibraryMediaEvents.js');
+		libraryMediaEvents.emitLibraryDataChanged({
+			source: 'movie',
+			reason: 'test-mutation'
+		});
+
+		// Reconcile is triggered via the event handler; allow it to run.
+		await new Promise((resolve) => setTimeout(resolve, 50));
+
+		const items = await testDb.db.select().from(storageItems);
+		const triggered = items.find((i) => i.tmdbId === 424242);
+		expect(triggered).toBeDefined();
+		expect(triggered?.title).toBe('Triggered Movie');
+
+		await service.stop();
+	});
+
 	it('expands a multi-episode file to per-episode storage_items rows', async () => {
 		await testDb.db
 			.insert(series)

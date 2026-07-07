@@ -26,7 +26,6 @@
 		defaultMonitored?: boolean | null;
 		defaultSearchOnAdd?: boolean | null;
 		defaultWantsSubtitles?: boolean | null;
-		scanMode?: string | null;
 	};
 
 	type RootFolderRef = {
@@ -45,7 +44,6 @@
 		defaultMonitored: boolean;
 		defaultSearchOnAdd: boolean;
 		defaultWantsSubtitles: boolean;
-		scanMode: string;
 	};
 
 	interface Props {
@@ -65,8 +63,7 @@
 		rootFolderIds: [],
 		defaultMonitored: true,
 		defaultSearchOnAdd: true,
-		defaultWantsSubtitles: false,
-		scanMode: 'scheduled'
+		defaultWantsSubtitles: false
 	});
 	let librarySaving = $state(false);
 	let librarySaveError = $state<string | null>(null);
@@ -97,8 +94,7 @@
 				rootFolderIds: [],
 				defaultMonitored: true,
 				defaultSearchOnAdd: true,
-				defaultWantsSubtitles: false,
-				scanMode: 'scheduled'
+				defaultWantsSubtitles: false
 			};
 			librarySaveError = null;
 		} else if (libraryId) {
@@ -111,8 +107,7 @@
 					rootFolderIds: library.rootFolders?.map((f) => f.id) ?? [],
 					defaultMonitored: library.defaultMonitored ?? true,
 					defaultSearchOnAdd: library.defaultSearchOnAdd ?? true,
-					defaultWantsSubtitles: library.defaultWantsSubtitles ?? false,
-					scanMode: library.scanMode ?? 'scheduled'
+					defaultWantsSubtitles: library.defaultWantsSubtitles ?? false
 				};
 				librarySaveError = null;
 			}
@@ -188,7 +183,6 @@
 				>
 					<option value="movie">{m.rootFolders_movies()}</option>
 					<option value="tv">{m.rootFolders_tvShows()}</option>
-					<option value="mixed">Mixed</option>
 				</select>
 			</div>
 
@@ -204,22 +198,6 @@
 				>
 					<option value="standard">{m.settings_general_standard()}</option>
 					<option value="anime">{m.settings_general_badgeAnime()}</option>
-				</select>
-			</div>
-
-			<div class="form-control md:col-span-2">
-				<label class="label py-1" for="status-scan-mode">
-					<span class="label-text">Scan mode</span>
-				</label>
-				<select
-					id="status-scan-mode"
-					class="select select-bordered select-sm"
-					bind:value={libraryForm.scanMode}
-				>
-					<option value="manual">Manual</option>
-					<option value="scheduled">Scheduled (interval)</option>
-					<option value="scheduled_daily">Scheduled (daily)</option>
-					<option value="watch">Watch filesystem</option>
 				</select>
 			</div>
 

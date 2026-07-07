@@ -2,7 +2,12 @@ import { movies, series } from '$lib/server/db/schema';
 import { inArray } from 'drizzle-orm';
 import type { InsightItemResolver } from './types.js';
 
-export const qualityBelowCutoffResolver: InsightItemResolver = async ({ db, insight, page, limit }) => {
+export const qualityBelowCutoffResolver: InsightItemResolver = async ({
+	db,
+	insight,
+	page,
+	limit
+}) => {
 	const rawDetails = insight.detailsJson ? JSON.parse(insight.detailsJson) : null;
 	if (!rawDetails?.items || !Array.isArray(rawDetails.items)) {
 		return { items: [], total: 0 };
@@ -19,12 +24,18 @@ export const qualityBelowCutoffResolver: InsightItemResolver = async ({ db, insi
 	const seriesMap = new Map<number, string>();
 
 	if (tmdbIds.length > 0) {
-		const movieRows = db.select({ id: movies.id, tmdbId: movies.tmdbId })
-			.from(movies).where(inArray(movies.tmdbId, tmdbIds)).all();
+		const movieRows = db
+			.select({ id: movies.id, tmdbId: movies.tmdbId })
+			.from(movies)
+			.where(inArray(movies.tmdbId, tmdbIds))
+			.all();
 		for (const r of movieRows) movieMap.set(r.tmdbId, r.id);
 
-		const seriesRows = db.select({ id: series.id, tmdbId: series.tmdbId })
-			.from(series).where(inArray(series.tmdbId, tmdbIds)).all();
+		const seriesRows = db
+			.select({ id: series.id, tmdbId: series.tmdbId })
+			.from(series)
+			.where(inArray(series.tmdbId, tmdbIds))
+			.all();
 		for (const r of seriesRows) seriesMap.set(r.tmdbId, r.id);
 	}
 

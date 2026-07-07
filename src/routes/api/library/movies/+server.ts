@@ -23,6 +23,7 @@ import { isLikelyAnimeMedia } from '$lib/shared/anime-classification.js';
 import { fetchAndStoreMovieAlternateTitles } from '$lib/server/services/AlternateTitleService.js';
 import { getLibraryEntityService } from '$lib/server/library/LibraryEntityService.js';
 import { ValidationError, isAppError } from '$lib/errors';
+import { libraryMediaEvents } from '$lib/server/library/LibraryMediaEvents.js';
 import { logger } from '$lib/logging';
 import { requireAuth } from '$lib/server/auth/authorization.js';
 
@@ -280,6 +281,12 @@ export const POST: RequestHandler = async (event) => {
 			searchTriggered = searchResult.triggered;
 			searchWarning = searchResult.searchWarning;
 		}
+
+		libraryMediaEvents.emitLibraryDataChanged({
+			source: 'movie',
+			reason: 'movie-added',
+			entityId: newMovie.id
+		});
 
 		return json({
 			success: true,

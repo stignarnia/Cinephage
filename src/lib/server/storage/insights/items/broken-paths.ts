@@ -16,19 +16,31 @@ export const brokenPathsResolver: InsightItemResolver = async ({ db, insight, pa
 	const movieMap = new Map<number, string>();
 	const seriesMap = new Map<number, string>();
 	if (tmdbIds.length > 0) {
-		const movieRows = db.select({ id: movies.id, tmdbId: movies.tmdbId }).from(movies).where(inArray(movies.tmdbId, tmdbIds)).all();
+		const movieRows = db
+			.select({ id: movies.id, tmdbId: movies.tmdbId })
+			.from(movies)
+			.where(inArray(movies.tmdbId, tmdbIds))
+			.all();
 		for (const r of movieRows) movieMap.set(r.tmdbId, r.id);
-		const seriesRows = db.select({ id: series.id, tmdbId: series.tmdbId }).from(series).where(inArray(series.tmdbId, tmdbIds)).all();
+		const seriesRows = db
+			.select({ id: series.id, tmdbId: series.tmdbId })
+			.from(series)
+			.where(inArray(series.tmdbId, tmdbIds))
+			.all();
 		for (const r of seriesRows) seriesMap.set(r.tmdbId, r.id);
 	}
 	return {
 		items: sliced.map((item) => ({
 			id: `bp-${item.storageId}`,
-			kind: movieMap.has(item.tmdbId ?? -1) ? 'movie' as const : 'series' as const,
+			kind: movieMap.has(item.tmdbId ?? -1) ? ('movie' as const) : ('series' as const),
 			title: item.title,
 			subtitle: `Storage ID: ${item.storageId}`,
 			badges: [{ label: 'File missing', tone: 'critical' as const }],
-			href: movieMap.has(item.tmdbId ?? -1) ? `/library/movie/${movieMap.get(item.tmdbId!)}` : seriesMap.has(item.tmdbId ?? -1) ? `/library/tv/${seriesMap.get(item.tmdbId!)}` : undefined
+			href: movieMap.has(item.tmdbId ?? -1)
+				? `/library/movie/${movieMap.get(item.tmdbId!)}`
+				: seriesMap.has(item.tmdbId ?? -1)
+					? `/library/tv/${seriesMap.get(item.tmdbId!)}`
+					: undefined
 		})),
 		total
 	};

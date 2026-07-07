@@ -37,12 +37,12 @@ describe('duplicateItemsResolver', () => {
 	beforeEach(() => clearTestDb(testDb));
 
 	it('returns items from detailsJson payload', async () => {
-		await testDb.db.insert(movies).values(
-			createMovie({ id: 'dup-movie-a', tmdbId: 100, title: 'Movie A' })
-		);
-		await testDb.db.insert(movies).values(
-			createMovie({ id: 'dup-movie-b', tmdbId: 200, title: 'Movie B' })
-		);
+		await testDb.db
+			.insert(movies)
+			.values(createMovie({ id: 'dup-movie-a', tmdbId: 100, title: 'Movie A' }));
+		await testDb.db
+			.insert(movies)
+			.values(createMovie({ id: 'dup-movie-b', tmdbId: 200, title: 'Movie B' }));
 
 		const result = await duplicateItemsResolver({
 			db: testDb.db as any,

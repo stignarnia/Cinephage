@@ -4,7 +4,11 @@ import type { InsightItemResolver } from './types.js';
 
 export const healthIssuesResolver: InsightItemResolver = async ({ db, insight, page, limit }) => {
 	const rawDetails = insight.detailsJson ? JSON.parse(insight.detailsJson) : null;
-	if (!rawDetails?.folderIds || !Array.isArray(rawDetails.folderIds) || rawDetails.folderIds.length === 0) {
+	if (
+		!rawDetails?.folderIds ||
+		!Array.isArray(rawDetails.folderIds) ||
+		rawDetails.folderIds.length === 0
+	) {
 		return { items: [], total: 0 };
 	}
 

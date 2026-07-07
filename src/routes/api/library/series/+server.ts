@@ -26,6 +26,7 @@ import { requireAuth } from '$lib/server/auth/authorization.js';
 import { NamingService, type MediaNamingInfo } from '$lib/server/library/naming/NamingService.js';
 import { namingSettingsService } from '$lib/server/library/naming/NamingSettingsService.js';
 import { getLibraryEntityService } from '$lib/server/library/LibraryEntityService.js';
+import { libraryMediaEvents } from '$lib/server/library/LibraryMediaEvents.js';
 
 /**
  * Generate a folder name for a series using the naming service
@@ -412,6 +413,12 @@ export const POST: RequestHandler = async (event) => {
 			searchTriggered = searchResult.triggered;
 			searchWarning = searchResult.searchWarning;
 		}
+
+		libraryMediaEvents.emitLibraryDataChanged({
+			source: 'series',
+			reason: 'series-added',
+			entityId: newSeries.id
+		});
 
 		return json({
 			success: true,

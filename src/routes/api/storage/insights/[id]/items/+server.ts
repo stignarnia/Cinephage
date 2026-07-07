@@ -17,7 +17,10 @@ export const GET: RequestHandler = async (event) => {
 	}
 
 	const page = Math.max(1, parseInt(event.url.searchParams.get('page') ?? '1', 10) || 1);
-	const limit = Math.min(100, Math.max(1, parseInt(event.url.searchParams.get('limit') ?? '50', 10) || 50));
+	const limit = Math.min(
+		100,
+		Math.max(1, parseInt(event.url.searchParams.get('limit') ?? '50', 10) || 50)
+	);
 
 	const insight = db
 		.select()

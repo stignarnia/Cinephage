@@ -3,9 +3,7 @@
 	import { HardDrive, RefreshCw } from 'lucide-svelte';
 	import { SettingsPage } from '$lib/components/ui/settings';
 	import { StorageDashboard } from '$lib/components/storage';
-	import { createSSE } from '$lib/sse';
-	import { layoutState, deriveMobileSseStatus } from '$lib/layout.svelte';
-	import { invalidateAll } from '$app/navigation';
+	import { layoutState } from '$lib/layout.svelte';
 	import { toasts } from '$lib/stores/toast.svelte';
 	import { scanLibrary } from '$lib/api/library.js';
 	import { syncMediaServerStats } from '$lib/api/settings.js';
@@ -13,113 +11,38 @@
 
 	let { data }: { data: PageData } = $props();
 
-	type ScanProgress = {
-		phase: string;
-		rootFolderId?: string;
-		rootFolderPath?: string;
-		filesFound: number;
-		filesProcessed: number;
-		filesAdded: number;
-		filesUpdated: number;
-		filesRemoved: number;
-		unmatchedCount: number;
-		currentFile?: string;
-	};
-
 	type ScanSuccess = { message: string; unmatchedCount: number };
 
-	let scanning = $state(false);
-	let scanProgress = $state<ScanProgress | null>(null);
+	// One-shot feedback for the most recent user-triggered action. Ongoing
+	// scan/sync state lives in layoutState so it survives sub-page navigation;
+	// these flags are only for transient messages tied to this dashboard view.
 	let scanError = $state<string | null>(null);
 	let scanSuccess = $state<ScanSuccess | null>(null);
-	let syncing = $state(false);
-
-	const sse = createSSE<{
-		status: { inProgress?: boolean; isScanning?: boolean };
-		progress: ScanProgress;
-		scanComplete: { results?: Array<{ unmatchedFiles?: number }> };
-		scanError: { error?: { message?: string } };
-	}>('/api/library/scan/status', {
-		status: (payload) => {
-			scanning = Boolean(payload.inProgress ?? payload.isScanning ?? false);
-			if (!scanning) scanProgress = null;
-		},
-		progress: (payload) => {
-			scanning = true;
-			scanProgress = payload;
-		},
-		scanComplete: (payload) => {
-			const totalUnmatched =
-				payload.results?.reduce((sum, item) => sum + (item.unmatchedFiles ?? 0), 0) ?? 0;
-			scanSuccess = {
-				message: `Scan complete: ${payload.results?.length ?? 0} folders scanned`,
-				unmatchedCount: totalUnmatched
-			};
-			scanning = false;
-			scanProgress = null;
-			void invalidateAll();
-		},
-		scanError: (payload) => {
-			scanError = payload.error?.message ?? 'Scan failed';
-			scanning = false;
-			scanProgress = null;
-		}
-	});
-
-	const insightSse = createSSE<{
-		'storage:insight-dismissed': { insightId: string; dismissedAt: string };
-		'storage:insight-undismissed': { insightId: string };
-		'storage:insights-updated': { triggeredBy: string; timestamp: string };
-	}>('/api/storage/insights/stream', {
-		'storage:insight-dismissed': () => {
-			// Local state already handles dismiss — no server reload needed
-		},
-		'storage:insight-undismissed': () => {
-			// Local state already handles undismiss — no server reload needed
-		},
-		'storage:insights-updated': () => {
-			void invalidateAll();
-		}
-	});
-
-	$effect(() => {
-		layoutState.setMobileSseStatus(deriveMobileSseStatus(sse));
-		return () => layoutState.clearMobileSseStatus();
-	});
 
 	function resetScanState() {
 		scanError = null;
 		scanSuccess = null;
-		scanProgress = null;
 	}
 
 	async function triggerLibraryScan(rootFolderId?: string) {
-		scanning = true;
 		resetScanState();
 		try {
 			await scanLibrary(rootFolderId ? { rootFolderId } : { fullScan: true });
 		} catch (error) {
 			scanError = error instanceof Error ? error.message : m.settings_general_failedToStartScan();
-			scanning = false;
 		}
 	}
 
 	async function triggerServerSync() {
-		syncing = true;
+		// Just kick off the sync. The layout's /api/media-server-stats/sync/status
+		// SSE drives layoutState.mediaServerSyncing and calls invalidateAll() on
+		// completion (after the reconcile -> insights chain fires).
 		try {
 			await syncMediaServerStats();
-			await invalidateAll();
 		} catch (error) {
 			toasts.error(error instanceof Error ? error.message : 'Sync failed');
-		} finally {
-			syncing = false;
 		}
 	}
-
-	$effect(() => {
-		void sse.status;
-		void insightSse.status;
-	});
 </script>
 
 <svelte:head>
@@ -136,9 +59,9 @@
 				type="button"
 				class="btn btn-sm btn-primary gap-2"
 				onclick={() => void triggerLibraryScan()}
-				disabled={scanning || data.rootFolders.length === 0}
+				disabled={layoutState.scanInProgress || data.rootFolders.length === 0}
 			>
-				{#if scanning}
+				{#if layoutState.scanInProgress}
 					<RefreshCw class="h-4 w-4 animate-spin" />
 					{m.settings_general_scanning()}
 				{:else}
@@ -151,9 +74,9 @@
 					type="button"
 					class="btn btn-outline btn-sm gap-2"
 					onclick={() => void triggerServerSync()}
-					disabled={syncing}
+					disabled={layoutState.mediaServerSyncing}
 				>
-					<RefreshCw class="h-4 w-4 {syncing ? 'animate-spin' : ''}" />
+					<RefreshCw class="h-4 w-4 {layoutState.mediaServerSyncing ? 'animate-spin' : ''}" />
 					Sync Servers
 				</button>
 			{/if}
@@ -168,8 +91,6 @@
 		mediaServerStats={data.mediaServerStats}
 		topItems={data.topItems}
 		largestItems={data.largestItems}
-		{scanning}
-		{scanProgress}
 		{scanError}
 		{scanSuccess}
 		serverStatuses={data.serverStatuses}
