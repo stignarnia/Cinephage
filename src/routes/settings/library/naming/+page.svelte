@@ -22,7 +22,11 @@
 	} from 'lucide-svelte';
 	import type { PageData as GeneratedPageData } from './$types';
 	import { SettingsPage } from '$lib/components/ui/settings';
-	import { NamingFormatField, TokenPicker, NamingAdvancedOptions } from '$lib/components/naming';
+	import {
+		NamingFormatField,
+		NamingAdvancedOptions,
+		NamingReviewPanel
+	} from '$lib/components/naming';
 	import { FormInput, FormSelect } from '$lib/components/ui/form';
 	import { ModalWrapper, ConfirmationModal } from '$lib/components/ui/modal';
 	import * as m from '$lib/paraglide/messages.js';
@@ -929,82 +933,18 @@
 
 			<!-- Right Column -->
 			<div class="lg:col-span-1">
-				<div class="space-y-4 lg:sticky lg:top-4">
-					<div class="card bg-base-200">
-						<div class="card-body p-4">
-							<div class="flex items-center justify-between gap-3">
-								<h2 class="card-title text-base">{m.settings_naming_reviewOutcome()}</h2>
-								{#if validatingFormats}
-									<div class="flex items-center gap-2 text-xs text-base-content/60">
-										<RefreshCw class="h-3.5 w-3.5 animate-spin text-primary" />
-										{m.settings_naming_validating()}
-									</div>
-								{/if}
-							</div>
-							<div class="mt-4 space-y-3 text-sm text-base-content/70">
-								<div class="rounded-xl border border-base-300 bg-base-100 p-3">
-									<p class="font-medium">{m.settings_naming_draftVsSaved()}</p>
-									<p class="mt-1">
-										{#if hasChanges}
-											{m.settings_naming_draftChangesExist()}
-										{:else}
-											{m.settings_naming_draftAndSavedMatch()}
-										{/if}
-									</p>
-								</div>
-								<div class="rounded-xl border border-base-300 bg-base-100 p-3">
-									<p class="font-medium">{m.settings_naming_formatValidation()}</p>
-									{#if invalidFormatFields.length > 0}
-										<ul class="mt-2 space-y-1 text-sm text-error">
-											{#each invalidFormatFields as field (field)}
-												<li>
-													{m.settings_naming_hasSyntaxIssues({ field: FORMAT_FIELD_LABELS[field] })}
-												</li>
-											{/each}
-										</ul>
-									{:else if validationWarningFields.length > 0}
-										<ul class="mt-2 space-y-1 text-sm text-warning">
-											{#each validationWarningFields as field (field)}
-												<li>
-													{m.settings_naming_hasWarnings({ field: FORMAT_FIELD_LABELS[field] })}
-												</li>
-											{/each}
-										</ul>
-									{:else}
-										<p class="mt-1">{m.settings_naming_allFieldsClean()}</p>
-									{/if}
-								</div>
-								<div class="rounded-xl border border-base-300 bg-base-100 p-3">
-									<p class="font-medium">{m.settings_naming_nextStep()}</p>
-									<p class="mt-1">
-										{m.settings_naming_nextStepDesc()}
-									</p>
-								</div>
-							</div>
-						</div>
-					</div>
-
-					<!-- Token Picker -->
-					<div class="card bg-base-200">
-						<div class="card-body p-4">
-							<div class="mb-4 flex items-center justify-between gap-3">
-								<h2 class="card-title text-base">{m.settings_naming_tokenBrowser()}</h2>
-								{#if loadingPreviews}
-									<div class="flex items-center gap-2 text-xs text-base-content/60">
-										<RefreshCw class="h-3.5 w-3.5 animate-spin text-primary" />
-										{m.settings_naming_updatingPreviews()}
-									</div>
-								{/if}
-							</div>
-							<TokenPicker
-								tokens={data.tokens}
-								{activeFieldId}
-								context={activeContext}
-								onInsert={insertToken}
-							/>
-						</div>
-					</div>
-				</div>
+				<NamingReviewPanel
+					{validatingFormats}
+					{loadingPreviews}
+					{hasChanges}
+					{invalidFormatFields}
+					{validationWarningFields}
+					formatFieldLabels={FORMAT_FIELD_LABELS}
+					tokens={data.tokens}
+					{activeFieldId}
+					{activeContext}
+					onInsertToken={insertToken}
+				/>
 			</div>
 		</div>
 	</SettingsPage>
