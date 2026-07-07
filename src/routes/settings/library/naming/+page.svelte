@@ -327,8 +327,8 @@
 	);
 	const renameHref = $derived(
 		hasChanges
-			? `/settings/naming/rename?unsaved=1&returnTo=${encodeURIComponent(page.url.pathname)}`
-			: '/settings/naming/rename'
+			? `/settings/library/naming/rename?unsaved=1&returnTo=${encodeURIComponent(page.url.pathname)}`
+			: '/settings/library/naming/rename'
 	);
 	const savedCustomPresetName = $derived(
 		getPresetLabelById(customPresets, savedPresetSelection.selectedCustomPresetId)
