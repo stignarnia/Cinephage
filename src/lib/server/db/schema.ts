@@ -1141,6 +1141,26 @@ export const librarySettings = sqliteTable('library_settings', {
  *   - bonus_patterns (glob, case-insensitive, content_category='bonus')
  *   - structure_mode + structure_config (folder_depth or regex)
  */
+/**
+ * Resolution Categories - User-editable resolution buckets (Phase 2)
+ *
+ * Replaces hardcoded "4k/1080p/720p/SD" with editable categories.
+ * Used by quality scoring badges, statistics, and profile rules.
+ * One fallback category with 0×0 thresholds is always required.
+ * IDs are immutable once assigned (quality profiles reference them).
+ */
+export const resolutionCategories = sqliteTable('resolution_categories', {
+	id: text('id')
+		.primaryKey()
+		.$defaultFn(() => randomUUID()),
+	label: text('label').notNull(),
+	minWidth: integer('min_width').notNull().default(0),
+	minHeight: integer('min_height').notNull().default(0),
+	searchTerms: text('search_terms', { mode: 'json' }).$type<string[]>(),
+	isFallback: integer('is_fallback', { mode: 'boolean' }).default(false),
+	createdAt: text('created_at').$defaultFn(() => new Date().toISOString())
+});
+
 export const libraryPatternConfig = sqliteTable('library_pattern_config', {
 	id: text('id')
 		.primaryKey()

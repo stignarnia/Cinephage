@@ -6,7 +6,8 @@
 		Shield,
 		Filter,
 		FolderSync,
-		Eye
+		Eye,
+		Monitor
 	} from 'lucide-svelte';
 	import { SettingsTabNav } from '$lib/components/settings';
 	import * as m from '$lib/paraglide/messages.js';
@@ -48,6 +49,11 @@
 			href: '/settings/library/pattern-recognition',
 			label: m.settings_patterns_title(),
 			icon: Eye
+		},
+		{
+			href: '/settings/library/resolution-categories',
+			label: m.settings_resolutions_title(),
+			icon: Monitor
 		}
 	];
 </script>
