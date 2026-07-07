@@ -317,6 +317,8 @@ export const scoringProfiles = sqliteTable('scoring_profiles', {
 	minScore: integer('min_score').default(0),
 	// Score threshold to stop upgrading (-1 = never stop)
 	upgradeUntilScore: integer('upgrade_until_score').default(-1),
+	isBuiltin: integer('is_builtin', { mode: 'boolean' }).default(false),
+	mediaType: text('media_type'),
 	// Minimum score improvement to trigger upgrade
 	minScoreIncrement: integer('min_score_increment').default(0),
 	// Resolution fallback order as JSON array (highest priority first)
@@ -582,6 +584,7 @@ export const libraries = sqliteTable(
 			.notNull()
 			.default(true),
 		sortOrder: integer('sort_order').notNull().default(0),
+	qualityProfileId: text('quality_profile_id').references(() => scoringProfiles.id, { onDelete: 'set null' }),
 		createdAt: text('created_at').$defaultFn(() => new Date().toISOString()),
 		updatedAt: text('updated_at').$defaultFn(() => new Date().toISOString())
 	},
@@ -1550,6 +1553,7 @@ export const delayProfiles = sqliteTable('delay_profiles', {
 	name: text('name').notNull(),
 	// Order for matching (lower = higher priority)
 	sortOrder: integer('sort_order').notNull().default(0),
+	qualityProfileId: text('quality_profile_id').references(() => scoringProfiles.id, { onDelete: 'set null' }),
 	// Enable/disable
 	enabled: integer('enabled', { mode: 'boolean' }).default(true),
 	// Protocol delays (in minutes, 0 = immediate)

@@ -110,6 +110,7 @@ import { migration_v110 } from './110-add-storage-items-tables.js';
 import { migration_v111 } from './111-add-rename-history.js';
 import { migration_v112 } from './112-add-pattern-recognition.js';
 import { migration_v113 } from './113-add-resolution-categories.js';
+import { migration_v114 } from './114-add-quality-scaffolding.js';
 
 export const MIGRATIONS: MigrationDefinition[] = [
 	migration_v002,
@@ -222,5 +223,6 @@ export const MIGRATIONS: MigrationDefinition[] = [
 	migration_v110,
 	migration_v111,
 	migration_v112,
-	migration_v113
+	migration_v113,
+	migration_v114
 ];
