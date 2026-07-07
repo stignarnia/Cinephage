@@ -7,7 +7,8 @@
 		Filter,
 		FolderSync,
 		Eye,
-		Monitor
+		Monitor,
+		Clock
 	} from 'lucide-svelte';
 	import { SettingsTabNav } from '$lib/components/settings';
 	import * as m from '$lib/paraglide/messages.js';
@@ -54,6 +55,11 @@
 			href: '/settings/library/resolution-categories',
 			label: m.settings_resolutions_title(),
 			icon: Monitor
+		},
+		{
+			href: '/settings/library/history-retention',
+			label: m.settings_history_title(),
+			icon: Clock
 		}
 	];
 </script>
