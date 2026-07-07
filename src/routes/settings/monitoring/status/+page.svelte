@@ -40,7 +40,7 @@
 		try {
 			await syncMediaServerStats();
 		} catch (error) {
-			toasts.error(error instanceof Error ? error.message : 'Sync failed');
+			toasts.error(error instanceof Error ? error.message : m.status_sync_failed());
 		}
 	}
 </script>
@@ -49,10 +49,7 @@
 	<title>{m.nav_storageMaintenance()}</title>
 </svelte:head>
 
-<SettingsPage
-	title={m.nav_storageMaintenance()}
-	subtitle="Storage health, library maintenance, and media server analytics"
->
+<SettingsPage title={m.nav_storageMaintenance()} subtitle={m.status_dashboard_subtitle()}>
 	{#snippet actions()}
 		<div class="flex gap-2">
 			<button

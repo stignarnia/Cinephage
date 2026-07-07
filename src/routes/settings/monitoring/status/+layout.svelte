@@ -3,6 +3,29 @@
 	import { invalidateAll } from '$app/navigation';
 	import { createSSE } from '$lib/sse';
 	import { layoutState, deriveMobileSseStatus, type ScanProgressPayload } from '$lib/layout.svelte';
+	import { HardDrive, Library, FolderOpen, Lightbulb, Film } from 'lucide-svelte';
+	import { SettingsTabNav } from '$lib/components/settings';
+	import * as m from '$lib/paraglide/messages.js';
+
+	const navItems = $derived([
+		{ href: '/settings/monitoring/status', label: m.status_dashboard_title(), icon: HardDrive },
+		{
+			href: '/settings/monitoring/status/libraries',
+			label: m.status_libraries_title(),
+			icon: Library
+		},
+		{
+			href: '/settings/monitoring/status/folders',
+			label: m.status_folders_title(),
+			icon: FolderOpen
+		},
+		{
+			href: '/settings/monitoring/status/insights',
+			label: m.status_insights_title(),
+			icon: Lightbulb
+		},
+		{ href: '/settings/monitoring/status/media', label: m.status_media_title(), icon: Film }
+	]);
 
 	type SyncStatusPayload = { inProgress?: boolean };
 	type SyncTransitionPayload = { timestamp?: string };
@@ -129,5 +152,7 @@
 		{@render scanProgressBar()}
 	</div>
 {/if}
+
+<SettingsTabNav {navItems} ariaLabel="Storage maintenance" />
 
 {@render children()}

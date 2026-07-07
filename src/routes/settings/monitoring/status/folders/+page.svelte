@@ -1,6 +1,6 @@
 <script lang="ts">
+	import * as m from '$lib/paraglide/messages.js';
 	import { SettingsPage } from '$lib/components/ui/settings';
-	import { ArrowLeft } from 'lucide-svelte';
 	import RootFolderOverview from '$lib/components/storage/RootFolderOverview.svelte';
 	import { RootFolderModal } from '$lib/components/rootFolders';
 	import { validateRootFolder, updateRootFolder } from '$lib/api/settings.js';
@@ -25,7 +25,7 @@
 	function openEditFolder(rootFolderId: string) {
 		const folder = data.rootFolders.find((f) => f.id === rootFolderId);
 		if (!folder) {
-			toasts.error('Root folder not found');
+			toasts.error(m.status_folder_not_found());
 			return;
 		}
 		editingFolder = folder;
@@ -52,7 +52,7 @@
 				valid: false,
 				exists: false,
 				writable: false,
-				error: error instanceof Error ? error.message : 'Unknown error'
+				error: error instanceof Error ? error.message : m.status_unknown_error()
 			};
 		}
 	}
@@ -65,9 +65,9 @@
 			await updateRootFolder(editingFolder.id, formData as RootFolderUpdate);
 			await invalidateAll();
 			closeFolderModal();
-			toasts.success('Root folder updated');
+			toasts.success(m.status_folder_updated());
 		} catch (error) {
-			folderSaveError = error instanceof Error ? error.message : 'Failed to save root folder';
+			folderSaveError = error instanceof Error ? error.message : m.status_folder_save_failed();
 		} finally {
 			folderSaving = false;
 		}
@@ -76,7 +76,7 @@
 	async function handleScanRootFolder(rootFolderId: string) {
 		try {
 			await scanLibrary({ rootFolderId });
-			toasts.success('Scan started');
+			toasts.success(m.status_scan_started());
 		} catch (error) {
 			toasts.error(error instanceof Error ? error.message : 'Failed to start scan');
 		}
@@ -84,17 +84,10 @@
 </script>
 
 <svelte:head>
-	<title>Root Folders</title>
+	<title>{m.status_folders_title()}</title>
 </svelte:head>
 
-<SettingsPage title="Root Folders" subtitle="Manage disk paths, capacity, and scan status">
-	{#snippet actions()}
-		<a href="/settings/monitoring/status" class="btn btn-ghost btn-sm gap-2">
-			<ArrowLeft class="h-4 w-4" />
-			Dashboard
-		</a>
-	{/snippet}
-
+<SettingsPage title={m.status_folders_title()} subtitle={m.status_folders_subtitle()}>
 	<RootFolderOverview
 		rootFolders={data.storage.rootFolderBreakdown}
 		onEditRootFolder={openEditFolder}

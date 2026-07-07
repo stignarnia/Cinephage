@@ -68,10 +68,7 @@
 	<title>{m.nav_mediaExplorer()}</title>
 </svelte:head>
 
-<SettingsPage
-	title="Media Explorer"
-	subtitle="Browse all media with stats, quality info, and playback data"
->
+<SettingsPage title={m.status_media_title()} subtitle={m.status_media_subtitle()}>
 	{#snippet actions()}
 		<div class="relative group w-56">
 			<Search

@@ -1,6 +1,6 @@
 <script lang="ts">
+	import * as m from '$lib/paraglide/messages.js';
 	import { SettingsPage } from '$lib/components/ui/settings';
-	import { ArrowLeft } from 'lucide-svelte';
 	import LibraryOverview from '$lib/components/storage/LibraryOverview.svelte';
 	import { LibraryEditModal } from '$lib/components/libraries';
 	import type { PageData } from './$types';
@@ -22,17 +22,10 @@
 </script>
 
 <svelte:head>
-	<title>Libraries</title>
+	<title>{m.status_libraries_title()}</title>
 </svelte:head>
 
-<SettingsPage title="Libraries" subtitle="Manage your media libraries and their root folders">
-	{#snippet actions()}
-		<a href="/settings/monitoring/status" class="btn btn-ghost btn-sm gap-2">
-			<ArrowLeft class="h-4 w-4" />
-			Dashboard
-		</a>
-	{/snippet}
-
+<SettingsPage title={m.status_libraries_title()} subtitle={m.status_libraries_subtitle()}>
 	<LibraryOverview libraries={data.storage.libraryBreakdown} onEditLibrary={openEditLibrary} />
 </SettingsPage>
 
