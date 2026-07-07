@@ -188,6 +188,7 @@
 				>
 					<option value="movie">{m.rootFolders_movies()}</option>
 					<option value="tv">{m.rootFolders_tvShows()}</option>
+					<option value="mixed">Mixed</option>
 				</select>
 			</div>
 

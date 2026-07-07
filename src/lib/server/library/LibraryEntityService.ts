@@ -10,7 +10,7 @@ import {
 } from '$lib/server/db/schema.js';
 import { NotFoundError, ValidationError } from '$lib/errors';
 
-export type LibraryMediaType = 'movie' | 'tv';
+export type LibraryMediaType = 'movie' | 'tv' | 'mixed';
 export type LibraryMediaSubType = 'standard' | 'anime';
 
 export interface LibraryRootFolder {

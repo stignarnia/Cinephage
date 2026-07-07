@@ -606,7 +606,7 @@ export type RootFolderUpdate = z.infer<typeof rootFolderUpdateSchema>;
 /**
  * Media type and subtype for first-class libraries.
  */
-export const libraryMediaTypeSchema = z.enum(['movie', 'tv']);
+export const libraryMediaTypeSchema = z.enum(['movie', 'tv', 'mixed']);
 export const libraryMediaSubTypeSchema = z.enum(['standard', 'anime']);
 export const metadataProviderSelectionSchema = z.enum(['auto', 'tmdb', 'anilist', 'mal']);
 
