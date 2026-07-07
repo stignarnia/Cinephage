@@ -246,8 +246,9 @@
 					'untracked-by-cinephage': '/settings/monitoring/status/media',
 					'missing-from-media-server': '/settings/monitoring/status/media',
 					'unplayed': '/settings/monitoring/status/media',
-					'duplicate-items': '/library/movies',
-					'quality-below-cutoff': '/library/movies',
+				'duplicate-items': '/library/movies',
+				'filename-duplicates': '/library/movies',
+				'quality-below-cutoff': '/library/movies',
 					'broken-paths': '/settings/monitoring/status/folders',
 					'health-issues': '/settings/monitoring/status/folders'
 				}}

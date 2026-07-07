@@ -45,6 +45,7 @@ export function insightTypeLabel(type: string): string {
 		'untracked-by-cinephage': 'Untracked',
 		unplayed: 'Unplayed',
 		'duplicate-items': 'Duplicates',
+		'filename-duplicates': 'Filename Dupes',
 		'quality-below-cutoff': 'Quality',
 		'broken-paths': 'Broken Paths',
 		'health-issues': 'Health'

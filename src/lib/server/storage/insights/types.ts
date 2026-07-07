@@ -13,7 +13,8 @@ export type InsightType =
 	| 'duplicate-items'
 	| 'quality-below-cutoff'
 	| 'broken-paths'
-	| 'health-issues';
+	| 'health-issues'
+	| 'filename-duplicates';
 
 export type InsightSeverity = 'info' | 'warning' | 'critical';
 export type InsightScope = 'global' | 'library' | 'root_folder' | 'item';
