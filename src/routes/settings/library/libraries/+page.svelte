@@ -2,7 +2,7 @@
 	import * as m from '$lib/paraglide/messages.js';
 	import { Plus, FolderOpen, AlertCircle } from 'lucide-svelte';
 	import { SettingsPage } from '$lib/components/ui/settings';
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import type { PageData } from './$types';
 	import type { RootFolderMediaSubType, RootFolderMediaType } from '$lib/types/downloadClient';
@@ -140,7 +140,7 @@
 
 			toasts.success(editingLibrary ? 'Library updated' : 'Library created');
 			libraryModalOpen = false;
-			location.reload();
+			await invalidateAll();
 		} catch (error) {
 			librarySaveError = error instanceof Error ? error.message : 'Failed to save library';
 		} finally {
@@ -209,7 +209,7 @@
 
 			toasts.success('Library deleted');
 			confirmLibraryDeleteOpen = false;
-			location.reload();
+			await invalidateAll();
 		} catch (error) {
 			toasts.error(error instanceof Error ? error.message : 'Failed to delete library');
 		} finally {
