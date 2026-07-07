@@ -252,10 +252,12 @@ describe('PatternRecognitionService default pattern sanity', () => {
 		expect(DEFAULT_BONUS_FOLDER_NAMES).toContain('Specials');
 	});
 
-	it('DEFAULT_BONUS_FILE_PATTERNS catches trailer/teaser filenames', () => {
+	it('DEFAULT_BONUS_FILE_PATTERNS catches trailer/teaser/promo/bonus filenames', () => {
 		expect(DEFAULT_BONUS_FILE_PATTERNS).toContain('*trailer*');
 		expect(DEFAULT_BONUS_FILE_PATTERNS).toContain('*teaser*');
-		expect(DEFAULT_BONUS_FILE_PATTERNS).toContain('*behind the scenes*');
+		expect(DEFAULT_BONUS_FILE_PATTERNS).toContain('*promo*');
+		expect(DEFAULT_BONUS_FILE_PATTERNS).toContain('*sample*');
+		expect(DEFAULT_BONUS_FILE_PATTERNS).toContain('*bonus*');
 	});
 
 	it('full default config classifies a typical media library correctly', () => {

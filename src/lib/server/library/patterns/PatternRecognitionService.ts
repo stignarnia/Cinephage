@@ -120,10 +120,13 @@ export const DEFAULT_BONUS_FILE_PATTERNS: string[] = [
 	'*/Trailers/*',
 	'*trailer*',
 	'*teaser*',
+	'*promo*',
 	'*featurette*',
 	'*behind the scenes*',
 	'*deleted scenes*',
-	'*interview*'
+	'*interview*',
+	'*sample*',
+	'*bonus*'
 ];
 
 // ---------------------------------------------------------------------------
