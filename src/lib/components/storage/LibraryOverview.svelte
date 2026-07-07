@@ -43,6 +43,17 @@
 									needs scan
 								</span>
 							{/if}
+							{#if lib.scanMode}
+								<span class="badge badge-xs badge-outline text-base-content/60">
+									{lib.scanMode === 'watch'
+										? 'watching'
+										: lib.scanMode === 'scheduled_daily'
+											? 'daily'
+											: lib.scanMode === 'manual'
+												? 'manual'
+												: 'auto'}
+								</span>
+							{/if}
 						</div>
 						<div class="mt-0.5 text-xs text-base-content/50">
 							{lib.itemCount} items &middot; {lib.mediaType}

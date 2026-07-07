@@ -234,7 +234,8 @@ export async function loadStorageLayoutData() {
 			defaultSearchOnAdd: library.defaultSearchOnAdd,
 			defaultWantsSubtitles: library.defaultWantsSubtitles,
 			unmatchedCount,
-			needsScan
+			needsScan,
+			scanMode: library.scanMode
 		};
 	});
 

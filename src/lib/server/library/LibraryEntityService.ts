@@ -37,6 +37,7 @@ export interface LibraryEntity {
 	defaultSearchOnAdd: boolean;
 	defaultWantsSubtitles: boolean;
 	sortOrder: number;
+	scanMode?: string | null;
 	createdAt: string;
 	updatedAt: string;
 }
@@ -309,6 +310,7 @@ export class LibraryEntityService {
 				defaultSearchOnAdd: libraries.defaultSearchOnAdd,
 				defaultWantsSubtitles: libraries.defaultWantsSubtitles,
 				sortOrder: libraries.sortOrder,
+				scanMode: libraries.scanMode,
 				createdAt: libraries.createdAt,
 				updatedAt: libraries.updatedAt
 			})

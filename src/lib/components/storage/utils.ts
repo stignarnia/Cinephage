@@ -72,6 +72,7 @@ export type LibraryBreakdownItem = {
 	defaultWantsSubtitles?: boolean;
 	unmatchedCount?: number;
 	needsScan?: boolean;
+	scanMode?: string | null;
 };
 
 export type RootFolderBreakdownItem = {
