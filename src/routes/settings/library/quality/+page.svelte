@@ -13,7 +13,12 @@
 	import { toasts } from '$lib/stores/toast.svelte';
 	import { Sliders, Layers, Clock, Plus, Pencil, Trash2 } from 'lucide-svelte';
 	import { ModalWrapper, ModalHeader, ModalFooter } from '$lib/components/ui/modal';
-	import { getResponseErrorMessage } from '$lib/utils/http';
+	import {
+		createDelayProfile,
+		updateDelayProfile,
+		deleteDelayProfile,
+		type DelayProfileInput
+	} from '$lib/api/delay-profiles.js';
 	import {
 		createScoringProfile,
 		updateScoringProfile,
@@ -297,7 +302,7 @@
 		if (!dpName.trim()) return;
 		dpSaving = true;
 		try {
-			const body = {
+			const input: DelayProfileInput = {
 				name: dpName.trim(),
 				enabled: dpEnabled,
 				torrentDelay: dpTorrentDelay,
@@ -307,32 +312,10 @@
 				bypassIfAboveScore: dpBypassIfAboveScore
 			};
 			if (dpModalMode === 'add') {
-				const res = await fetch('/api/settings/delay-profiles', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify(body)
-				});
-				if (!res.ok)
-					throw new Error(
-						getResponseErrorMessage(
-							await res.json().catch(() => null),
-							'Failed to create delay profile'
-						)
-					);
+				await createDelayProfile(input);
 				toasts.success('Delay profile created');
 			} else {
-				const res = await fetch(`/api/settings/delay-profiles/${dpEditing!.id}`, {
-					method: 'PUT',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify(body)
-				});
-				if (!res.ok)
-					throw new Error(
-						getResponseErrorMessage(
-							await res.json().catch(() => null),
-							'Failed to update delay profile'
-						)
-					);
+				await updateDelayProfile(dpEditing!.id, input);
 				toasts.success('Delay profile updated');
 			}
 			dpModalOpen = false;
@@ -348,16 +331,7 @@
 		if (!dpDeleteTarget) return;
 		dpDeleting = true;
 		try {
-			const res = await fetch(`/api/settings/delay-profiles/${dpDeleteTarget.id}`, {
-				method: 'DELETE'
-			});
-			if (!res.ok)
-				throw new Error(
-					getResponseErrorMessage(
-						await res.json().catch(() => null),
-						'Failed to delete delay profile'
-					)
-				);
+			await deleteDelayProfile(dpDeleteTarget.id);
 			toasts.success(`"${dpDeleteTarget.name}" deleted`);
 			dpDeleteOpen = false;
 			dpDeleteTarget = null;
