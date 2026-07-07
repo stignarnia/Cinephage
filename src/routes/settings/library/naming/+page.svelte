@@ -24,7 +24,7 @@
 	import { SettingsPage } from '$lib/components/ui/settings';
 	import { NamingFormatField, TokenPicker } from '$lib/components/naming';
 	import { FormInput, FormSelect } from '$lib/components/ui/form';
-	import { ModalWrapper } from '$lib/components/ui/modal';
+	import { ModalWrapper, ConfirmationModal } from '$lib/components/ui/modal';
 	import * as m from '$lib/paraglide/messages.js';
 	import {
 		createNormalizedNamingConfig,
@@ -169,6 +169,13 @@
 	let newPresetName = $state('');
 	let newPresetDescription = $state('');
 	let savingPreset = $state(false);
+	let pendingConfirm = $state<{
+		title: string;
+		message: string;
+		confirmLabel: string;
+		confirmVariant: 'error' | 'warning' | 'primary';
+		onConfirm: () => void | Promise<void>;
+	} | null>(null);
 	let selectedServerPresetId = $state('plex');
 	let selectedStylePresetId = $state('recommended');
 	let selectedDetailPresetId = $state('balanced');
@@ -195,11 +202,25 @@
 	});
 
 	function applySetupPreset(forceConfirm = false) {
-		if (forceConfirm && setupDirty && !confirm(m.settings_naming_confirmChangePreset())) {
+		if (forceConfirm && setupDirty) {
+			pendingConfirm = {
+				title: m.settings_naming_confirmChangePreset(),
+				message: m.settings_naming_confirmChangePreset(),
+				confirmLabel: m.action_confirm(),
+				confirmVariant: 'warning',
+				onConfirm: () => {
+					pendingConfirm = null;
+					applySetupPresetConfig();
+				}
+			};
 			skipNextSetupApply = true;
 			return;
 		}
 
+		applySetupPresetConfig();
+	}
+
+	function applySetupPresetConfig() {
 		config = createNormalizedNamingConfig({
 			...config,
 			...buildConfigFromSetup({
@@ -246,10 +267,24 @@
 	async function applyCustomPreset() {
 		if (!selectedPresetId) return;
 
-		if (hasChanges && !confirm(m.settings_naming_confirmLoadCustomPreset())) {
+		if (hasChanges) {
+			pendingConfirm = {
+				title: m.settings_naming_confirmLoadCustomPreset(),
+				message: m.settings_naming_confirmLoadCustomPreset(),
+				confirmLabel: m.action_confirm(),
+				confirmVariant: 'warning',
+				onConfirm: async () => {
+					pendingConfirm = null;
+					await loadAndApplyCustomPreset();
+				}
+			};
 			return;
 		}
 
+		await loadAndApplyCustomPreset();
+	}
+
+	async function loadAndApplyCustomPreset() {
 		try {
 			error = null;
 			const result = await getNamingPreset(selectedPresetId);
@@ -296,18 +331,25 @@
 	}
 
 	async function deletePreset(presetId: string, presetName: string) {
-		if (!confirm(m.settings_naming_confirmDeletePreset({ name: presetName }))) return;
+		pendingConfirm = {
+			title: m.settings_naming_confirmDeletePreset({ name: presetName }),
+			message: m.settings_naming_confirmDeletePreset({ name: presetName }),
+			confirmLabel: m.action_delete(),
+			confirmVariant: 'error',
+			onConfirm: async () => {
+				pendingConfirm = null;
+				try {
+					await deleteNamingPreset(presetId);
 
-		try {
-			await deleteNamingPreset(presetId);
-
-			await loadPresets();
-			if (selectedPresetId === presetId) {
-				selectedPresetId = '';
+					await loadPresets();
+					if (selectedPresetId === presetId) {
+						selectedPresetId = '';
+					}
+				} catch (e) {
+					error = e instanceof Error ? e.message : 'Delete preset failed';
+				}
 			}
-		} catch (e) {
-			error = e instanceof Error ? e.message : 'Delete preset failed';
-		}
+		};
 	}
 
 	const customPresets = $derived(presets.filter((preset) => !preset.isBuiltIn));
@@ -420,8 +462,19 @@
 	}
 
 	async function resetToDefaults() {
-		if (!confirm(m.settings_naming_confirmResetDefaults())) return;
+		pendingConfirm = {
+			title: m.settings_naming_confirmResetDefaults(),
+			message: m.settings_naming_confirmResetDefaults(),
+			confirmLabel: m.action_confirm(),
+			confirmVariant: 'warning',
+			onConfirm: async () => {
+				pendingConfirm = null;
+				await performResetToDefaults();
+			}
+		};
+	}
 
+	async function performResetToDefaults() {
 		saving = true;
 		error = null;
 
@@ -1128,3 +1181,17 @@
 		</div>
 	</div>
 </ModalWrapper>
+
+
+<ConfirmationModal
+	open={pendingConfirm !== null}
+	title={pendingConfirm?.title ?? ""}
+	message={pendingConfirm?.message ?? ""}
+	confirmLabel={pendingConfirm?.confirmLabel ?? m.action_confirm()}
+	confirmVariant={pendingConfirm?.confirmVariant ?? "primary"}
+	onConfirm={() => {
+		const fn = pendingConfirm?.onConfirm;
+		if (fn) void fn();
+	}}
+	onCancel={() => (pendingConfirm = null)}
+/>
