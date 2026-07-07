@@ -26,8 +26,8 @@ export interface DelayProfile {
 	tags: string[] | null;
 	bypassIfHighestQuality: boolean | null;
 	bypassIfAboveScore: number | null;
-	createdAt: string;
-	updatedAt: string;
+	createdAt: string | null;
+	updatedAt: string | null;
 }
 
 export interface DelayProfileInput {
