@@ -3,7 +3,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import { createSSE } from '$lib/sse';
 	import { layoutState, deriveMobileSseStatus, type ScanProgressPayload } from '$lib/layout.svelte';
-	import { HardDrive, Library, FolderOpen, Lightbulb, Film } from 'lucide-svelte';
+	import { HardDrive, Library, FolderOpen, Lightbulb, Film, Clock } from 'lucide-svelte';
 	import { SettingsTabNav } from '$lib/components/settings';
 	import * as m from '$lib/paraglide/messages.js';
 
@@ -24,7 +24,8 @@
 			label: m.status_insights_title(),
 			icon: Lightbulb
 		},
-		{ href: '/settings/monitoring/status/media', label: m.status_media_title(), icon: Film }
+		{ href: '/settings/monitoring/status/media', label: m.status_media_title(), icon: Film },
+		{ href: '/settings/monitoring/status/history', label: m.settings_history_title(), icon: Clock }
 	]);
 
 	type SyncStatusPayload = { inProgress?: boolean };
