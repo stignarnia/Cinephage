@@ -51,6 +51,8 @@ export interface CreateLibraryInput {
 	defaultSearchOnAdd?: boolean;
 	defaultWantsSubtitles?: boolean;
 	sortOrder?: number;
+	scanMode?: string;
+	scanConfig?: Record<string, unknown> | null;
 }
 
 export type UpdateLibraryInput = Partial<CreateLibraryInput>;
@@ -768,6 +770,8 @@ export class LibraryEntityService {
 			defaultSearchOnAdd: input.defaultSearchOnAdd ?? true,
 			defaultWantsSubtitles: input.defaultWantsSubtitles ?? true,
 			sortOrder: nextSortOrder,
+			scanMode: input.scanMode ?? 'scheduled',
+			scanConfig: input.scanConfig ?? null,
 			createdAt: now,
 			updatedAt: now
 		});
@@ -847,6 +851,12 @@ export class LibraryEntityService {
 		}
 		if (updates.sortOrder !== undefined) {
 			updateData.sortOrder = updates.sortOrder;
+		}
+		if (updates.scanMode !== undefined) {
+			updateData.scanMode = updates.scanMode;
+		}
+		if (updates.scanConfig !== undefined) {
+			updateData.scanConfig = updates.scanConfig ?? null;
 		}
 
 		await db.update(libraries).set(updateData).where(eq(libraries.id, id));

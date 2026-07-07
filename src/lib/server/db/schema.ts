@@ -585,6 +585,8 @@ export const libraries = sqliteTable(
 			.default(true),
 		sortOrder: integer('sort_order').notNull().default(0),
 	qualityProfileId: text('quality_profile_id').references(() => scoringProfiles.id, { onDelete: 'set null' }),
+	scanMode: text('scan_mode').notNull().default('scheduled'), // 'manual' | 'scheduled' | 'scheduled_daily' | 'watch' (Phase 4)
+	scanConfig: text('scan_config', { mode: 'json' }).$type<{ intervalMinutes?: number; scheduledTime?: string; debounceSeconds?: number }>(),
 		createdAt: text('created_at').$defaultFn(() => new Date().toISOString()),
 		updatedAt: text('updated_at').$defaultFn(() => new Date().toISOString())
 	},
@@ -1554,6 +1556,8 @@ export const delayProfiles = sqliteTable('delay_profiles', {
 	// Order for matching (lower = higher priority)
 	sortOrder: integer('sort_order').notNull().default(0),
 	qualityProfileId: text('quality_profile_id').references(() => scoringProfiles.id, { onDelete: 'set null' }),
+	scanMode: text('scan_mode').notNull().default('scheduled'), // 'manual' | 'scheduled' | 'scheduled_daily' | 'watch' (Phase 4)
+	scanConfig: text('scan_config', { mode: 'json' }).$type<{ intervalMinutes?: number; scheduledTime?: string; debounceSeconds?: number }>(),
 	// Enable/disable
 	enabled: integer('enabled', { mode: 'boolean' }).default(true),
 	// Protocol delays (in minutes, 0 = immediate)

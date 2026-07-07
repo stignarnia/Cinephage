@@ -623,7 +623,16 @@ export const libraryCreateSchema = z.object({
 	defaultMonitored: z.boolean().default(true),
 	defaultSearchOnAdd: z.boolean().default(true),
 	defaultWantsSubtitles: z.boolean().default(true),
-	sortOrder: z.number().int().min(0).default(100)
+	sortOrder: z.number().int().min(0).default(100),
+	scanMode: z.enum(['manual', 'scheduled', 'scheduled_daily', 'watch']).default('scheduled'),
+	scanConfig: z
+		.object({
+			intervalMinutes: z.number().int().min(5).optional(),
+			scheduledTime: z.string().optional(),
+			debounceSeconds: z.number().int().min(3).optional()
+		})
+		.nullable()
+		.optional()
 });
 
 /**
