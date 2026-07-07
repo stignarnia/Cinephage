@@ -829,14 +829,14 @@ export class MonitoringScheduler extends EventEmitter implements BackgroundServi
 				const { executeSmartListRefreshTask } = await import('./tasks/SmartListRefreshTask.js');
 				return await executeSmartListRefreshTask(ctx);
 			}
-		case 'historyCleanup': {
-			const { executeHistoryCleanupTask } = await import('./tasks/HistoryCleanupTask.js');
-			return await executeHistoryCleanupTask(ctx);
-		}
-		case 'library-reconcile': {
-			const { executeLibraryReconcileTask } = await import('./tasks/LibraryReconcileTask.js');
-			return await executeLibraryReconcileTask(ctx);
-		}
+			case 'historyCleanup': {
+				const { executeHistoryCleanupTask } = await import('./tasks/HistoryCleanupTask.js');
+				return await executeHistoryCleanupTask(ctx);
+			}
+			case 'library-reconcile': {
+				const { executeLibraryReconcileTask } = await import('./tasks/LibraryReconcileTask.js');
+				return await executeLibraryReconcileTask(ctx);
+			}
 			case 'metadata-refresh': {
 				const { executeMetadataRefreshTask } = await import('./tasks/MetadataRefreshTask.js');
 				return await executeMetadataRefreshTask(ctx);

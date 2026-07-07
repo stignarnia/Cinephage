@@ -454,21 +454,35 @@
 								<div class="flex items-center gap-2">
 									<span class="font-medium">{profile.name}</span>
 									{#if !profile.enabled}
-									<span class="badge badge-ghost badge-sm">{m.settings_quality_delay_badgeDisabled()}</span>
-								{/if}
-							</div>
-							<div class="mt-0.5 flex flex-wrap gap-x-4 gap-y-0.5 text-sm text-base-content/60">
-								<span>{m.settings_quality_delay_torrentPrefix()} {formatDelay(profile.torrentDelay)}</span>
-								<span>{m.settings_quality_delay_usenetPrefix()} {formatDelay(profile.usenetDelay)}</span>
-								{#if profile.preferredProtocol}
-									<span>{m.settings_quality_delay_preferredPrefix()} {profile.preferredProtocol}</span>
-								{/if}
-								{#if profile.bypassIfHighestQuality}
-									<span>{m.settings_quality_delay_bypass4k()}</span>
-								{/if}
-								{#if profile.bypassIfAboveScore != null}
-									<span>{m.settings_quality_delay_bypassScorePrefix()} {profile.bypassIfAboveScore}</span>
-								{/if}
+										<span class="badge badge-ghost badge-sm"
+											>{m.settings_quality_delay_badgeDisabled()}</span
+										>
+									{/if}
+								</div>
+								<div class="mt-0.5 flex flex-wrap gap-x-4 gap-y-0.5 text-sm text-base-content/60">
+									<span
+										>{m.settings_quality_delay_torrentPrefix()}
+										{formatDelay(profile.torrentDelay)}</span
+									>
+									<span
+										>{m.settings_quality_delay_usenetPrefix()}
+										{formatDelay(profile.usenetDelay)}</span
+									>
+									{#if profile.preferredProtocol}
+										<span
+											>{m.settings_quality_delay_preferredPrefix()}
+											{profile.preferredProtocol}</span
+										>
+									{/if}
+									{#if profile.bypassIfHighestQuality}
+										<span>{m.settings_quality_delay_bypass4k()}</span>
+									{/if}
+									{#if profile.bypassIfAboveScore != null}
+										<span
+											>{m.settings_quality_delay_bypassScorePrefix()}
+											{profile.bypassIfAboveScore}</span
+										>
+									{/if}
 								</div>
 							</div>
 						</div>

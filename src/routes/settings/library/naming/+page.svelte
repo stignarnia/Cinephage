@@ -1182,13 +1182,12 @@
 	</div>
 </ModalWrapper>
 
-
 <ConfirmationModal
 	open={pendingConfirm !== null}
-	title={pendingConfirm?.title ?? ""}
-	message={pendingConfirm?.message ?? ""}
+	title={pendingConfirm?.title ?? ''}
+	message={pendingConfirm?.message ?? ''}
 	confirmLabel={pendingConfirm?.confirmLabel ?? m.action_confirm()}
-	confirmVariant={pendingConfirm?.confirmVariant ?? "primary"}
+	confirmVariant={pendingConfirm?.confirmVariant ?? 'primary'}
 	onConfirm={() => {
 		const fn = pendingConfirm?.onConfirm;
 		if (fn) void fn();

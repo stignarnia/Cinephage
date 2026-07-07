@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, describe, expect, it, vi } from 'vitest';
 import { createTestDb, destroyTestDb, type TestDatabase } from '../../../test/db-helper.js';
 
 const testDb: TestDatabase = createTestDb();
@@ -21,51 +21,61 @@ afterAll(() => {
 	destroyTestDb(testDb);
 });
 
+async function seedLibraryWithDefaultRoot(
+	librarySlug: string,
+	rootPath: string,
+	sortOrder: number
+): Promise<{ libraryId: string; rootFolderId: string }> {
+	const now = new Date().toISOString();
+
+	const insertedRoot = await testDb.db
+		.insert(rootFolders)
+		.values({
+			name: `Root ${librarySlug}`,
+			path: rootPath,
+			mediaType: 'movie',
+			mediaSubType: 'standard'
+		})
+		.returning({ id: rootFolders.id })
+		.all();
+	const rootFolderId = insertedRoot[0]!.id;
+
+	const insertedLibrary = await testDb.db
+		.insert(libraries)
+		.values({
+			name: `Library ${librarySlug}`,
+			slug: librarySlug,
+			mediaType: 'movie',
+			mediaSubType: 'standard',
+			isSystem: false,
+			systemKey: null,
+			isDefault: false,
+			defaultRootFolderId: rootFolderId,
+			defaultMonitored: true,
+			defaultSearchOnAdd: true,
+			defaultWantsSubtitles: false,
+			sortOrder,
+			createdAt: now,
+			updatedAt: now
+		})
+		.returning({ id: libraries.id })
+		.all();
+	const libraryId = insertedLibrary[0]!.id;
+
+	return { libraryId, rootFolderId };
+}
+
 describe('LibraryEntityService.listLibraries (read-only regression)', () => {
 	it('does not perform writes on the read path', async () => {
 		// Seed a library with a defaultRootFolderId pointing at a root folder
 		// that has no matching libraryRootFolders row. Before the fix, calling
 		// listLibraries would trigger backfillLibraryRootFolders which inserts
 		// a row. After the fix, no writes occur.
-		const libraryId = 'lib-test-readonly';
-		const rootFolderId = 'rf-test-readonly';
-		const now = new Date().toISOString();
-
-		await testDb.db
-			.insert(rootFolders)
-			.values({
-				id: rootFolderId,
-				name: 'Test Root',
-				path: '/tmp/test-root-readonly',
-				mediaType: 'movie',
-				mediaSubType: 'standard',
-				accessible: true,
-				readOnly: false,
-				createdAt: now,
-				updatedAt: now
-			})
-			.onConflictDoNothing();
-
-		await testDb.db
-			.insert(libraries)
-			.values({
-				id: libraryId,
-				name: 'Test Library',
-				slug: 'test-library-readonly',
-				mediaType: 'movie',
-				mediaSubType: 'standard',
-				isSystem: false,
-				systemKey: null,
-				isDefault: false,
-				defaultRootFolderId: rootFolderId,
-				defaultMonitored: true,
-				defaultSearchOnAdd: true,
-				defaultWantsSubtitles: false,
-				sortOrder: 10,
-				createdAt: now,
-				updatedAt: now
-			})
-			.onConflictDoNothing();
+		const { libraryId, rootFolderId } = await seedLibraryWithDefaultRoot(
+			'test-library-readonly',
+			'/tmp/test-root-readonly',
+			10
+		);
 
 		const assignmentsBefore = await testDb.db.select().from(libraryRootFolders).all();
 
@@ -86,45 +96,11 @@ describe('LibraryEntityService.listLibraries (read-only regression)', () => {
 
 	it('reconcileAll seeds missing assignments', async () => {
 		// Confirms reconcileAll still performs the backfill that listLibraries no longer does.
-		const libraryId = 'lib-test-reconcile';
-		const rootFolderId = 'rf-test-reconcile';
-		const now = new Date().toISOString();
-
-		await testDb.db
-			.insert(rootFolders)
-			.values({
-				id: rootFolderId,
-				name: 'Reconcile Root',
-				path: '/tmp/test-root-reconcile',
-				mediaType: 'movie',
-				mediaSubType: 'standard',
-				accessible: true,
-				readOnly: false,
-				createdAt: now,
-				updatedAt: now
-			})
-			.onConflictDoNothing();
-
-		await testDb.db
-			.insert(libraries)
-			.values({
-				id: libraryId,
-				name: 'Reconcile Library',
-				slug: 'test-library-reconcile',
-				mediaType: 'movie',
-				mediaSubType: 'standard',
-				isSystem: false,
-				systemKey: null,
-				isDefault: false,
-				defaultRootFolderId: rootFolderId,
-				defaultMonitored: true,
-				defaultSearchOnAdd: true,
-				defaultWantsSubtitles: false,
-				sortOrder: 20,
-				createdAt: now,
-				updatedAt: now
-			})
-			.onConflictDoNothing();
+		const { libraryId, rootFolderId } = await seedLibraryWithDefaultRoot(
+			'test-library-reconcile',
+			'/tmp/test-root-reconcile',
+			20
+		);
 
 		const service = new LibraryEntityService();
 		await service.reconcileAll();

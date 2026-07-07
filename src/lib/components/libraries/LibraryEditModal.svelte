@@ -69,7 +69,9 @@
 	let librarySaveError = $state<string | null>(null);
 
 	const isCreateMode = $derived(libraryId === null);
-	const editingLibrary = $derived(!isCreateMode ? (libraries.find((l) => l.id === libraryId) ?? null) : null);
+	const editingLibrary = $derived(
+		!isCreateMode ? (libraries.find((l) => l.id === libraryId) ?? null) : null
+	);
 	const editingLibraryIsSystem = $derived(editingLibrary?.isSystem ?? false);
 
 	const filteredLibraryRootFolders = $derived(

@@ -5,7 +5,6 @@
 	import { goto, invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import type { PageData } from './$types';
-	import type { RootFolderMediaSubType, RootFolderMediaType } from '$lib/types/downloadClient';
 	import { LibraryList, LibraryEditModal } from '$lib/components/libraries';
 	import { ModalWrapper, ModalHeader } from '$lib/components/ui/modal';
 	import { toasts } from '$lib/stores/toast.svelte';
@@ -84,8 +83,7 @@
 		);
 
 		const systemLibrary = data.libraries.find(
-			(l: LibraryEntity) =>
-				l.isSystem && l.mediaType === library.mediaType && l.id !== library.id
+			(l: LibraryEntity) => l.isSystem && l.mediaType === library.mediaType && l.id !== library.id
 		);
 
 		if (systemLibrary) {
@@ -129,10 +127,7 @@
 				body.targetLibraryId = deleteLibraryDestinationId;
 			}
 
-			await deleteLibrary(
-				deleteLibraryTarget.id,
-				Object.keys(body).length > 0 ? body : undefined
-			);
+			await deleteLibrary(deleteLibraryTarget.id, Object.keys(body).length > 0 ? body : undefined);
 
 			toasts.success('Library deleted');
 			confirmLibraryDeleteOpen = false;

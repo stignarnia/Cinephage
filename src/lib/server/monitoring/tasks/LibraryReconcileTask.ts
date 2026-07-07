@@ -60,9 +60,6 @@ async function getAssignmentCount(): Promise<number> {
 	const { db } = await import('$lib/server/db/index.js');
 	const { libraryRootFolders } = await import('$lib/server/db/schema.js');
 	const { count } = await import('drizzle-orm');
-	const result = await db
-		.select({ value: count() })
-		.from(libraryRootFolders)
-		.get();
+	const result = await db.select({ value: count() }).from(libraryRootFolders).get();
 	return Number(result?.value ?? 0);
 }
