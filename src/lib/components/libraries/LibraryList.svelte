@@ -12,7 +12,7 @@
 		Captions,
 		CaptionsOff
 	} from 'lucide-svelte';
-	import type { LayoutData } from '../../../routes/settings/general/$types';
+	import type { PageData } from '../../../routes/settings/library/libraries/$types';
 
 	type LibraryRootFolder = {
 		id: string;
@@ -20,7 +20,7 @@
 		path?: string;
 	};
 
-	type LibraryEntity = NonNullable<LayoutData['libraries']>[number] & {
+	type LibraryEntity = NonNullable<PageData['libraries']>[number] & {
 		rootFolders?: LibraryRootFolder[];
 	};
 
