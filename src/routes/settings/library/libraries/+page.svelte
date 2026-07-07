@@ -1,14 +1,20 @@
 <script lang="ts">
 	import * as m from '$lib/paraglide/messages.js';
 	import { Plus } from 'lucide-svelte';
-	import { SettingsPage } from '$lib/components/ui/settings';
+	import { SettingsPage, SettingsSection } from '$lib/components/ui/settings';
 	import { goto, invalidateAll } from '$app/navigation';
+	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import type { PageData } from './$types';
 	import { LibraryList, LibraryEditModal } from '$lib/components/libraries';
 	import { ModalWrapper, ModalHeader } from '$lib/components/ui/modal';
 	import { toasts } from '$lib/stores/toast.svelte';
 	import { deleteLibrary } from '$lib/api/settings.js';
+	import {
+		getScanSettings,
+		saveScanSettings,
+		type ScanSettings
+	} from '$lib/api/library-settings.js';
 	import { formatBytes } from '$lib/utils/format.js';
 
 	type RootFolderRef = {
@@ -37,6 +43,33 @@
 	let deleteLibraryTargetOption = $state<LibraryDeleteOption | null>(null);
 	let deleteLibraryDestinationId = $state<string>('');
 	let deleteLibraryLoading = $state(false);
+
+	// Scan settings (interim UI for previously-hidden librarySettings keys)
+	let scanSettings = $state<ScanSettings | null>(null);
+	let scanSettingsSaving = $state(false);
+
+	onMount(() => {
+		void (async () => {
+			try {
+				scanSettings = await getScanSettings();
+			} catch {
+				scanSettings = null;
+			}
+		})();
+	});
+
+	async function handleSaveScanSettings() {
+		if (!scanSettings) return;
+		scanSettingsSaving = true;
+		try {
+			await saveScanSettings(scanSettings);
+			toasts.success(m.settings_libraries_scan_saved());
+		} catch (e) {
+			toasts.error(e instanceof Error ? e.message : m.settings_libraries_scan_failed());
+		} finally {
+			scanSettingsSaving = false;
+		}
+	}
 
 	async function clearEditQueryParam() {
 		const url = new URL(page.url);
@@ -163,6 +196,95 @@
 		onDelete={confirmLibraryDelete}
 		{formatBytes}
 	/>
+
+	{#if scanSettings}
+		<SettingsSection
+			title={m.settings_libraries_scan_title()}
+			description={m.settings_libraries_scan_description()}
+		>
+			<div class="grid gap-4 sm:grid-cols-2">
+				<div class="form-control">
+					<label class="label py-1" for="scan-interval">
+						<span class="label-text">{m.settings_libraries_scan_interval()}</span>
+					</label>
+					<input
+						id="scan-interval"
+						type="number"
+						class="input-bordered input input-sm w-full"
+						bind:value={scanSettings.scanIntervalHours}
+						min="1"
+						max="168"
+					/>
+					<span class="text-xs text-base-content/60">
+						{m.settings_libraries_scan_interval_hint()}
+					</span>
+				</div>
+				<div class="form-control">
+					<label class="label py-1" for="auto-match-threshold">
+						<span class="label-text">{m.settings_libraries_scan_threshold()}</span>
+					</label>
+					<input
+						id="auto-match-threshold"
+						type="number"
+						step="0.05"
+						class="input-bordered input input-sm w-full"
+						bind:value={scanSettings.autoMatchThreshold}
+						min="0"
+						max="1"
+					/>
+					<span class="text-xs text-base-content/60">
+						{m.settings_libraries_scan_threshold_hint()}
+					</span>
+				</div>
+			</div>
+			<div class="mt-2 space-y-2">
+				<label
+					class="label cursor-pointer justify-start gap-3 rounded-lg border border-base-300 p-3"
+				>
+					<input
+						type="checkbox"
+						class="toggle toggle-primary toggle-sm"
+						bind:checked={scanSettings.watchEnabled}
+					/>
+					<div>
+						<span class="label-text text-base-content">
+							{m.settings_libraries_scan_watch()}
+						</span>
+						<div class="text-xs text-base-content/60">
+							{m.settings_libraries_scan_watch_hint()}
+						</div>
+					</div>
+				</label>
+				<label
+					class="label cursor-pointer justify-start gap-3 rounded-lg border border-base-300 p-3"
+				>
+					<input
+						type="checkbox"
+						class="toggle toggle-primary toggle-sm"
+						bind:checked={scanSettings.scanOnStartup}
+					/>
+					<div>
+						<span class="label-text text-base-content">
+							{m.settings_libraries_scan_on_startup()}
+						</span>
+						<div class="text-xs text-base-content/60">
+							{m.settings_libraries_scan_on_startup_hint()}
+						</div>
+					</div>
+				</label>
+			</div>
+			<div class="modal-action mt-4 border-t border-base-300 pt-4">
+				<button
+					type="button"
+					class="btn btn-primary btn-sm"
+					onclick={handleSaveScanSettings}
+					disabled={scanSettingsSaving}
+				>
+					{m.settings_general_saveLibrary()}
+				</button>
+			</div>
+		</SettingsSection>
+	{/if}
 </SettingsPage>
 
 {#if confirmLibraryDeleteOpen}
