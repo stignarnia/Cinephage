@@ -4,7 +4,8 @@
 	import { ModalWrapper, ModalHeader, ModalFooter } from '$lib/components/ui/modal';
 	import { toasts } from '$lib/stores/toast.svelte';
 	import { invalidateAll } from '$app/navigation';
-	import { updateLibrary } from '$lib/api/settings.js';
+	import { createLibrary, updateLibrary } from '$lib/api/settings.js';
+	import type { LibraryCreate, LibraryUpdate } from '$lib/validation/schemas.js';
 	import type { RootFolderMediaType, RootFolderMediaSubType } from '$lib/types/downloadClient';
 
 	type LibraryRootFolderRef = {
@@ -67,7 +68,8 @@
 	let librarySaving = $state(false);
 	let librarySaveError = $state<string | null>(null);
 
-	const editingLibrary = $derived(libraries.find((l) => l.id === libraryId) ?? null);
+	const isCreateMode = $derived(libraryId === null);
+	const editingLibrary = $derived(!isCreateMode ? (libraries.find((l) => l.id === libraryId) ?? null) : null);
 	const editingLibraryIsSystem = $derived(editingLibrary?.isSystem ?? false);
 
 	const filteredLibraryRootFolders = $derived(
@@ -81,7 +83,19 @@
 	const selectedLibraryRootFolderCount = $derived(selectedLibraryRootFolderIds.size);
 
 	$effect(() => {
-		if (open && libraryId) {
+		if (!open) return;
+		if (isCreateMode) {
+			libraryForm = {
+				name: '',
+				mediaType: 'movie',
+				mediaSubType: 'standard',
+				rootFolderIds: [],
+				defaultMonitored: true,
+				defaultSearchOnAdd: true,
+				defaultWantsSubtitles: false
+			};
+			librarySaveError = null;
+		} else if (libraryId) {
 			const library = libraries.find((l) => l.id === libraryId) ?? null;
 			if (library) {
 				libraryForm = {
@@ -99,15 +113,19 @@
 	});
 
 	async function saveLibrary() {
-		if (!libraryId) return;
 		librarySaving = true;
 		librarySaveError = null;
 
 		try {
-			await updateLibrary(libraryId, libraryForm as Record<string, unknown>);
+			if (isCreateMode) {
+				await createLibrary(libraryForm as LibraryCreate);
+				toasts.success(m.settings_general_libraryCreated());
+			} else if (libraryId) {
+				await updateLibrary(libraryId, libraryForm as LibraryUpdate);
+				toasts.success(m.settings_general_libraryUpdated());
+			}
 			await invalidateAll();
 			onClose();
-			toasts.success(m.settings_general_libraryUpdated());
 		} catch (error) {
 			librarySaveError =
 				error instanceof Error ? error.message : m.settings_general_failedToSaveLibrary();
@@ -124,7 +142,12 @@
 	labelledBy="status-library-edit-modal-title"
 	lockScroll={false}
 >
-	<ModalHeader title={m.settings_general_libraryModalEditPlainTitle()} {onClose} />
+	<ModalHeader
+		title={isCreateMode
+			? m.settings_general_libraryModalCreateTitle()
+			: m.settings_general_libraryModalEditPlainTitle()}
+		{onClose}
+	/>
 	<div class="space-y-4">
 		{#if librarySaveError}
 			<div class="alert alert-error">
