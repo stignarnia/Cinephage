@@ -286,10 +286,11 @@ export class LibraryEntityService {
 
 	private async loadLibraryEntities(options: ListOptions = {}): Promise<LibraryEntity[]> {
 		const includeSystem = options.includeSystem ?? true;
-		if (includeSystem) {
-			await this.syncSystemLibrariesFromRootFolders();
-		}
-		await this.backfillLibraryRootFolders();
+		// Reconciliation (syncSystemLibrariesFromRootFolders + backfillLibraryRootFolders)
+		// was previously triggered here, causing writes on every read path (listLibraries,
+		// getLibrary, getLibraryForMutation). Reconciliation now runs from write paths
+		// (assignRootFoldersToLibrary / releaseRootFoldersToSystemLibraries) and the
+		// library-reconcile scheduled task. See reconcileAll().
 
 		const rows = await db
 			.select({
@@ -586,6 +587,21 @@ export class LibraryEntityService {
 
 	async syncSystemLibrariesFromRootFolders(): Promise<void> {
 		await this.reconcileRootFolderAssignments();
+	}
+
+	/**
+	 * Run full library <-> root folder reconciliation.
+	 * Called from write paths and the library-reconcile scheduled task.
+	 * Performs: backfillLibraryRootFolders + syncSystemLibrariesFromRootFolders
+	 * (which delegates to reconcileRootFolderAssignments).
+	 *
+	 * This is the canonical entry point for healing drift between libraries,
+	 * root folders, and their join-table assignments. Read paths
+	 * (listLibraries / getLibrary) no longer reconcile implicitly.
+	 */
+	async reconcileAll(): Promise<void> {
+		await this.backfillLibraryRootFolders();
+		await this.syncSystemLibrariesFromRootFolders();
 	}
 
 	async resolveOwningLibraryForRootFolder(

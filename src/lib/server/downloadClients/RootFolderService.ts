@@ -335,7 +335,7 @@ export class RootFolderService {
 
 	private async syncSystemLibraries(): Promise<void> {
 		try {
-			await getLibraryEntityService().syncSystemLibrariesFromRootFolders();
+			await getLibraryEntityService().reconcileAll();
 		} catch (error) {
 			logger.warn(
 				{
