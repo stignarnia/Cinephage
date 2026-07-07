@@ -742,6 +742,9 @@ export const movieFiles = sqliteTable('movie_files', {
 	lastSeenScanId: text('last_seen_scan_id'),
 	// Content categorization: 'main' | 'bonus' (Phase 1 pattern recognition)
 	contentCategory: text('content_category').notNull().default('main'),
+	filenameSignature: text('filename_signature'),
+	contentHash: text('content_hash'),
+	contentHashAlgorithm: text('content_hash_algorithm'),
 });
 
 /**
@@ -941,6 +944,9 @@ export const episodeFiles = sqliteTable('episode_files', {
 	lastSeenScanId: text('last_seen_scan_id'),
 	// Content categorization: 'main' | 'bonus' (Phase 1 pattern recognition)
 	contentCategory: text('content_category').notNull().default('main'),
+	filenameSignature: text('filename_signature'),
+	contentHash: text('content_hash'),
+	contentHashAlgorithm: text('content_hash_algorithm'),
 });
 
 // ============================================================================
@@ -1017,6 +1023,9 @@ export const unmatchedFiles = sqliteTable('unmatched_files', {
 	lastSeenScanId: text('last_seen_scan_id'),
 	// Content categorization: 'main' | 'bonus' (Phase 1 pattern recognition)
 	contentCategory: text('content_category').notNull().default('main'),
+	filenameSignature: text('filename_signature'),
+	contentHash: text('content_hash'),
+	contentHashAlgorithm: text('content_hash_algorithm'),
 });
 
 /**
@@ -1163,6 +1172,15 @@ export const resolutionCategories = sqliteTable('resolution_categories', {
 	minHeight: integer('min_height').notNull().default(0),
 	searchTerms: text('search_terms', { mode: 'json' }).$type<string[]>(),
 	isFallback: integer('is_fallback', { mode: 'boolean' }).default(false),
+	createdAt: text('created_at').$defaultFn(() => new Date().toISOString())
+});
+
+export const duplicateGroupSuppression = sqliteTable('duplicate_group_suppression', {
+	id: text('id').primaryKey().$defaultFn(() => randomUUID()),
+	libraryId: text('library_id').references(() => libraries.id, { onDelete: 'cascade' }),
+	signature: text('signature').notNull(),
+	signatureType: text('signature_type').notNull(),
+	dismissedAt: text('dismissed_at').$defaultFn(() => new Date().toISOString()),
 	createdAt: text('created_at').$defaultFn(() => new Date().toISOString())
 });
 

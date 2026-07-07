@@ -8,7 +8,8 @@
 		FolderSync,
 		Eye,
 		Monitor,
-		Clock
+		Clock,
+		Copy
 	} from 'lucide-svelte';
 	import { SettingsTabNav } from '$lib/components/settings';
 	import * as m from '$lib/paraglide/messages.js';
@@ -60,6 +61,11 @@
 			href: '/settings/library/history-retention',
 			label: m.settings_history_title(),
 			icon: Clock
+		},
+		{
+			href: '/settings/library/duplicates',
+			label: m.settings_duplicates_title(),
+			icon: Copy
 		}
 	];
 </script>
