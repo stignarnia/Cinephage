@@ -80,6 +80,14 @@ export interface DiscoveredFile {
 	size: number;
 	modifiedAt: Date;
 	parentFolder: string;
+	contentCategory?: 'main' | 'bonus';
+	structureMatch?: {
+		seriesTitle?: string;
+		year?: number;
+		season?: number;
+		episode?: number;
+		isBonus: boolean;
+	} | null;
 }
 
 /**
