@@ -734,7 +734,9 @@ export const movieFiles = sqliteTable('movie_files', {
 	languages: text('languages', { mode: 'json' }).$type<string[]>(),
 	// Info hash of the torrent used to download this file (for duplicate detection)
 	infoHash: text('info_hash'),
-	lastSeenScanId: text('last_seen_scan_id')
+	lastSeenScanId: text('last_seen_scan_id'),
+	// Content categorization: 'main' | 'bonus' (Phase 1 pattern recognition)
+	contentCategory: text('content_category').notNull().default('main'),
 });
 
 /**
@@ -931,7 +933,9 @@ export const episodeFiles = sqliteTable('episode_files', {
 	languages: text('languages', { mode: 'json' }).$type<string[]>(),
 	// Info hash of the torrent used to download this file (for duplicate detection)
 	infoHash: text('info_hash'),
-	lastSeenScanId: text('last_seen_scan_id')
+	lastSeenScanId: text('last_seen_scan_id'),
+	// Content categorization: 'main' | 'bonus' (Phase 1 pattern recognition)
+	contentCategory: text('content_category').notNull().default('main'),
 });
 
 // ============================================================================
@@ -1005,7 +1009,9 @@ export const unmatchedFiles = sqliteTable('unmatched_files', {
 	reason: text('reason'), // 'no_match', 'low_confidence', 'multiple_matches', 'parse_failed'
 	// When discovered
 	discoveredAt: text('discovered_at').$defaultFn(() => new Date().toISOString()),
-	lastSeenScanId: text('last_seen_scan_id')
+	lastSeenScanId: text('last_seen_scan_id'),
+	// Content categorization: 'main' | 'bonus' (Phase 1 pattern recognition)
+	contentCategory: text('content_category').notNull().default('main'),
 });
 
 /**
@@ -1126,6 +1132,30 @@ export const librarySettings = sqliteTable('library_settings', {
  * - 'include_media_info': boolean
  * - 'include_release_group': boolean
  */
+/**
+ * Library Pattern Config - Per-library pattern recognition settings (Phase 1)
+ *
+ * Each row holds the pattern configuration for a library or the global
+ * fallback (scope='global'). Pattern families:
+ *   - ignore_defaults_enabled + ignore_user_patterns (glob, case-sensitive)
+ *   - bonus_patterns (glob, case-insensitive, content_category='bonus')
+ *   - structure_mode + structure_config (folder_depth or regex)
+ */
+export const libraryPatternConfig = sqliteTable('library_pattern_config', {
+	id: text('id')
+		.primaryKey()
+		.$defaultFn(() => randomUUID()),
+	libraryId: text('library_id').references(() => libraries.id, { onDelete: 'cascade' }),
+	scope: text('scope').notNull(), // 'global' | 'library'
+	ignoreDefaultsEnabled: integer('ignore_defaults_enabled', { mode: 'boolean' }).default(true),
+	ignoreUserPatterns: text('ignore_user_patterns', { mode: 'json' }).$type<string[]>(),
+	bonusPatterns: text('bonus_patterns', { mode: 'json' }).$type<string[]>(),
+	structureMode: text('structure_mode'), // 'folder_depth' | 'regex' | null
+	structureConfig: text('structure_config', { mode: 'json' }),
+	createdAt: text('created_at').$defaultFn(() => new Date().toISOString()),
+	updatedAt: text('updated_at').$defaultFn(() => new Date().toISOString())
+});
+
 export const namingSettings = sqliteTable('naming_settings', {
 	key: text('key').primaryKey(),
 	value: text('value').notNull()

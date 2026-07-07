@@ -132,7 +132,7 @@ import {
  * Version 110: Add storage_items, storage_item_server_links, storage_insights tables for unified storage tracking
  * Version 111: Add rename_history table for permanent file rename audit trail
  */
-export const CURRENT_SCHEMA_VERSION = 111;
+export const CURRENT_SCHEMA_VERSION = 112;
 
 export const SYSTEM_LIBRARY_SEEDS = [
 	{
@@ -378,6 +378,18 @@ const TABLE_DEFINITIONS: string[] = [
 		"value" text NOT NULL
 	)`,
 
+	`CREATE TABLE IF NOT EXISTS "library_pattern_config" (
+		"id" text PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+		"library_id" text REFERENCES "libraries"("id") ON DELETE CASCADE,
+		"scope" text NOT NULL,
+		"ignore_defaults_enabled" integer NOT NULL DEFAULT 1,
+		"ignore_user_patterns" text,
+		"bonus_patterns" text,
+		"structure_mode" text,
+		"structure_config" text,
+		"created_at" text NOT NULL DEFAULT (datetime('now')),
+		"updated_at" text NOT NULL DEFAULT (datetime('now'))
+	)`,
 	`CREATE TABLE IF NOT EXISTS "naming_settings" (
 		"key" text PRIMARY KEY NOT NULL,
 		"value" text NOT NULL

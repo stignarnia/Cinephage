@@ -108,6 +108,7 @@ import { migration_v108 } from './108-add-download-queue-stalled-since.js';
 import { migration_v109 } from './109-add-stalled-orphan-tracking-table.js';
 import { migration_v110 } from './110-add-storage-items-tables.js';
 import { migration_v111 } from './111-add-rename-history.js';
+import { migration_v112 } from './112-add-pattern-recognition.js';
 
 export const MIGRATIONS: MigrationDefinition[] = [
 	migration_v002,
@@ -218,5 +219,6 @@ export const MIGRATIONS: MigrationDefinition[] = [
 	migration_v108,
 	migration_v109,
 	migration_v110,
-	migration_v111
+	migration_v111,
+	migration_v112
 ];
