@@ -31,70 +31,24 @@ import { rename, stat } from 'node:fs/promises';
 import { chooseBestParsedRelease } from './preview-metadata';
 import { getMediaBrowserNotifier } from '$lib/server/notifications/mediabrowser';
 
-/**
- * Status of a rename preview item
- */
-export type RenameStatus = 'will_change' | 'already_correct' | 'collision' | 'error';
+// Types are defined in $lib/library/naming/types.ts (outside the server
+// bundle) so .svelte files can import them without pulling server code
+// into the client. Re-exported here for server-internal consumers.
+export type {
+	RenameStatus,
+	RenamePreviewItem,
+	RenamePreviewResult,
+	RenameExecuteResult,
+	ReorganizeRequestItem,
+	ReorganizeBatchResult
+} from '$lib/library/naming/types.js';
 
-/**
- * A single file's rename preview
- */
-export interface RenamePreviewItem {
-	fileId: string;
-	mediaType: 'movie' | 'episode';
-	mediaId: string;
-	mediaTitle: string;
-
-	// Current paths
-	currentParentPath: string;
-	currentRelativePath: string;
-	currentFullPath: string;
-
-	// New paths (what it would be renamed to)
-	newParentPath: string;
-	newRelativePath: string;
-	newFullPath: string;
-
-	// Status
-	status: RenameStatus;
-	collisionsWith?: string[]; // fileIds that would collide
-	error?: string;
-}
-
-/**
- * Result of a rename preview operation
- */
-export interface RenamePreviewResult {
-	willChange: RenamePreviewItem[];
-	alreadyCorrect: RenamePreviewItem[];
-	collisions: RenamePreviewItem[];
-	errors: RenamePreviewItem[];
-
-	// Summary stats
-	totalFiles: number;
-	totalWillChange: number;
-	totalAlreadyCorrect: number;
-	totalCollisions: number;
-	totalErrors: number;
-}
-
-/**
- * Result of executing renames
- */
-export interface RenameExecuteResult {
-	success: boolean;
-	processed: number;
-	succeeded: number;
-	failed: number;
-	results: Array<{
-		fileId: string;
-		mediaType: 'movie' | 'episode';
-		success: boolean;
-		oldPath: string;
-		newPath: string;
-		error?: string;
-	}>;
-}
+import type {
+	RenameStatus,
+	RenamePreviewItem,
+	RenamePreviewResult,
+	RenameExecuteResult
+} from '$lib/library/naming/types.js';
 
 /**
  * Create an empty preview result

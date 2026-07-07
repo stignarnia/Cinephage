@@ -2,7 +2,7 @@
 	import { page } from '$app/state';
 	import { SvelteSet } from 'svelte/reactivity';
 	import * as m from '$lib/paraglide/messages.js';
-	import { getRenamePreview, executeRename, reorganizeFolder } from '$lib/api/settings.js';
+	import { getRenamePreview, executeRename, reorganizeFolderBatch } from '$lib/api/settings.js';
 	import {
 		RefreshCw,
 		CheckCircle,
@@ -20,10 +20,7 @@
 		FileEdit,
 		FolderSync
 	} from 'lucide-svelte';
-	import type {
-		RenamePreviewResult,
-		RenameExecuteResult
-	} from '$lib/server/library/naming/RenamePreviewService';
+	import type { RenamePreviewResult, RenameExecuteResult } from '$lib/library/naming/types.js';
 
 	// State
 	let loading = $state(true);
@@ -145,21 +142,22 @@
 			}
 		}
 
+		const items = Array.from(mediaItems.entries()).map(([key, mediaType]) => ({
+			mediaId: key.split(':')[1]!,
+			mediaType
+		}));
+
 		let organized = 0;
 		let failed = 0;
 
-		for (const [key, mediaType] of mediaItems) {
-			const mediaId = key.split(':')[1];
-			try {
-				const result = await reorganizeFolder(mediaId, mediaType);
-				if (result.success) {
-					organized++;
-				} else {
-					failed++;
-				}
-			} catch {
-				failed++;
-			}
+		try {
+			const result = await reorganizeFolderBatch(items);
+			organized = result.organized;
+			failed = result.failed;
+		} catch (e) {
+			error = e instanceof Error ? e.message : 'Folder reorganization failed';
+			reorganizing = false;
+			return;
 		}
 
 		if (organized > 0) {

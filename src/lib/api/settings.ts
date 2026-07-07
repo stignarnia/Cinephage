@@ -137,6 +137,22 @@ export async function reorganizeFolder(mediaId: string, mediaType: 'movie' | 'se
 	return apiPost('/api/rename/reorganize', { mediaId, mediaType });
 }
 
+export async function reorganizeFolderBatch(
+	items: Array<{ mediaId: string; mediaType: 'movie' | 'series' }>
+) {
+	return apiPost<{
+		success: boolean;
+		organized: number;
+		failed: number;
+		results: Array<{
+			mediaId: string;
+			mediaType: 'movie' | 'series';
+			success: boolean;
+			error?: string;
+		}>;
+	}>('/api/rename/reorganize-batch', { items });
+}
+
 export async function getScoringProfiles() {
 	return apiGet('/api/scoring-profiles');
 }
