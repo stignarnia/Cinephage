@@ -313,10 +313,10 @@
 			};
 			if (dpModalMode === 'add') {
 				await createDelayProfile(input);
-				toasts.success('Delay profile created');
+				toasts.success(m.settings_quality_delay_created());
 			} else {
 				await updateDelayProfile(dpEditing!.id, input);
-				toasts.success('Delay profile updated');
+				toasts.success(m.settings_quality_delay_updated());
 			}
 			dpModalOpen = false;
 			await invalidateAll();
@@ -332,7 +332,7 @@
 		dpDeleting = true;
 		try {
 			await deleteDelayProfile(dpDeleteTarget.id);
-			toasts.success(`"${dpDeleteTarget.name}" deleted`);
+			toasts.success(m.settings_quality_delay_deleted({ name: dpDeleteTarget.name }));
 			dpDeleteOpen = false;
 			dpDeleteTarget = null;
 			await invalidateAll();
@@ -344,7 +344,7 @@
 	}
 
 	function formatDelay(minutes: number): string {
-		if (minutes === 0) return 'Immediate';
+		if (minutes === 0) return m.settings_quality_delay_formatImmediate();
 		if (minutes < 60) return `${minutes}m`;
 		const h = Math.floor(minutes / 60);
 		const m2 = minutes % 60;
@@ -387,7 +387,7 @@
 			onclick={() => setTab('delay-profiles')}
 		>
 			<Clock class="h-4 w-4" />
-			Delay Profiles
+			{m.settings_quality_delay_tab()}
 		</button>
 	</div>
 
@@ -421,24 +421,23 @@
 	{:else if activeTab === 'delay-profiles'}
 		<div class="-mt-2 flex items-center justify-between">
 			<p class="text-sm text-base-content/60">
-				Hold releases in a queue before sending to a download client, giving time for better
-				versions to appear.
+				{m.settings_quality_delay_sectionDescription()}
 			</p>
 			<button class="btn btn-primary btn-sm" onclick={openAddDelay}>
 				<Plus class="h-4 w-4" />
-				Add Profile
+				{m.settings_quality_delay_addProfile()}
 			</button>
 		</div>
 		{#if data.delayProfiles.length === 0}
 			<div class="rounded-lg border border-dashed border-base-300 p-8 text-center">
 				<Clock class="mx-auto mb-3 h-10 w-10 text-base-content/30" />
-				<p class="font-medium">No delay profiles</p>
+				<p class="font-medium">{m.settings_quality_delay_empty()}</p>
 				<p class="mt-1 text-sm text-base-content/60">
-					Create a profile to hold releases before grabbing them.
+					{m.settings_quality_delay_emptyHint()}
 				</p>
 				<button class="btn btn-primary btn-sm mt-4" onclick={openAddDelay}>
 					<Plus class="h-4 w-4" />
-					Add Profile
+					{m.settings_quality_delay_addProfile()}
 				</button>
 			</div>
 		{:else}
@@ -455,21 +454,21 @@
 								<div class="flex items-center gap-2">
 									<span class="font-medium">{profile.name}</span>
 									{#if !profile.enabled}
-										<span class="badge badge-ghost badge-sm">Disabled</span>
-									{/if}
-								</div>
-								<div class="mt-0.5 flex flex-wrap gap-x-4 gap-y-0.5 text-sm text-base-content/60">
-									<span>Torrent: {formatDelay(profile.torrentDelay)}</span>
-									<span>Usenet: {formatDelay(profile.usenetDelay)}</span>
-									{#if profile.preferredProtocol}
-										<span>Preferred: {profile.preferredProtocol}</span>
-									{/if}
-									{#if profile.bypassIfHighestQuality}
-										<span>Bypass at 4K</span>
-									{/if}
-									{#if profile.bypassIfAboveScore != null}
-										<span>Bypass if score &gt; {profile.bypassIfAboveScore}</span>
-									{/if}
+									<span class="badge badge-ghost badge-sm">{m.settings_quality_delay_badgeDisabled()}</span>
+								{/if}
+							</div>
+							<div class="mt-0.5 flex flex-wrap gap-x-4 gap-y-0.5 text-sm text-base-content/60">
+								<span>{m.settings_quality_delay_torrentPrefix()} {formatDelay(profile.torrentDelay)}</span>
+								<span>{m.settings_quality_delay_usenetPrefix()} {formatDelay(profile.usenetDelay)}</span>
+								{#if profile.preferredProtocol}
+									<span>{m.settings_quality_delay_preferredPrefix()} {profile.preferredProtocol}</span>
+								{/if}
+								{#if profile.bypassIfHighestQuality}
+									<span>{m.settings_quality_delay_bypass4k()}</span>
+								{/if}
+								{#if profile.bypassIfAboveScore != null}
+									<span>{m.settings_quality_delay_bypassScorePrefix()} {profile.bypassIfAboveScore}</span>
+								{/if}
 								</div>
 							</div>
 						</div>
@@ -550,30 +549,34 @@
 <!-- Delay Profile Modal -->
 <ModalWrapper open={dpModalOpen} onClose={() => (dpModalOpen = false)}>
 	<ModalHeader
-		title={dpModalMode === 'add' ? 'Add Delay Profile' : 'Edit Delay Profile'}
+		title={dpModalMode === 'add'
+			? m.settings_quality_delay_modalAddTitle()
+			: m.settings_quality_delay_modalEditTitle()}
 		onClose={() => (dpModalOpen = false)}
 	/>
 	<div class="space-y-5 p-6">
 		<div class="form-control">
-			<label class="label" for="dp-name"><span class="label-text">Name</span></label>
+			<label class="label" for="dp-name"
+				><span class="label-text">{m.settings_quality_delay_field_name()}</span></label
+			>
 			<input
 				id="dp-name"
 				type="text"
 				class="input input-bordered w-full"
 				bind:value={dpName}
-				placeholder="Dub Wait"
+				placeholder={m.settings_quality_delay_field_namePlaceholder()}
 			/>
 		</div>
 		<div class="form-control">
 			<label class="label cursor-pointer justify-start gap-3">
 				<input type="checkbox" class="toggle toggle-primary toggle-sm" bind:checked={dpEnabled} />
-				<span class="label-text">Enabled</span>
+				<span class="label-text">{m.settings_quality_delay_field_enabled()}</span>
 			</label>
 		</div>
 		<div class="grid grid-cols-2 gap-4">
 			<div class="form-control">
 				<label class="label" for="dp-torrent"
-					><span class="label-text">Torrent delay (minutes)</span></label
+					><span class="label-text">{m.settings_quality_delay_field_torrentDelay()}</span></label
 				>
 				<input
 					id="dp-torrent"
@@ -586,7 +589,7 @@
 			</div>
 			<div class="form-control">
 				<label class="label" for="dp-usenet"
-					><span class="label-text">Usenet delay (minutes)</span></label
+					><span class="label-text">{m.settings_quality_delay_field_usenetDelay()}</span></label
 				>
 				<input
 					id="dp-usenet"
@@ -600,16 +603,16 @@
 		</div>
 		<div class="form-control">
 			<label class="label" for="dp-preferred"
-				><span class="label-text">Preferred protocol (grabs immediately)</span></label
+				><span class="label-text">{m.settings_quality_delay_field_preferredProtocol()}</span></label
 			>
 			<select
 				id="dp-preferred"
 				class="select select-bordered w-full"
 				bind:value={dpPreferredProtocol}
 			>
-				<option value="">None</option>
-				<option value="torrent">Torrent</option>
-				<option value="usenet">Usenet</option>
+				<option value="">{m.settings_quality_delay_option_none()}</option>
+				<option value="torrent">{m.settings_quality_delay_option_torrent()}</option>
+				<option value="usenet">{m.settings_quality_delay_option_usenet()}</option>
 			</select>
 		</div>
 		<div class="form-control">
@@ -619,12 +622,12 @@
 					class="toggle toggle-primary toggle-sm"
 					bind:checked={dpBypassIfHighestQuality}
 				/>
-				<span class="label-text">Bypass delay for 4K (2160p) releases</span>
+				<span class="label-text">{m.settings_quality_delay_field_bypass4k()}</span>
 			</label>
 		</div>
 		<div class="form-control">
 			<label class="label" for="dp-score"
-				><span class="label-text">Bypass delay if score exceeds</span></label
+				><span class="label-text">{m.settings_quality_delay_field_bypassScore()}</span></label
 			>
 			<input
 				id="dp-score"
@@ -635,7 +638,7 @@
 					const v = (e.currentTarget as HTMLInputElement).value;
 					dpBypassIfAboveScore = v === '' ? null : parseInt(v, 10);
 				}}
-				placeholder="Leave empty to disable"
+				placeholder={m.settings_quality_delay_field_bypassScorePlaceholder()}
 			/>
 		</div>
 	</div>
@@ -644,16 +647,18 @@
 		onSave={saveDelay}
 		saving={dpSaving}
 		saveDisabled={!dpName.trim()}
-		saveLabel={dpModalMode === 'add' ? 'Create' : 'Save'}
+		saveLabel={dpModalMode === 'add'
+			? m.settings_quality_delay_createButton()
+			: m.settings_general_saveLibrary()}
 	/>
 </ModalWrapper>
 
 <!-- Delay Profile Delete Confirmation -->
 <ConfirmationModal
 	open={dpDeleteOpen}
-	title="Delete Delay Profile"
-	message={`Delete "${dpDeleteTarget?.name}"? Media assigned to this profile will fall back to no delay.`}
-	confirmLabel="Delete"
+	title={m.settings_quality_delay_deleteTitle()}
+	message={m.settings_quality_delay_deleteMessage({ name: dpDeleteTarget?.name ?? '' })}
+	confirmLabel={m.action_delete()}
 	confirmVariant="error"
 	loading={dpDeleting}
 	onConfirm={deleteDelay}
