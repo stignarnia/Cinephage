@@ -620,7 +620,6 @@ export const libraryCreateSchema = z.object({
 	rootFolderIds: z.array(z.string().uuid()).optional().default([]),
 	defaultRootFolderId: z.string().uuid().optional().nullable(),
 	isDefault: z.boolean().default(false),
-	defaultMonitored: z.boolean().default(true),
 	defaultSearchOnAdd: z.boolean().default(true),
 	defaultWantsSubtitles: z.boolean().default(true),
 	sortOrder: z.number().int().min(0).default(100),

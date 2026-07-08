@@ -35,7 +35,6 @@
 	interface LibraryEntity {
 		id: string;
 		mediaType: 'movie' | 'tv';
-		defaultMonitored: boolean;
 		defaultSearchOnAdd: boolean;
 		defaultWantsSubtitles: boolean;
 		rootFolders: Array<{ id: string }>;
@@ -142,6 +141,9 @@
 	const selectedRootFolderLibrary = $derived(
 		selectedRootFolder ? rootFolderLibraryMap.get(selectedRootFolder) : undefined
 	);
+	const selectedRootFolderObj = $derived(
+		selectedRootFolder ? rootFolders.find((folder) => folder.id === selectedRootFolder) : undefined
+	);
 
 	function getRecommendedRootFolderId(folders: RootFolder[]): string | undefined {
 		if (folders.length === 0) return undefined;
@@ -243,10 +245,11 @@
 			wantsSubtitles = selectedRootFolderLibrary.defaultWantsSubtitles;
 		}
 		if (!monitoredTouched) {
+			const defaultMonitored = selectedRootFolderObj?.defaultMonitored ?? true;
 			if (mediaType === 'movie') {
-				monitored = selectedRootFolderLibrary.defaultMonitored;
+				monitored = defaultMonitored;
 			} else {
-				monitorType = selectedRootFolderLibrary.defaultMonitored ? 'all' : 'none';
+				monitorType = defaultMonitored ? 'all' : 'none';
 			}
 		}
 	});

@@ -67,7 +67,6 @@ export type LibraryBreakdownItem = {
 	rootFolderCount?: number;
 	rootFolderIds?: string[];
 	detachedItemCount?: number;
-	defaultMonitored?: boolean;
 	defaultSearchOnAdd?: boolean;
 	defaultWantsSubtitles?: boolean;
 	unmatchedCount?: number;

@@ -32,7 +32,6 @@ type StorageBreakdownItem = {
 	rootFolderCount?: number;
 	rootFolderIds?: string[];
 	detachedItemCount?: number;
-	defaultMonitored?: boolean;
 	defaultSearchOnAdd?: boolean;
 	defaultWantsSubtitles?: boolean;
 	unmatchedCount?: number;
@@ -230,7 +229,6 @@ export async function loadStorageLayoutData() {
 			rootFolderCount: library.rootFolders?.length ?? 0,
 			rootFolderIds: library.rootFolders?.map((f) => f.id) ?? [],
 			detachedItemCount: detachedByLibrary.get(library.id) ?? 0,
-			defaultMonitored: library.defaultMonitored,
 			defaultSearchOnAdd: library.defaultSearchOnAdd,
 			defaultWantsSubtitles: library.defaultWantsSubtitles,
 			unmatchedCount,

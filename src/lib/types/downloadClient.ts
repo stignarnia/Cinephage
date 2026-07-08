@@ -148,7 +148,14 @@ export type RootFolderWithSpace = Omit<
 export type RootFolderWithSpaceAndDefault = Omit<
 	Pick<
 		RootFolder,
-		'id' | 'name' | 'path' | 'mediaType' | 'mediaSubType' | 'isDefault' | 'freeSpaceBytes'
+		| 'id'
+		| 'name'
+		| 'path'
+		| 'mediaType'
+		| 'mediaSubType'
+		| 'isDefault'
+		| 'defaultMonitored'
+		| 'freeSpaceBytes'
 	>,
 	'mediaType' | 'mediaSubType'
 > & {

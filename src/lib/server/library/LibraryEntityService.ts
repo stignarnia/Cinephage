@@ -33,7 +33,6 @@ export interface LibraryEntity {
 	rootFolders: LibraryRootFolder[];
 	defaultRootFolderId: string | null;
 	defaultRootFolderPath: string | null;
-	defaultMonitored: boolean;
 	defaultSearchOnAdd: boolean;
 	defaultWantsSubtitles: boolean;
 	sortOrder: number;
@@ -48,7 +47,6 @@ export interface CreateLibraryInput {
 	mediaSubType?: LibraryMediaSubType;
 	rootFolderIds?: string[];
 	isDefault?: boolean;
-	defaultMonitored?: boolean;
 	defaultSearchOnAdd?: boolean;
 	defaultWantsSubtitles?: boolean;
 	sortOrder?: number;
@@ -306,7 +304,6 @@ export class LibraryEntityService {
 				systemKey: libraries.systemKey,
 				isDefault: libraries.isDefault,
 				defaultRootFolderId: libraries.defaultRootFolderId,
-				defaultMonitored: libraries.defaultMonitored,
 				defaultSearchOnAdd: libraries.defaultSearchOnAdd,
 				defaultWantsSubtitles: libraries.defaultWantsSubtitles,
 				sortOrder: libraries.sortOrder,
@@ -378,7 +375,6 @@ export class LibraryEntityService {
 					defaultPathByLibraryId.get(row.id) ??
 					attachedRootFolders.find((folder) => folder.id === defaultRootFolderId)?.path ??
 					null,
-				defaultMonitored: row.defaultMonitored ?? true,
 				defaultSearchOnAdd: row.defaultSearchOnAdd ?? true,
 				defaultWantsSubtitles: row.defaultWantsSubtitles ?? true,
 				sortOrder: row.sortOrder ?? 0,
@@ -404,7 +400,6 @@ export class LibraryEntityService {
 					systemKey: def.systemKey,
 					isDefault: def.isDefault,
 					defaultRootFolderId: null,
-					defaultMonitored: true,
 					defaultSearchOnAdd: true,
 					defaultWantsSubtitles: true,
 					sortOrder: def.sortOrder,
@@ -768,7 +763,6 @@ export class LibraryEntityService {
 			systemKey: null,
 			isDefault: input.isDefault ?? false,
 			defaultRootFolderId: null,
-			defaultMonitored: input.defaultMonitored ?? true,
 			defaultSearchOnAdd: input.defaultSearchOnAdd ?? true,
 			defaultWantsSubtitles: input.defaultWantsSubtitles ?? true,
 			sortOrder: nextSortOrder,
@@ -841,9 +835,6 @@ export class LibraryEntityService {
 		}
 		if (updates.isDefault !== undefined) {
 			updateData.isDefault = updates.isDefault;
-		}
-		if (updates.defaultMonitored !== undefined) {
-			updateData.defaultMonitored = updates.defaultMonitored;
 		}
 		if (updates.defaultSearchOnAdd !== undefined) {
 			updateData.defaultSearchOnAdd = updates.defaultSearchOnAdd;

@@ -51,7 +51,6 @@ async function seedLibraryWithDefaultRoot(
 			systemKey: null,
 			isDefault: false,
 			defaultRootFolderId: rootFolderId,
-			defaultMonitored: true,
 			defaultSearchOnAdd: true,
 			defaultWantsSubtitles: false,
 			sortOrder,

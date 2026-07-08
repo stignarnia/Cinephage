@@ -23,7 +23,6 @@
 		mediaSubType: RootFolderMediaSubType;
 		isSystem?: boolean;
 		rootFolders?: LibraryRootFolderRef[];
-		defaultMonitored?: boolean | null;
 		defaultSearchOnAdd?: boolean | null;
 		defaultWantsSubtitles?: boolean | null;
 	};
@@ -41,7 +40,6 @@
 		mediaType: RootFolderMediaType;
 		mediaSubType: RootFolderMediaSubType;
 		rootFolderIds: string[];
-		defaultMonitored: boolean;
 		defaultSearchOnAdd: boolean;
 		defaultWantsSubtitles: boolean;
 	};
@@ -61,7 +59,6 @@
 		mediaType: 'movie',
 		mediaSubType: 'standard',
 		rootFolderIds: [],
-		defaultMonitored: true,
 		defaultSearchOnAdd: true,
 		defaultWantsSubtitles: false
 	});
@@ -92,7 +89,6 @@
 				mediaType: 'movie',
 				mediaSubType: 'standard',
 				rootFolderIds: [],
-				defaultMonitored: true,
 				defaultSearchOnAdd: true,
 				defaultWantsSubtitles: false
 			};
@@ -105,7 +101,6 @@
 					mediaType: library.mediaType,
 					mediaSubType: library.mediaSubType,
 					rootFolderIds: library.rootFolders?.map((f) => f.id) ?? [],
-					defaultMonitored: library.defaultMonitored ?? true,
 					defaultSearchOnAdd: library.defaultSearchOnAdd ?? true,
 					defaultWantsSubtitles: library.defaultWantsSubtitles ?? false
 				};
@@ -258,14 +253,6 @@
 		</div>
 
 		<div class="grid gap-3 sm:grid-cols-2">
-			<label class="label cursor-pointer justify-start gap-3 rounded-lg border border-base-300 p-3">
-				<input
-					type="checkbox"
-					class="checkbox shrink-0 checkbox-sm checkbox-primary"
-					bind:checked={libraryForm.defaultMonitored}
-				/>
-				<span class="label-text text-base-content">{m.settings_general_monitorByDefault()}</span>
-			</label>
 			<label class="label cursor-pointer justify-start gap-3 rounded-lg border border-base-300 p-3">
 				<input
 					type="checkbox"
