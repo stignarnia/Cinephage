@@ -1,4 +1,5 @@
 import type { MigrationDefinition } from '../migration-helpers.js';
+import { columnExists, tableExists } from '../migration-helpers.js';
 import { createChildLogger } from '$lib/logging';
 import { ReleaseParser } from '$lib/server/indexers/parser/ReleaseParser.js';
 
@@ -20,6 +21,14 @@ function backfillTable(
 	parser: ReleaseParser,
 	table: 'download_queue' | 'download_history'
 ): number {
+	// Guard: legacy DBs migrating from the old schema_version system to the
+	// migration-tracking table may reach this migration before the table or the
+	// release_group column exists (migration 039 gets marked applied without
+	// running). Skip gracefully rather than throwing on a missing column.
+	if (!tableExists(sqlite, table) || !columnExists(sqlite, table, 'release_group')) {
+		return 0;
+	}
+
 	const rows = sqlite
 		.prepare(
 			`SELECT id, title FROM ${table} WHERE release_group IS NULL AND title IS NOT NULL AND title <> ''`
