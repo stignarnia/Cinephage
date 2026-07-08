@@ -9,8 +9,7 @@
 		ScoreDetailModal
 	} from '$lib/components/library';
 	import type { FileScoreResponse } from '$lib/types/score';
-	import { InteractiveSearchModal } from '$lib/components/search';
-	import type { Release } from '$lib/components/search/SearchResultRow.svelte';
+	import { MediaSearchModal } from '$lib/components/search';
 	import { SubtitleSearchModal } from '$lib/components/subtitles';
 	import SubtitleSyncModal from '$lib/components/subtitles/SubtitleSyncModal.svelte';
 	import DeleteConfirmationModal from '$lib/components/ui/modal/DeleteConfirmationModal.svelte';
@@ -21,7 +20,6 @@
 		ModalFooter
 	} from '$lib/components/ui/modal';
 	import { toasts } from '$lib/stores/toast.svelte';
-	import { grabRelease } from '$lib/api/downloads.js';
 	import { autoSearchSubtitles, syncSubtitle } from '$lib/api/subtitles.js';
 	import {
 		getMovie,
@@ -30,7 +28,6 @@
 		deleteMovieFile,
 		getMovieScore
 	} from '$lib/api/library.js';
-	import { ApiError } from '$lib/api/client.js';
 	import { apiGetStream } from '$lib/api';
 	import type { MovieEditData } from '$lib/components/library/MovieEditModal.svelte';
 	import { FileEdit, Loader2, RefreshCw, Captions } from 'lucide-svelte';
@@ -431,41 +428,6 @@
 		} finally {
 			autoSearching = false;
 			searchProgress.reset();
-		}
-	}
-
-	async function handleGrab(
-		release: Release,
-		streaming?: boolean
-	): Promise<{ success: boolean; error?: string; errorCode?: string }> {
-		try {
-			const result = await grabRelease({
-				guid: release.guid,
-				downloadUrl: release.downloadUrl,
-				magnetUrl: release.magnetUrl,
-				infoHash: release.infoHash,
-				title: release.title,
-				indexerId: release.indexerId,
-				indexerName: release.indexerName,
-				protocol: release.protocol,
-				size: release.size,
-				publishDate:
-					release.publishDate instanceof Date
-						? release.publishDate.toISOString()
-						: release.publishDate,
-				movieId: movie.id,
-				mediaType: 'movie',
-				streamUsenet: streaming && release.protocol === 'usenet',
-				commentsUrl: release.commentsUrl
-			});
-
-			return { success: result.success, error: result.error, errorCode: result.errorCode };
-		} catch (error) {
-			return {
-				success: false,
-				error:
-					error instanceof ApiError ? error.message : m.toast_library_movieDetail_failedToGrab()
-			};
 		}
 	}
 
@@ -1048,16 +1010,10 @@
 />
 
 <!-- Search Modal -->
-<InteractiveSearchModal
+<MediaSearchModal
 	open={isSearchModalOpen}
-	title={movie.title}
-	tmdbId={movie.tmdbId}
-	imdbId={movie.imdbId}
-	year={movie.year}
-	mediaType="movie"
-	scoringProfileId={prefetchProfileId ?? undefined}
+	movieId={movie.id}
 	onClose={() => (isSearchModalOpen = false)}
-	onGrab={handleGrab}
 />
 
 <!-- Subtitle Search Modal -->

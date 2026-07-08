@@ -295,11 +295,11 @@ export async function triggerMovieSearch(params: {
 				scoringProfileId,
 				bypassMonitoring: true
 			})
-			.catch((err) => {
+			.catch((e: unknown) => {
 				logger.warn(
 					{
 						movieId,
-						error: err instanceof Error ? err.message : 'Unknown error'
+						error: e instanceof Error ? e.message : 'Unknown error'
 					},
 					'[LibraryAddService] Background search failed for movie'
 				);

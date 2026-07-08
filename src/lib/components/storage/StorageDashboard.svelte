@@ -21,7 +21,6 @@
 		getSyncStatusColor
 	} from './utils.js';
 	import StorageTile from './StorageTile.svelte';
-	import InsightDetailModal from './InsightDetailModal.svelte';
 	import { BreakdownBar } from '$lib/components/ui';
 
 	type BreakdownItem = { label: string; count: number };
@@ -65,6 +64,7 @@
 		scanError: string | null;
 		scanSuccess: ScanSuccess | null;
 		serverStatuses: ServerStatus[];
+		onOpenInsight?: (insight: Insight) => void;
 	}
 
 	let {
@@ -77,7 +77,8 @@
 		largestItems,
 		scanError,
 		scanSuccess,
-		serverStatuses
+		serverStatuses,
+		onOpenInsight
 	}: Props = $props();
 
 	// --- Tile computations ---
@@ -139,24 +140,6 @@
 		mediaServerStats.audioCodecBreakdown.map((a) => ({ label: a.label, value: a.count }))
 	);
 
-	// --- Priority insights ---
-	const topInsights = $derived(insights.slice(0, 5));
-
-	let selectedInsight = $state<(typeof topInsights)[number] | null>(null);
-
-	function openInsight(insight: (typeof topInsights)[number]) {
-		selectedInsight = insight;
-	}
-
-	function handleInsightDismissed(id: string) {
-		insights = insights.filter((i) => i.id !== id);
-		selectedInsight = null;
-	}
-
-	function severityDot(sev: string): string {
-		return sev === 'critical' ? 'bg-error' : sev === 'warning' ? 'bg-warning' : 'bg-info';
-	}
-
 	function heightToRes(h: number | null | undefined): string {
 		if (!h) return '?';
 		if (h >= 2160) return '4K';
@@ -164,6 +147,12 @@
 		if (h >= 720) return '720p';
 		return 'SD';
 	}
+
+	function severityDot(sev: string): string {
+		return sev === 'critical' ? 'bg-error' : sev === 'warning' ? 'bg-warning' : 'bg-info';
+	}
+
+	const topInsights = $derived(insights.slice(0, 5));
 
 	function mediaTitle(item: MediaListItem): string {
 		return item.seriesName ?? item.title;
@@ -262,18 +251,8 @@
 		context={insights.length > 0
 			? `${insights.length} insight${insights.length === 1 ? '' : 's'}`
 			: 'No issues'}
-		href={`${baseUrl}/insights`}
+		href={`${baseUrl}`}
 		statusDot={healthStatus}
-	/>
-	<StorageTile
-		icon={AlertTriangle}
-		iconClass="bg-warning/10 text-warning"
-		label="Insights"
-		value={String(insights.length)}
-		context={criticalCount > 0 || warningCount > 0
-			? `${criticalCount} critical \u00B7 ${warningCount} warning \u00B7 ${infoCount} info`
-			: 'All clear'}
-		href={`${baseUrl}/insights`}
 	/>
 	<StorageTile
 		icon={LibraryIcon}
@@ -425,14 +404,7 @@
 	<div class="space-y-4">
 		<!-- Priority Insights -->
 		<div class="space-y-2">
-			<div class="flex items-center justify-between">
-				<h3 class="text-sm font-semibold text-base-content/70">Priority Insights</h3>
-				{#if insights.length > 0}
-					<a href={`${baseUrl}/insights`} class="btn btn-ghost btn-xs gap-1">
-						View all <ChevronRight class="h-3 w-3" />
-					</a>
-				{/if}
-			</div>
+			<h3 class="text-sm font-semibold text-base-content/70">Priority Insights</h3>
 			{#if topInsights.length === 0}
 				<div
 					class="flex items-center gap-2 rounded-lg border border-success/20 bg-success/5 p-3 text-sm text-base-content/60"
@@ -444,7 +416,7 @@
 				{#each topInsights as insight (insight.id)}
 					<button
 						type="button"
-						onclick={() => openInsight(insight)}
+						onclick={() => onOpenInsight?.(insight)}
 						class="flex w-full items-center gap-2.5 rounded-lg border border-base-300 bg-base-200/50 p-2.5 text-left transition-colors hover:bg-base-300/50"
 					>
 						<span
@@ -549,10 +521,3 @@
 		</div>
 	{/if}
 </div>
-
-<InsightDetailModal
-	open={selectedInsight !== null}
-	insight={selectedInsight}
-	onClose={() => (selectedInsight = null)}
-	onDismissed={handleInsightDismissed}
-/>

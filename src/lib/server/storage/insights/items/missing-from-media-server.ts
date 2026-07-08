@@ -1,4 +1,4 @@
-import { storageItems, movies, series } from '$lib/server/db/schema';
+import { storageItems, movies, series, episodeFiles } from '$lib/server/db/schema';
 import { eq, notInArray, and, count, inArray } from 'drizzle-orm';
 import type { InsightItemResolver } from './types.js';
 
@@ -21,7 +21,11 @@ export const missingFromMediaServerResolver: InsightItemResolver = async ({ db, 
 			id: storageItems.id,
 			title: storageItems.title,
 			tmdbId: storageItems.tmdbId,
-			itemType: storageItems.itemType
+			itemType: storageItems.itemType,
+			seriesName: storageItems.seriesName,
+			seasonNumber: storageItems.seasonNumber,
+			episodeNumber: storageItems.episodeNumber,
+			episodeFileId: storageItems.episodeFileId
 		})
 		.from(storageItems)
 		.where(
@@ -33,6 +37,17 @@ export const missingFromMediaServerResolver: InsightItemResolver = async ({ db, 
 		.limit(limit)
 		.offset((page - 1) * limit)
 		.all();
+
+	const episodeFileIds = rows.filter((r) => r.episodeFileId).map((r) => r.episodeFileId!);
+	const episodePathMap = new Map<string, string>();
+	if (episodeFileIds.length > 0) {
+		const efr = db
+			.select({ id: episodeFiles.id, relativePath: episodeFiles.relativePath })
+			.from(episodeFiles)
+			.where(inArray(episodeFiles.id, episodeFileIds))
+			.all();
+		for (const r of efr) episodePathMap.set(r.id, r.relativePath);
+	}
 
 	const movieTmdbIds = rows.filter((r) => r.itemType === 'movie' && r.tmdbId).map((r) => r.tmdbId!);
 	const seriesTmdbIds = rows
@@ -57,20 +72,50 @@ export const missingFromMediaServerResolver: InsightItemResolver = async ({ db, 
 		for (const r of sr) seriesMap.set(r.tmdbId, r.id);
 	}
 
-	return {
-		items: rows.map((row) => ({
+	function buildItem(
+		row: (typeof rows)[number],
+		movieMap: Map<number, string>,
+		seriesMap: Map<number, string>
+	) {
+		const href = row.tmdbId
+			? movieMap.has(row.tmdbId)
+				? `/library/movie/${movieMap.get(row.tmdbId)}`
+				: seriesMap.has(row.tmdbId)
+					? `/library/tv/${seriesMap.get(row.tmdbId)}`
+					: undefined
+			: undefined;
+
+		if (row.itemType === 'movie') {
+			return {
+				id: `mm-${row.id}`,
+				kind: 'movie' as const,
+				title: row.title,
+				badges: [{ label: 'Missing from server', tone: 'info' as const }],
+				href
+			};
+		}
+
+		const seasonLabel = `S${String(row.seasonNumber ?? 0).padStart(2, '0')}`;
+		const episodeLabel = `E${String(row.episodeNumber ?? 0).padStart(2, '0')}`;
+		const seriesTitle = row.seriesName || row.title;
+
+		const epPath = row.episodeFileId ? episodePathMap.get(row.episodeFileId) : null;
+		const epFromPath = epPath
+			? (epPath.split('/').pop() ?? epPath)
+			: `${seasonLabel}${episodeLabel}`;
+
+		return {
 			id: `mm-${row.id}`,
-			kind: row.itemType === 'movie' ? ('movie' as const) : ('series' as const),
-			title: row.title,
+			kind: 'episode' as const,
+			title: epFromPath,
+			subtitle: seriesTitle,
 			badges: [{ label: 'Missing from server', tone: 'info' as const }],
-			href: row.tmdbId
-				? movieMap.has(row.tmdbId)
-					? `/library/movie/${movieMap.get(row.tmdbId)}`
-					: seriesMap.has(row.tmdbId)
-						? `/library/tv/${seriesMap.get(row.tmdbId)}`
-						: undefined
-				: undefined
-		})),
+			href
+		};
+	}
+
+	return {
+		items: rows.map((row) => buildItem(row, movieMap, seriesMap)),
 		total
 	};
 };

@@ -67,7 +67,15 @@ export const migration_v113: MigrationDefinition = {
 			);
 
 			for (const d of defaults) {
-				insert.run(d.id, d.label, d.minWidth, d.minHeight, d.searchTerms, d.isFallback, new Date().toISOString());
+				insert.run(
+					d.id,
+					d.label,
+					d.minWidth,
+					d.minHeight,
+					d.searchTerms,
+					d.isFallback,
+					new Date().toISOString()
+				);
 			}
 
 			logger.info('[migration v113] Created resolution_categories table with defaults');

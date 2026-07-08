@@ -584,9 +584,15 @@ export const libraries = sqliteTable(
 			.notNull()
 			.default(true),
 		sortOrder: integer('sort_order').notNull().default(0),
-	qualityProfileId: text('quality_profile_id').references(() => scoringProfiles.id, { onDelete: 'set null' }),
-	scanMode: text('scan_mode').notNull().default('scheduled'), // 'manual' | 'scheduled' | 'scheduled_daily' | 'watch' (Phase 4)
-	scanConfig: text('scan_config', { mode: 'json' }).$type<{ intervalMinutes?: number; scheduledTime?: string; debounceSeconds?: number }>(),
+		qualityProfileId: text('quality_profile_id').references(() => scoringProfiles.id, {
+			onDelete: 'set null'
+		}),
+		scanMode: text('scan_mode').notNull().default('scheduled'), // 'manual' | 'scheduled' | 'scheduled_daily' | 'watch' (Phase 4)
+		scanConfig: text('scan_config', { mode: 'json' }).$type<{
+			intervalMinutes?: number;
+			scheduledTime?: string;
+			debounceSeconds?: number;
+		}>(),
 		createdAt: text('created_at').$defaultFn(() => new Date().toISOString()),
 		updatedAt: text('updated_at').$defaultFn(() => new Date().toISOString())
 	},
@@ -744,7 +750,7 @@ export const movieFiles = sqliteTable('movie_files', {
 	contentCategory: text('content_category').notNull().default('main'),
 	filenameSignature: text('filename_signature'),
 	contentHash: text('content_hash'),
-	contentHashAlgorithm: text('content_hash_algorithm'),
+	contentHashAlgorithm: text('content_hash_algorithm')
 });
 
 /**
@@ -946,7 +952,7 @@ export const episodeFiles = sqliteTable('episode_files', {
 	contentCategory: text('content_category').notNull().default('main'),
 	filenameSignature: text('filename_signature'),
 	contentHash: text('content_hash'),
-	contentHashAlgorithm: text('content_hash_algorithm'),
+	contentHashAlgorithm: text('content_hash_algorithm')
 });
 
 // ============================================================================
@@ -1025,7 +1031,7 @@ export const unmatchedFiles = sqliteTable('unmatched_files', {
 	contentCategory: text('content_category').notNull().default('main'),
 	filenameSignature: text('filename_signature'),
 	contentHash: text('content_hash'),
-	contentHashAlgorithm: text('content_hash_algorithm'),
+	contentHashAlgorithm: text('content_hash_algorithm')
 });
 
 /**
@@ -1176,7 +1182,9 @@ export const resolutionCategories = sqliteTable('resolution_categories', {
 });
 
 export const duplicateGroupSuppression = sqliteTable('duplicate_group_suppression', {
-	id: text('id').primaryKey().$defaultFn(() => randomUUID()),
+	id: text('id')
+		.primaryKey()
+		.$defaultFn(() => randomUUID()),
 	libraryId: text('library_id').references(() => libraries.id, { onDelete: 'cascade' }),
 	signature: text('signature').notNull(),
 	signatureType: text('signature_type').notNull(),
@@ -1573,9 +1581,15 @@ export const delayProfiles = sqliteTable('delay_profiles', {
 	name: text('name').notNull(),
 	// Order for matching (lower = higher priority)
 	sortOrder: integer('sort_order').notNull().default(0),
-	qualityProfileId: text('quality_profile_id').references(() => scoringProfiles.id, { onDelete: 'set null' }),
+	qualityProfileId: text('quality_profile_id').references(() => scoringProfiles.id, {
+		onDelete: 'set null'
+	}),
 	scanMode: text('scan_mode').notNull().default('scheduled'), // 'manual' | 'scheduled' | 'scheduled_daily' | 'watch' (Phase 4)
-	scanConfig: text('scan_config', { mode: 'json' }).$type<{ intervalMinutes?: number; scheduledTime?: string; debounceSeconds?: number }>(),
+	scanConfig: text('scan_config', { mode: 'json' }).$type<{
+		intervalMinutes?: number;
+		scheduledTime?: string;
+		debounceSeconds?: number;
+	}>(),
 	// Enable/disable
 	enabled: integer('enabled', { mode: 'boolean' }).default(true),
 	// Protocol delays (in minutes, 0 = immediate)

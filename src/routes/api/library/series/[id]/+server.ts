@@ -573,11 +573,11 @@ export const PATCH: RequestHandler = async ({ params, request }) => {
 
 			if (settings.searchOnMonitorEnabled) {
 				// Fire and forget - don't block the response
-				searchOnAdd.searchForMissingEpisodes(params.id).catch((err) => {
+				searchOnAdd.searchForMissingEpisodes(params.id).catch((e: unknown) => {
 					logger.error(
 						{
 							seriesId: params.id,
-							error: err instanceof Error ? err.message : 'Unknown error'
+							error: e instanceof Error ? e.message : 'Unknown error'
 						},
 						'[API] Background search on monitor enable failed'
 					);

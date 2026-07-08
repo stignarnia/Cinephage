@@ -147,6 +147,21 @@ export const load: LayoutServerLoad = async ({ parent }) => {
 		)
 		.all();
 
+	const allInsights = db
+		.select()
+		.from(storageInsights)
+		.orderBy(
+			sql`CASE ${storageInsights.dismissedAt} IS NULL WHEN 0 THEN 0 ELSE 1 END`,
+			sql`CASE ${storageInsights.severity}
+				WHEN 'critical' THEN 0
+				WHEN 'warning' THEN 1
+				WHEN 'info' THEN 2
+				ELSE 3
+			END`,
+			storageInsights.insightType
+		)
+		.all();
+
 	const topItems = db
 		.select({
 			title: mediaServerSyncedItems.title,
@@ -201,6 +216,7 @@ export const load: LayoutServerLoad = async ({ parent }) => {
 		serverStatuses,
 		servers,
 		insights,
+		allInsights,
 		topItems,
 		largestItems
 	};

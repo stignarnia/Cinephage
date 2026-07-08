@@ -113,6 +113,8 @@ import { migration_v113 } from './113-add-resolution-categories.js';
 import { migration_v114 } from './114-add-quality-scaffolding.js';
 import { migration_v115 } from './115-add-scan-mode.js';
 import { migration_v116 } from './116-add-duplicate-detection.js';
+import { migration_v117 } from './117-add-quality-profile-to-delay-profiles.js';
+import { migration_v118 } from './118-add-scan-mode-to-delay-profiles.js';
 
 export const MIGRATIONS: MigrationDefinition[] = [
 	migration_v002,
@@ -228,5 +230,7 @@ export const MIGRATIONS: MigrationDefinition[] = [
 	migration_v113,
 	migration_v114,
 	migration_v115,
-	migration_v116
+	migration_v116,
+	migration_v117,
+	migration_v118
 ];

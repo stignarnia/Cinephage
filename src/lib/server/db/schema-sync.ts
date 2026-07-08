@@ -132,7 +132,7 @@ import {
  * Version 110: Add storage_items, storage_item_server_links, storage_insights tables for unified storage tracking
  * Version 111: Add rename_history table for permanent file rename audit trail
  */
-export const CURRENT_SCHEMA_VERSION = 116;
+export const CURRENT_SCHEMA_VERSION = 118;
 
 export const SYSTEM_LIBRARY_SEEDS = [
 	{
@@ -346,6 +346,7 @@ const TABLE_DEFINITIONS: string[] = [
 		"usenet_delay" integer DEFAULT 0 NOT NULL,
 		"torrent_delay" integer DEFAULT 0 NOT NULL,
 		"quality_delays" text,
+		"quality_profile_id" text REFERENCES "scoring_profiles"("id") ON DELETE SET NULL,
 		"preferred_protocol" text,
 		"tags" text,
 		"bypass_if_highest_quality" integer DEFAULT true,
@@ -385,7 +386,7 @@ const TABLE_DEFINITIONS: string[] = [
 		"min_height" integer NOT NULL DEFAULT 0,
 		"search_terms" text,
 		"is_fallback" integer DEFAULT 0,
-		"created_at" text NOT NULL DEFAULT (datetime(\'now\'))
+		"created_at" text NOT NULL DEFAULT (datetime('now'))
 	)`,
 	`CREATE TABLE IF NOT EXISTS "duplicate_group_suppression" (
 		"id" text PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),

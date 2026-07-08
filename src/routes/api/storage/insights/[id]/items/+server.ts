@@ -1,5 +1,5 @@
 import { json, error } from '@sveltejs/kit';
-import { and, eq, isNull } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { storageInsights } from '$lib/server/db/schema';
 import { requireAuth } from '$lib/server/auth/authorization.js';
@@ -22,14 +22,10 @@ export const GET: RequestHandler = async (event) => {
 		Math.max(1, parseInt(event.url.searchParams.get('limit') ?? '50', 10) || 50)
 	);
 
-	const insight = db
-		.select()
-		.from(storageInsights)
-		.where(and(eq(storageInsights.id, insightId), isNull(storageInsights.dismissedAt)))
-		.get();
+	const insight = db.select().from(storageInsights).where(eq(storageInsights.id, insightId)).get();
 
 	if (!insight) {
-		throw error(404, 'Insight not found or dismissed');
+		throw error(404, 'Insight not found');
 	}
 
 	const resolver = getInsightItemResolver(insight.insightType as InsightType);

@@ -19,7 +19,7 @@ function matchKey(type: string, scope: string, scopeId: string | null | undefine
  * Sync an array of findings into the storage_insights table.
  *
  * - Findings with a matching existing row: update lastDetectedAt, itemCount,
- *   details, title, summary, severity. Preserve dismissedAt/dismissedBy/firstDetectedAt.
+ *   details, title, summary, severity. Clear dismissedAt/dismissedBy on re-detection.
  * - Findings with no match: insert new row.
  * - Existing non-dismissed rows not in findings: delete (issue resolved).
  * - Existing dismissed rows not in findings: keep for audit history.
@@ -51,7 +51,9 @@ export function upsertInsights(findings: InsightFinding[], now: string): void {
 						itemCount: finding.itemCount,
 						reclaimableBytes: finding.reclaimableBytes ?? null,
 						detailsJson: finding.details ? JSON.stringify(finding.details) : null,
-						lastDetectedAt: now
+						lastDetectedAt: now,
+						dismissedAt: null,
+						dismissedBy: null
 					})
 					.where(eq(storageInsights.id, existing.id))
 					.run();

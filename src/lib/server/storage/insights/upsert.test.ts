@@ -62,7 +62,7 @@ describe('upsertInsights', () => {
 		expect(rows[0].dismissedAt).toBeNull();
 	});
 
-	it('updates existing finding (matched by type+scope+scopeId) preserving dismissed state', async () => {
+	it('updates existing finding and clears dismissed state on re-detection', async () => {
 		// Seed an existing dismissed finding
 		await testDb.db.insert(storageInsights).values({
 			id: 'insight-1',
@@ -97,9 +97,9 @@ describe('upsertInsights', () => {
 		expect(rows[0].title).toBe('Updated title');
 		expect(rows[0].itemCount).toBe(7);
 		expect(rows[0].severity).toBe('warning');
-		// Dismissed state preserved
-		expect(rows[0].dismissedAt).toBe('2026-06-02T00:00:00.000Z');
-		expect(rows[0].dismissedBy).toBe('user-1');
+		// Dismissed state cleared on re-detection
+		expect(rows[0].dismissedAt).toBeNull();
+		expect(rows[0].dismissedBy).toBeNull();
 		// firstDetectedAt preserved, lastDetectedAt updated
 		expect(rows[0].firstDetectedAt).toBe('2026-06-01T00:00:00.000Z');
 		expect(rows[0].lastDetectedAt).toBe('2026-07-01T00:00:00.000Z');

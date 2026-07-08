@@ -3,29 +3,6 @@
 	import { invalidateAll } from '$app/navigation';
 	import { createSSE } from '$lib/sse';
 	import { layoutState, deriveMobileSseStatus, type ScanProgressPayload } from '$lib/layout.svelte';
-	import { HardDrive, Library, FolderOpen, Lightbulb, Film } from 'lucide-svelte';
-	import { SettingsTabNav } from '$lib/components/settings';
-	import * as m from '$lib/paraglide/messages.js';
-
-	const navItems = $derived([
-		{ href: '/settings/monitoring/status', label: m.status_dashboard_title(), icon: HardDrive },
-		{
-			href: '/settings/monitoring/status/libraries',
-			label: m.status_libraries_title(),
-			icon: Library
-		},
-		{
-			href: '/settings/monitoring/status/folders',
-			label: m.status_folders_title(),
-			icon: FolderOpen
-		},
-		{
-			href: '/settings/monitoring/status/insights',
-			label: m.status_insights_title(),
-			icon: Lightbulb
-		},
-		{ href: '/settings/monitoring/status/media', label: m.status_media_title(), icon: Film }
-	]);
 
 	type SyncStatusPayload = { inProgress?: boolean };
 	type SyncTransitionPayload = { timestamp?: string };
@@ -33,10 +10,9 @@
 
 	let { children } = $props();
 
-	// Three SSE connections, established once for the whole status area.
-	// They survive sub-page navigation (status -> status/folders -> status/insights)
-	// so progress indicators stay visible and the page refreshes when underlying
-	// data changes - even if the user is on a sibling sub-page when the event fires.
+	// SSE connections that survive the user navigating away from the status
+	// area. Progress indicators stay visible on return, and invalidateAll()
+	// refreshes stale data when background events fire.
 	const scanSse = createSSE<{
 		status: { inProgress?: boolean; isScanning?: boolean } & SyncStatusPayload;
 		progress: ScanProgressPayload;
@@ -145,14 +121,9 @@
 {/snippet}
 
 {#if layoutState.scanInProgress}
-	<!-- Persistent banner shown on all /status/* sub-pages while a scan is in
-	     flight, so the user doesn't lose visibility into ongoing work when they
-	     navigate away from the main dashboard. -->
 	<div class="px-1 pt-4">
 		{@render scanProgressBar()}
 	</div>
 {/if}
-
-<SettingsTabNav {navItems} ariaLabel="Storage maintenance" />
 
 {@render children()}

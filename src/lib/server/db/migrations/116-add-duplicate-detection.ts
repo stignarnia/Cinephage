@@ -12,12 +12,15 @@ export const migration_v116: MigrationDefinition = {
 				for (const col of ['filename_signature', 'content_hash', 'content_hash_algorithm']) {
 					try {
 						sqlite.prepare(`ALTER TABLE "${table}" ADD COLUMN "${col}" text`).run();
-					} catch { /* column may already exist */ }
+					} catch {
+						/* column may already exist */
+					}
 				}
 			}
 			try {
-				sqlite.prepare(
-					`CREATE TABLE IF NOT EXISTS "duplicate_group_suppression" (
+				sqlite
+					.prepare(
+						`CREATE TABLE IF NOT EXISTS "duplicate_group_suppression" (
 						"id" text PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
 						"library_id" text REFERENCES "libraries"("id") ON DELETE CASCADE,
 						"signature" text NOT NULL,
@@ -25,12 +28,15 @@ export const migration_v116: MigrationDefinition = {
 						"dismissed_at" text NOT NULL DEFAULT (datetime('now')),
 						"created_at" text NOT NULL DEFAULT (datetime('now'))
 					)`
-				).run();
+					)
+					.run();
 			} catch {}
 			logger.info('[migration v116] Duplicate detection columns added');
 		} catch (e) {
-			logger.info({ err: e instanceof Error ? e.message : String(e) },
-				'[migration v116] Columns may already exist, skipping');
+			logger.info(
+				{ err: e instanceof Error ? e.message : String(e) },
+				'[migration v116] Columns may already exist, skipping'
+			);
 		}
 	}
 };

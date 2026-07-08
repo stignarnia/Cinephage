@@ -9,15 +9,9 @@ export const migration_v114: MigrationDefinition = {
 	apply: (sqlite) => {
 		try {
 			sqlite
-				.prepare(
-					`ALTER TABLE "scoring_profiles" ADD COLUMN "is_builtin" integer DEFAULT 0`
-				)
+				.prepare(`ALTER TABLE "scoring_profiles" ADD COLUMN "is_builtin" integer DEFAULT 0`)
 				.run();
-			sqlite
-				.prepare(
-					`ALTER TABLE "scoring_profiles" ADD COLUMN "media_type" text`
-				)
-				.run();
+			sqlite.prepare(`ALTER TABLE "scoring_profiles" ADD COLUMN "media_type" text`).run();
 
 			// Seed built-in default profiles if no built-in profiles exist
 			const builtinCount = sqlite
@@ -66,8 +60,10 @@ export const migration_v114: MigrationDefinition = {
 
 			logger.info('[migration v114] Quality scaffolding columns added');
 		} catch (e) {
-			logger.info({ err: e instanceof Error ? e.message : String(e) },
-				'[migration v114] Columns may already exist, skipping');
+			logger.info(
+				{ err: e instanceof Error ? e.message : String(e) },
+				'[migration v114] Columns may already exist, skipping'
+			);
 		}
 	}
 };
