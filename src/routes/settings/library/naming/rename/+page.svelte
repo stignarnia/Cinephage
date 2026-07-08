@@ -38,7 +38,7 @@
 	let activeTab = $state<'willChange' | 'alreadyCorrect' | 'collisions' | 'errors'>('willChange');
 	let mediaTypeFilter = $state<'all' | 'movie' | 'tv'>('all');
 	const hasUnsavedDraft = $derived(page.url.searchParams.get('unsaved') === '1');
-	const returnTo = $derived(page.url.searchParams.get('returnTo') || '/settings/naming');
+	const returnTo = $derived(page.url.searchParams.get('returnTo') || '/settings/library/naming');
 
 	// Load preview on mount
 	let previousMediaTypeFilter = $state<'all' | 'movie' | 'tv' | null>(null);

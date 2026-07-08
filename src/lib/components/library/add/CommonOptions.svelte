@@ -72,7 +72,7 @@
 								: m.common_tvShows().toLowerCase()
 					})}
 				{/if}
-				<a href={resolve('/settings/general/libraries')} class="link"
+				<a href={resolve('/settings/library/libraries')} class="link"
 					>{m.library_add_addOneInSettings()}</a
 				>
 			</span>

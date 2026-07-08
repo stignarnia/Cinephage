@@ -126,7 +126,7 @@
 		<div class="flex flex-wrap items-center gap-1.5">
 			{#if indexer.isBuiltIn}
 				<a
-					href="/settings/integrations/cinephage"
+					href="/settings/system/cinephage"
 					class="link font-bold link-hover inline-flex items-center gap-1"
 				>
 					{indexer.name}
