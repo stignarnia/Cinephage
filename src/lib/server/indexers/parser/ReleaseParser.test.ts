@@ -568,6 +568,28 @@ describe('ReleaseParser', () => {
 			const result = extractReleaseGroup('[www.mkvhome.com] Movie.Title.2023.1080p.mkv');
 			expect(result?.group).not.toBe('wwwmkvhomecom');
 		});
+
+		it('should extract dot-separated, dash-less group via parseRelease', () => {
+			// Regression: dotted scene names with no dash before the group must resolve
+			// the same as their spaced equivalent. parseRelease normalizes separators
+			// before extraction; the activity feed relies on this stored value rather
+			// than re-parsing the raw (separator-sensitive) title at display time.
+			const dotted = parseRelease('Movie.Title.2024.1080p.WEBRip.x264.SPARKS');
+			const spaced = parseRelease('Movie Title 2024 1080p WEBRip x264 SPARKS');
+			expect(dotted.releaseGroup).toBe('SPARKS');
+			expect(spaced.releaseGroup).toBe('SPARKS');
+			expect(dotted.releaseGroup).toBe(spaced.releaseGroup);
+		});
+
+		it('should extract dotted group with a filename extension', () => {
+			const result = parseRelease('Movie.Title.2024.1080p.BluRay.x265.SPARKS.mkv');
+			expect(result.releaseGroup).toBe('SPARKS');
+		});
+
+		it('should return undefined when a title genuinely has no group', () => {
+			const result = parseRelease('Movie.Title.2024.1080p');
+			expect(result.releaseGroup).toBeUndefined();
+		});
 	});
 
 	describe('Edge Cases', () => {

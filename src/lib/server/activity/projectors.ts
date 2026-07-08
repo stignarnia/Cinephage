@@ -1,4 +1,3 @@
-import { extractReleaseGroup } from '$lib/server/indexers/parser/patterns/releaseGroup';
 import type { UnifiedActivity } from '$lib/types/activity';
 import type { MonitoringHistoryRecord } from './types';
 
@@ -147,7 +146,7 @@ export function projectQueueActivity(
 		episodeIds: download.episodeIds ?? undefined,
 		releaseTitle: download.title,
 		quality: download.quality ?? null,
-		releaseGroup: download.releaseGroup ?? extractReleaseGroup(download.title)?.group ?? null,
+		releaseGroup: download.releaseGroup ?? null,
 		size: download.size ?? null,
 		indexerId: download.indexerId ?? null,
 		indexerName: download.indexerName ?? null,

@@ -23,6 +23,7 @@ import { eq, and, inArray, not, notInArray, isNull, isNotNull, lte, desc } from 
 import { getDownloadClientManager } from '../DownloadClientManager';
 import { mapClientPathToLocal } from './PathMapping';
 import { extractInfoHash } from '../utils/hashUtils';
+import { ReleaseParser } from '$lib/server/indexers/parser/ReleaseParser';
 import {
 	cleanupExpiredQueueTombstones,
 	extendQueueTombstonesFromDownloads,
@@ -33,6 +34,8 @@ import {
 import { createChildLogger } from '$lib/logging';
 
 const logger = createChildLogger({ logDomain: 'imports' as const });
+
+const releaseParser = new ReleaseParser();
 import type { BackgroundService, ServiceStatus } from '$lib/server/services/background-service.js';
 import type { IDownloadClient, DownloadInfo } from '../core/interfaces';
 import type { DownloadClient } from '$lib/types/downloadClient';
@@ -2192,6 +2195,13 @@ export class DownloadMonitorService extends EventEmitter implements BackgroundSe
 		const id = randomUUID();
 		const now = new Date().toISOString();
 
+		// Parse the release group once at write time so the activity feed can rely on
+		// the stored value without re-parsing (which is separator-sensitive). Callers
+		// normally supply it; derive from the title as a safety net so the column is
+		// always populated when a group is actually present.
+		const releaseGroup =
+			params.releaseGroup ?? releaseParser.parse(params.title).releaseGroup ?? undefined;
+
 		await db.insert(downloadQueue).values({
 			id,
 			downloadClientId: params.downloadClientId,
@@ -2210,7 +2220,7 @@ export class DownloadMonitorService extends EventEmitter implements BackgroundSe
 			status: 'queued',
 			quality: params.quality,
 			size: params.size,
-			releaseGroup: params.releaseGroup,
+			releaseGroup,
 			addedAt: now,
 			isAutomatic: params.isAutomatic || false,
 			isUpgrade: params.isUpgrade || false

@@ -14,7 +14,6 @@ import { upsertQueueTombstoneFromQueueItem } from '$lib/server/downloadClients/m
 import { getDownloadClientManager } from '$lib/server/downloadClients/DownloadClientManager';
 import { logger } from '$lib/logging';
 import type { SQL } from 'drizzle-orm';
-import { extractReleaseGroup } from '$lib/server/indexers/parser/patterns/releaseGroup';
 import {
 	ActivityDeduplicationService,
 	type ActiveQueueIndex
@@ -808,7 +807,7 @@ export class ActivityService {
 			episodeIds: history.episodeIds ?? undefined,
 			releaseTitle: history.title,
 			quality: history.quality ?? null,
-			releaseGroup: history.releaseGroup ?? extractReleaseGroup(history.title)?.group ?? null,
+			releaseGroup: history.releaseGroup ?? null,
 			size: history.size ?? null,
 			indexerId: history.indexerId ?? null,
 			indexerName: history.indexerName ?? null,
@@ -1611,7 +1610,7 @@ export class ActivityService {
 			episodeIds: history.episodeIds ?? undefined,
 			releaseTitle: history.title,
 			quality: history.quality ?? null,
-			releaseGroup: history.releaseGroup ?? extractReleaseGroup(history.title)?.group ?? null,
+			releaseGroup: history.releaseGroup ?? null,
 			size: history.size ?? null,
 			indexerId: history.indexerId ?? null,
 			indexerName: history.indexerName ?? null,
