@@ -217,6 +217,41 @@
 	</div>
 {/if}
 
+<!-- SCAN STATUS BAR -->
+<div
+	class="mb-4 flex flex-col gap-3 rounded-lg border border-base-300 bg-base-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+>
+	<div class="flex items-center gap-3 text-sm">
+		<span class="inline-block h-2 w-2 rounded-full {getScanTone(storage.health.lastScan?.status)}"
+		></span>
+		{#if storage.health.lastScan}
+			<span class="text-base-content/70">
+				Last scan: <strong class="text-base-content"
+					>{formatTimestamp(
+						storage.health.lastScan.completedAt ?? storage.health.lastScan.startedAt
+					)}</strong
+				>
+			</span>
+		{:else}
+			<span class="text-base-content/50">No scan history</span>
+		{/if}
+	</div>
+	{#if serverStatuses.length > 0}
+		<div class="flex flex-wrap gap-2">
+			{#each serverStatuses as server (server.serverId)}
+				<span class="inline-flex items-center gap-1.5 text-xs text-base-content/70">
+					<span class="badge badge-xs {getServerTypeBadgeClass(server.serverType)}"></span>
+					<span>{server.serverName}</span>
+					<span
+						class="badge badge-xs {getSyncStatusColor(server.lastSyncStatus, server.lastSyncAt)}"
+						>{server.lastSyncStatus ?? 'pending'}</span
+					>
+				</span>
+			{/each}
+		</div>
+	{/if}
+</div>
+
 <!-- KPI TILE GRID -->
 <div class="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-3 sm:gap-4">
 	<StorageTile
@@ -484,39 +519,4 @@
 			</div>
 		{/if}
 	</div>
-</div>
-
-<!-- STATUS FOOTER BAR -->
-<div
-	class="mt-4 flex flex-col gap-3 rounded-lg border border-base-300 bg-base-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
->
-	<div class="flex items-center gap-3 text-sm">
-		<span class="inline-block h-2 w-2 rounded-full {getScanTone(storage.health.lastScan?.status)}"
-		></span>
-		{#if storage.health.lastScan}
-			<span class="text-base-content/70">
-				Last scan: <strong class="text-base-content"
-					>{formatTimestamp(
-						storage.health.lastScan.completedAt ?? storage.health.lastScan.startedAt
-					)}</strong
-				>
-			</span>
-		{:else}
-			<span class="text-base-content/50">No scan history</span>
-		{/if}
-	</div>
-	{#if serverStatuses.length > 0}
-		<div class="flex flex-wrap gap-2">
-			{#each serverStatuses as server (server.serverId)}
-				<span class="inline-flex items-center gap-1.5 text-xs text-base-content/70">
-					<span class="badge badge-xs {getServerTypeBadgeClass(server.serverType)}"></span>
-					<span>{server.serverName}</span>
-					<span
-						class="badge badge-xs {getSyncStatusColor(server.lastSyncStatus, server.lastSyncAt)}"
-						>{server.lastSyncStatus ?? 'pending'}</span
-					>
-				</span>
-			{/each}
-		</div>
-	{/if}
 </div>
