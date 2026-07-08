@@ -8,7 +8,7 @@
 	const navItems = [
 		{
 			href: '/settings/monitoring/status',
-			label: m.settings_general_tabMaintenance(),
+			label: m.settings_monitoring_tabMaintenance(),
 			icon: Activity
 		},
 		{
@@ -25,7 +25,7 @@
 </script>
 
 <div class="flex min-h-full flex-col">
-	<SettingsTabNav {navItems} ariaLabel="Monitoring settings" />
+	<SettingsTabNav {navItems} ariaLabel={m.settings_monitoring_tabsAriaLabel()} />
 
 	<div class="flex-1">
 		{@render children()}

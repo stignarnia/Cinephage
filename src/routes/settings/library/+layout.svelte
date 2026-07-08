@@ -8,17 +8,17 @@
 	const navItems = [
 		{
 			href: '/settings/library/libraries',
-			label: m.settings_general_tabLibraries(),
+			label: m.settings_library_tabLibraries(),
 			icon: Library
 		},
 		{
 			href: '/settings/library/root-folders',
-			label: m.settings_general_tabRootFolders(),
+			label: m.settings_library_tabRootFolders(),
 			icon: FolderOpen
 		},
 		{
 			href: '/settings/library/file-management',
-			label: m.settings_general_tabFileManagement(),
+			label: m.settings_library_tabFileManagement(),
 			icon: FolderSync
 		},
 		{
@@ -40,7 +40,7 @@
 </script>
 
 <div class="flex min-h-full flex-col">
-	<SettingsTabNav {navItems} ariaLabel="Library settings" />
+	<SettingsTabNav {navItems} ariaLabel={m.settings_library_tabsAriaLabel()} />
 
 	<div class="flex-1">
 		{@render children()}

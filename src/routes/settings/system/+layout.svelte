@@ -35,7 +35,7 @@
 </script>
 
 <div class="flex min-h-full flex-col">
-	<SettingsTabNav {navItems} ariaLabel="System settings" />
+	<SettingsTabNav {navItems} ariaLabel={m.settings_system_tabsAriaLabel()} />
 
 	<!-- Page content -->
 	<div class="flex-1">
