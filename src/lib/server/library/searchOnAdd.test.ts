@@ -889,14 +889,22 @@ describe('SearchOnAddService.searchForMissingEpisodes monitoring behavior', () =
 		expect(mocks.searchWithMultiSeasonPriority).not.toHaveBeenCalled();
 		expect(searchForSeasonSpy).not.toHaveBeenCalled();
 		expect(searchForEpisodeSpy).toHaveBeenCalledTimes(2);
-		expect(searchForEpisodeSpy).toHaveBeenNthCalledWith(1, expect.objectContaining({
-			episodeId: 'ep-1',
-			bypassMonitoring: true
-		}), expect.anything());
-		expect(searchForEpisodeSpy).toHaveBeenNthCalledWith(2, expect.objectContaining({
-			episodeId: 'ep-2',
-			bypassMonitoring: true
-		}), expect.anything());
+		expect(searchForEpisodeSpy).toHaveBeenNthCalledWith(
+			1,
+			expect.objectContaining({
+				episodeId: 'ep-1',
+				bypassMonitoring: true
+			}),
+			expect.anything()
+		);
+		expect(searchForEpisodeSpy).toHaveBeenNthCalledWith(
+			2,
+			expect.objectContaining({
+				episodeId: 'ep-2',
+				bypassMonitoring: true
+			}),
+			expect.anything()
+		);
 		expect(result.summary).toEqual({
 			searched: 2,
 			found: 1,
@@ -1078,11 +1086,14 @@ describe('SearchOnAddService.searchForMissingEpisodes monitoring behavior', () =
 
 		expect(mocks.searchWithMultiSeasonPriority).not.toHaveBeenCalled();
 		expect(searchForSeasonSpy).toHaveBeenCalledTimes(1);
-		expect(searchForSeasonSpy).toHaveBeenCalledWith(expect.objectContaining({
-			seriesId: 'series-1',
-			seasonNumber: 1,
-			bypassMonitoring: true
-		}), expect.anything());
+		expect(searchForSeasonSpy).toHaveBeenCalledWith(
+			expect.objectContaining({
+				seriesId: 'series-1',
+				seasonNumber: 1,
+				bypassMonitoring: true
+			}),
+			expect.anything()
+		);
 		expect(searchForEpisodeSpy).not.toHaveBeenCalled();
 		expect(result.summary).toEqual({
 			searched: 2,

@@ -38,10 +38,10 @@ async function insertFolder(id: string, name: string, path: string) {
 		path,
 		mediaType: 'movie',
 		mediaSubType: 'standard',
-		readOnly: 0,
-		isDefault: 0,
-		preserveSymlinks: 0,
-		defaultMonitored: 1,
+		readOnly: false,
+		isDefault: false,
+		preserveSymlinks: false,
+		defaultMonitored: true,
 		createdAt: new Date().toISOString()
 	});
 }

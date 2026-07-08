@@ -30,7 +30,10 @@ import { ReleaseParser } from '$lib/server/indexers/parser/ReleaseParser';
 import { rename, stat } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 import { chooseBestParsedRelease } from './preview-metadata';
-import { getMediaBrowserManager, getMediaBrowserNotifier } from '$lib/server/notifications/mediabrowser';
+import {
+	getMediaBrowserManager,
+	getMediaBrowserNotifier
+} from '$lib/server/notifications/mediabrowser';
 
 // Types are defined in $lib/library/naming/types.ts (outside the server
 // bundle) so .svelte files can import them without pulling server code

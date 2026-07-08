@@ -4,7 +4,11 @@
  */
 
 import { db } from '$lib/server/db';
-import { mediaBrowserServers, mediaServerSyncedItems, type MediaBrowserServerRecord } from '$lib/server/db/schema';
+import {
+	mediaBrowserServers,
+	mediaServerSyncedItems,
+	type MediaBrowserServerRecord
+} from '$lib/server/db/schema';
 import { eq, and, asc } from 'drizzle-orm';
 import { createChildLogger } from '$lib/logging';
 
@@ -323,7 +327,7 @@ class MediaBrowserManager {
 		return servers.map((server) => ({
 			server,
 			client: this.clientCache.get(server.id) ?? this.createClient(server)
-			}));
+		}));
 	}
 
 	/**
@@ -358,8 +362,7 @@ class MediaBrowserManager {
 
 				if (synced.length === 0) continue;
 
-				const client =
-					this.clientCache.get(server.id) ?? this.createClient(server);
+				const client = this.clientCache.get(server.id) ?? this.createClient(server);
 				const ok = await client.deleteItem(synced[0].serverItemId);
 				if (ok) deleted++;
 			} catch (error) {

@@ -5,17 +5,7 @@
 	import { getInsightItems } from '$lib/api/storage.js';
 	import { resolvePath } from '$lib/utils/routing';
 	import type { InsightItem as ApiInsightItem } from '$lib/api/storage.js';
-
-	type Insight = {
-		id: string;
-		insightType: string;
-		severity: 'info' | 'warning' | 'critical';
-		title: string;
-		summary: string | null;
-		reclaimableBytes: number | null;
-		detailsJson: string | null;
-		itemCount: number;
-	};
+	import type { Insight } from './utils.js';
 
 	interface Props {
 		open: boolean;

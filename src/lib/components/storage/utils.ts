@@ -6,6 +6,22 @@ export { formatBytes } from '$lib/utils/format.js';
 export type InsightSeverity = 'info' | 'warning' | 'critical';
 
 /**
+ * Shared client-facing shape for a storage insight, consumed by InsightsPanel,
+ * InsightCard and InsightDetailModal. Kept in sync with the fields these
+ * components read from the `storage_insights` records returned by the page load.
+ */
+export type Insight = {
+	id: string;
+	insightType: string;
+	severity: InsightSeverity;
+	title: string;
+	summary: string | null;
+	reclaimableBytes: number | null;
+	detailsJson: string | null;
+	itemCount: number;
+};
+
+/**
  * Badge classes for each severity, matching the codebase convention:
  * border-X/30 bg-X/10 text-X (fixed in Phase 1 from the broken bg-X/15 pattern).
  */

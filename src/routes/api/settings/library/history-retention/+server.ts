@@ -10,7 +10,6 @@ import { json, error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types.js';
 import { db } from '$lib/server/db/index.js';
 import { librarySettings } from '$lib/server/db/schema.js';
-import { eq } from 'drizzle-orm';
 import { requireAdmin } from '$lib/server/auth/authorization.js';
 import { z } from 'zod';
 

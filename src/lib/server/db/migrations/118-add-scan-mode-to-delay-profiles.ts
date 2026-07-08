@@ -9,7 +9,9 @@ export const migration_v118: MigrationDefinition = {
 	apply: (sqlite) => {
 		try {
 			sqlite
-				.prepare(`ALTER TABLE "delay_profiles" ADD COLUMN "scan_mode" text NOT NULL DEFAULT 'scheduled'`)
+				.prepare(
+					`ALTER TABLE "delay_profiles" ADD COLUMN "scan_mode" text NOT NULL DEFAULT 'scheduled'`
+				)
 				.run();
 			sqlite.prepare(`ALTER TABLE "delay_profiles" ADD COLUMN "scan_config" text`).run();
 

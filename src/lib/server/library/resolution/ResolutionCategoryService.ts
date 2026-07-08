@@ -9,7 +9,7 @@
 
 import { db } from '$lib/server/db/index.js';
 import { resolutionCategories } from '$lib/server/db/schema.js';
-import { eq, asc, and, not } from 'drizzle-orm';
+import { eq, asc } from 'drizzle-orm';
 
 export type ResCategory = typeof resolutionCategories.$inferSelect;
 

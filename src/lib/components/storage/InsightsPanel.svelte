@@ -4,16 +4,7 @@
 	import { SettingsSection } from '$lib/components/ui/settings';
 	import InsightCard from './InsightCard.svelte';
 	import InsightDetailModal from './InsightDetailModal.svelte';
-
-	type Insight = {
-		id: string;
-		insightType: string;
-		severity: 'info' | 'warning' | 'critical';
-		title: string;
-		summary: string | null;
-		reclaimableBytes: number | null;
-		detailsJson: string | null;
-	};
+	import type { Insight } from './utils.js';
 
 	interface Props {
 		insights: Insight[];

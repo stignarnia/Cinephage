@@ -21,13 +21,6 @@ const createSchema = z.object({
 	isFallback: z.boolean().optional()
 });
 
-const updateSchema = z.object({
-	label: z.string().min(1).optional(),
-	minWidth: z.number().int().min(0).optional(),
-	minHeight: z.number().int().min(0).optional(),
-	searchTerms: z.array(z.string()).optional()
-});
-
 export const GET: RequestHandler = async (event) => {
 	const authError = requireAdmin(event);
 	if (authError) return authError;

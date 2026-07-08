@@ -1,15 +1,7 @@
 <script lang="ts">
 	import { X, ChevronRight } from 'lucide-svelte';
 	import { severityBadgeClass, insightTypeLabel, dismissInsight, formatBytes } from './utils.js';
-
-	interface Insight {
-		id: string;
-		insightType: string;
-		severity: 'info' | 'warning' | 'critical';
-		title: string;
-		summary: string | null;
-		reclaimableBytes: number | null;
-	}
+	import type { Insight } from './utils.js';
 
 	interface Props {
 		insight: Insight;

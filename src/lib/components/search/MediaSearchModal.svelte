@@ -30,9 +30,7 @@
 	}: Props = $props();
 
 	/** Resolve the season/episode targeting for a TV grab from the release's parsed episode info. */
-	function resolveTvTarget(
-		release: Release
-	): { seasonNumber?: number; episodeIds?: string[] } {
+	function resolveTvTarget(release: Release): { seasonNumber?: number; episodeIds?: string[] } {
 		const match = release.episodeMatch ?? release.parsed?.episode;
 		let seasonNumber: number | undefined;
 		let episodeIds: string[] | undefined;
@@ -165,17 +163,17 @@
 					release.publishDate instanceof Date
 						? release.publishDate.toISOString()
 						: release.publishDate,
-			...(movieId
-				? { movieId, mediaType: 'movie' as const }
-				: (() => {
-						const target = resolveTvTarget(release);
-						return {
-							seriesId: seriesId!,
-							mediaType: 'tv' as const,
-							seasonNumber: target.seasonNumber,
-							...(target.episodeIds?.length ? { episodeIds: target.episodeIds } : {})
-						};
-					})()),
+				...(movieId
+					? { movieId, mediaType: 'movie' as const }
+					: (() => {
+							const target = resolveTvTarget(release);
+							return {
+								seriesId: seriesId!,
+								mediaType: 'tv' as const,
+								seasonNumber: target.seasonNumber,
+								...(target.episodeIds?.length ? { episodeIds: target.episodeIds } : {})
+							};
+						})()),
 				streamUsenet: streaming && release.protocol === 'usenet',
 				quality: release.parsed
 					? {

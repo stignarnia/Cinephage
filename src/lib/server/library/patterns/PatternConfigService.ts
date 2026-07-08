@@ -7,7 +7,7 @@
 
 import { db } from '$lib/server/db/index.js';
 import { libraryPatternConfig } from '$lib/server/db/schema.js';
-import { eq, isNull } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import {
 	compilePatterns,

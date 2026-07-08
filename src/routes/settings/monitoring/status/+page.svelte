@@ -251,15 +251,15 @@
 			items: InsightItem[];
 			count: number;
 		}[] = [];
-		const seen = new Map<string, number>();
+		const seen: Record<string, number> = {};
 		for (const item of detailItems) {
 			const groupKey = item.subtitle || item.title;
-			const idx = seen.get(groupKey);
+			const idx = seen[groupKey];
 			if (idx !== undefined) {
 				groups[idx].items.push(item);
 				groups[idx].count++;
 			} else {
-				seen.set(groupKey, groups.length);
+				seen[groupKey] = groups.length;
 				groups.push({
 					key: groupKey,
 					label: groupKey,
@@ -344,17 +344,6 @@
 		expandedItemId = null;
 		expandedGroupKey = null;
 		actionLoading.clear();
-	}
-
-	function badgeToneColor(tone: string): string {
-		switch (tone) {
-			case 'critical':
-				return 'border-error/30 bg-error/10 text-error';
-			case 'warn':
-				return 'border-warning/30 bg-warning/10 text-warning';
-			default:
-				return 'border-info/30 bg-info/10 text-info';
-		}
 	}
 
 	const detailPageButtons = $derived.by(() => {

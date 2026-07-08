@@ -92,7 +92,6 @@
 
 	const criticalCount = $derived(insights.filter((i) => i.severity === 'critical').length);
 	const warningCount = $derived(insights.filter((i) => i.severity === 'warning').length);
-	const infoCount = $derived(insights.filter((i) => i.severity === 'info').length);
 
 	const healthStatus = $derived(
 		criticalCount > 0 ? 'error' : warningCount > 0 ? 'warning' : 'success'
